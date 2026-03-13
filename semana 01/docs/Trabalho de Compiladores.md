@@ -1,6 +1,6 @@
 # **Proposta de Trabalho – Compiladores 1**
 
-**Professor:** Sergio Antônio Andrade de Freitas  
+**Professor:** Dr. Sergio Antônio Andrade de Freitas  
 **Contato:** [sergiofreitas@unb.br](mailto:sergiofreitas@unb.br)  
 **Homepage da disciplina:** Teams
 **GitHub da disciplina**: [https://github.com/sergioaafreitas/COMP1](https://github.com/sergioaafreitas/COMP1)
@@ -9,11 +9,11 @@
 
 Durante o semestre, cada equipe desenvolverá um **compilador ou interpretador**, aplicando os conceitos discutidos nas aulas. O projeto visa consolidar os conhecimentos da disciplina, integrando teoria e prática por meio da metodologia **Problem Based Learning (PBL)**. 
 
-O trabalho envolve **planejamento, projeto, implementação e documentação**, indo além da codificação. As decisões tomadas devem ser justificadas.
+O trabalho envolve **planejamento, projeto, implementação, testes e documentação**, indo além da codificação. As decisões tomadas devem ser justificadas.
 
 ## **2. Formação das Equipes e Organização do Trabalho**
 
-- **Equipes de 5 a 6 membros**, formadas pelos estudantes.
+- **Equipes de até 5 membros**, formadas pelos estudantes.
 - **Definição do projeto** (compilador ou interpretador) deve ocorrer rapidamente.
 - **Guias disponíveis no GitHub da disciplina (semana 01):**  
   - Guia – Projeto de um Compilador  
@@ -78,13 +78,8 @@ Todas as informações deverão ser enviadas via formulários cujas informaçõe
 - P2: https://forms.office.com/r/gNG6Eb7e71
 
 Outras informações:
-- O professor compilará automaticamente os dados enviados e montará uma sequência de apresentações.
-- No dia do ponto de controle, cada equipe terá **5 minutos** para expor sua evolução, apenas com elementos informados no formulário.
 - Não haverá ajustes de última hora. Certifiquem-se de que o formulário reflete corretamente o progresso e o planejamento da equipe.
-- A avaliação considerará **a qualidade e consistência dos dados enviados, bem como a clareza da apresentação**.
+- A avaliação considerará **a qualidade e consistência dos dados enviados, bem como a clareza e precisão das respostas dadas pela equipe**.
 - **Somente o líder da equipe deve encaminhar o formulário**. Exceções devem ser previamente comunicadas ao professor.
 
 Este projeto será um desafio técnico e organizacional. A disciplina foi estruturada para aprendizado aplicado, permitindo o desenvolvimento de um produto real ao longo do semestre. O sucesso dependerá do comprometimento, planejamento e colaboração da equipe. Boa sorte e bom desenvolvimento!
-
-**Prof. Sergio Freitas**  
-**Compiladores 1**
