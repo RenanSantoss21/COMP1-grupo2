@@ -68,21 +68,17 @@ for i in range(limite):
 ```csharp
 using System;
 
-class Program {
-    static void saudacao(string nome) {
-        Console.WriteLine("Olá");
-        Console.WriteLine(nome);
-    }
+void saudacao(string nome) {
+    Console.WriteLine("Olá");
+    Console.WriteLine(nome);
+}
 
-    static void Main() {
-        int limite = 5;
-        for (int i = 0; i < limite; i++) {
-            if (i == 3) {
-                saudacao("Visitante");
-            } else {
-                Console.WriteLine(i);
-            }
-        }
+int limite = 5;
+for (int i = 0; i < limite; i++) {
+    if (i == 3) {
+        saudacao("Visitante");
+    } else {
+        Console.WriteLine(i);
     }
 }
 ```
