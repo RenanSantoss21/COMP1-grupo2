@@ -1,0 +1,34 @@
+site_name: Documentação do Compilador Python-C#
+site_description: 'Documentação oficial do projeto de compiladores (Semestre atual).'
+site_author: 'Grupo 2'
+
+theme:
+  name: material
+  language: pt-BR
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Trocar para modo escuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Trocar para modo claro
+
+nav:
+  - Início: index.md
+  - Planejamento:
+    - Especificação da Linguagem: Especificacao_Linguagem.md
