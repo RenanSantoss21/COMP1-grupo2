@@ -32,3 +32,5 @@ nav:
   - Início: index.md
   - Planejamento:
     - Especificação da Linguagem: Especificacao_Linguagem.md
+  - Implementação:
+    - Lexer: Lexer.md

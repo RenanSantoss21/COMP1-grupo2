@@ -60,7 +60,16 @@ extern int yydebug;
     TIMES = 261,                   /* TIMES  */
     DIVIDE = 262,                  /* DIVIDE  */
     LPAREN = 263,                  /* LPAREN  */
-    RPAREN = 264                   /* RPAREN  */
+    RPAREN = 264,                  /* RPAREN  */
+    EQ = 265,                      /* EQ  */
+    NEQ = 266,                     /* NEQ  */
+    GT = 267,                      /* GT  */
+    LT = 268,                      /* LT  */
+    GTE = 269,                     /* GTE  */
+    LTE = 270,                     /* LTE  */
+    ASSIGN = 271,                  /* ASSIGN  */
+    COLON = 272,                   /* COLON  */
+    COMMA = 273                    /* COMMA  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif

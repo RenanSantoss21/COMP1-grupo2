@@ -7,6 +7,7 @@ void yyerror(const char *s);
 %}
 
 %token NUM PLUS MINUS TIMES DIVIDE LPAREN RPAREN
+%token EQ NEQ GT LT GTE LTE ASSIGN COLON COMMA
 
 %%
 
