@@ -1,10 +1,38 @@
 %{
 #include "parser.tab.h"
+#include "tokens.h"
+#include <stdlib.h>
+int indent_stack[100];
+int nivel_atual = 0;
+
+void init_stack() {
+    indent_stack[0] = 0;
+}
+
 %}
 
 %%
 
-[0-9]+          { yylval = atoi(yytext); return NUM; }
+"False" {return FALSE;}
+"True" {return TRUE; }
+"not"  {return NOT; }
+"and" {return AND; }
+"or"  {return OR; }
+"print" {return PRINT; }
+"if" {return IF; }
+"else" {return ELSE; }
+"elif" {return ELIF;}
+"while" {return WHILE; }
+"for" {return FOR; }
+"in" {return IN; }
+"def" {return DEF;}
+"return" {return RETURN;}
+"range" {return RANGE; }
+"input" {return INPUT; }
+
+
+
+
 "+"             { return PLUS; }
 "-"             { return MINUS; }
 "*"             { return TIMES; }
@@ -18,11 +46,43 @@
 "="             { return ASSIGN; }
 "("             { return LPAREN; }
 ")"             { return RPAREN; }
+"["             { return LCOLCH; }
+"]"             { return RCOLCH; }
 ":"             { return COLON; }
 ","             { return COMMA; }
+
 "/*"([^*]|\*+[^*/])*\*+"/" { /* Ignorar comentários em bloco */ }
 "#"[^\n]*       { /* Ignorar comentários de linha */ }
-[ \t\n]+        { /* Ignorar espaços em branco */ }
+
+[a-zA-Z_][a-zA-Z0-9_]* {return ID; }
+[0-9]+          { yylval = atoi(yytext); return NUM; }
+
+/*indentação*/
+\n[ \t]*    {
+    int espacos = yyleng - 1; 
+
+    if (espacos > indent_stack[nivel_atual]) {
+        nivel_atual++;
+        indent_stack[nivel_atual] = espacos;
+        return INDENT; 
+    }
+    
+    else if (espacos < indent_stack[nivel_atual]) {
+        while (nivel_atual > 0 && indent_stack[nivel_atual] > espacos) {
+            nivel_atual--;
+    
+            return DEDENT; 
+        }
+    }
+    
+    else {
+        return NEWLINE; 
+    }
+}
+
+[ \t]+      {  }
+
 .               { printf("Caractere inválido: %s\n", yytext); }
 
 %%
+
