@@ -90,12 +90,13 @@ void init_stack() {
         return INDENT; 
     }
     
+    /* bug fixed: DEDENT multi-nível só emitia um token por causa do return dentro do while */
     else if (espacos < indent_stack[nivel_atual]) {
-        while (nivel_atual > 0 && indent_stack[nivel_atual] > espacos) {
-            nivel_atual--;
-    
-            return DEDENT; 
+        nivel_atual--;
+        if (indent_stack[nivel_atual] > espacos) {
+            yyless(0);
         }
+        return DEDENT;
     }
     
     else {
@@ -106,6 +107,15 @@ void init_stack() {
 [ \t]+      {  }
 
 .               { printf("Caractere inválido: %s\n", yytext); }
+
+ /* bug fixed: DEDENTs pendentes não eram emitidos no final do arquivo */
+<<EOF>> {
+    if (nivel_atual > 0) {
+        nivel_atual--;
+        return DEDENT;
+    }
+    yyterminate();
+}
 
 %%
 
