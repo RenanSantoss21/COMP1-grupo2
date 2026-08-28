@@ -6,30 +6,33 @@ int yylex(void);
 void yyerror(const char *s);
 %}
 
-%token NUM PLUS MINUS TIMES DIVIDE LPAREN RPAREN
-%token EQ NEQ GT LT GTE LTE ASSIGN COLON COMMA
+%union {
+    int ival;
+    double dval;
+    char *sval;
+}
 
-%%
-
-expressao:
-    expressao PLUS expressao
-  | expressao MINUS expressao
-  | expressao TIMES expressao
-  | expressao DIVIDE expressao
-  | LPAREN expressao RPAREN%{
-#include <stdio.h>
-#include <stdlib.h>
-
-int yylex(void);
-void yyerror(const char *s);
-%}
-
-%token NUM ID
+%token <ival> NUM_INT
+%token <dval> NUM_FLOAT
+%token <sval> STRING_LITERAL
+%token ID
 %token PLUS MINUS TIMES DIVIDE LPAREN RPAREN COLON LCOLCH RCOLCH
 %token ASSIGN EQ NEQ GTE LTE GT LT COMMA
 %token IF ELSE ELIF WHILE FOR IN RANGE DEF RETURN PRINT INPUT 
 %token FALSE TRUE NOT AND OR 
 %token INDENT DEDENT NEWLINE
+
+%right ASSIGN
+%left COMMA
+%left OR
+%left AND
+%right NOT
+%nonassoc EQ NEQ GTE LTE GT LT IN
+%left PLUS MINUS
+%left TIMES DIVIDE
+
+%precedence LOWER_THAN_ELSE
+%precedence ELSE ELIF
 
 %%
 
@@ -41,9 +44,9 @@ comandos:
      comando
     |comandos comando
     ;
+
 comando:
       expressao
-
     | IF expressao COLON comando
     | ELSE COLON comando
     | ELIF expressao COLON comando 
@@ -55,7 +58,6 @@ comando:
     ;
 
 expressao:
-
       expressao PLUS expressao
     | expressao MINUS expressao
     | expressao ASSIGN expressao
@@ -68,7 +70,7 @@ expressao:
     | expressao COMMA expressao
     | expressao TIMES expressao
     | expressao DIVIDE expressao
-    | expressao  AND expressao   
+    | expressao AND expressao   
     | expressao OR expressao 
     | NOT expressao 
     | expressao IN expressao
@@ -77,23 +79,11 @@ expressao:
     | INPUT LPAREN RPAREN
     | FALSE
     | TRUE
-    | NUM
+    | NUM_INT
+    | NUM_FLOAT
+    | STRING_LITERAL
     | ID
     ;
-
-%%
-
-void yyerror(const char *s) {
-    fprintf(stderr, "Erro sintático: %s\n", s);
-}
-
-int main(void) {
-    yyparse();
-    return 0;
-}
-
-  | NUM
-  ;
 
 %%
 

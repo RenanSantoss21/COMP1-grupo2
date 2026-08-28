@@ -1,7 +1,7 @@
 %{
 #include "parser.tab.h"
-#include "tokens.h"
 #include <stdlib.h>
+#include <string.h>
 int indent_stack[100];
 int nivel_atual = 0;
 
@@ -54,10 +54,33 @@ void init_stack() {
 "/*"([^*]|\*+[^*/])*\*+"/" { /* Ignorar comentários em bloco */ }
 "#"[^\n]*       { /* Ignorar comentários de linha */ }
 
-[a-zA-Z_][a-zA-Z0-9_]* {return ID; }
-[0-9]+          { yylval = atoi(yytext); return NUM; }
+[a-zA-Z_][a-zA-Z0-9_]* { return ID; }
 
-/*indentação*/
+ /* Literais */
+[0-9]+"."[0-9]*([eE][+-]?[0-9]+)? |
+"."[0-9]+([eE][+-]?[0-9]+)?       | 
+[0-9]+[eE][+-]?[0-9]+             { 
+    yylval.dval = atof(yytext);
+    return NUM_FLOAT; 
+}
+
+[0-9]+ { 
+    yylval.ival = atoi(yytext);
+    return NUM_INT;
+}
+
+ /* Strings */
+\"([^\"\\]|\\.)*\" {
+    yylval.sval = strdup(yytext);
+    return STRING_LITERAL;
+}
+
+\x27([^\x27\\]|\\.)*\x27 {
+    yylval.sval = strdup(yytext);
+    return STRING_LITERAL;
+}
+
+ /* Indentação */
 \n[ \t]*    {
     int espacos = yyleng - 1; 
 
