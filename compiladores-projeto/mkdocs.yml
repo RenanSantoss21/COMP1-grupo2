@@ -34,3 +34,6 @@ nav:
     - Especificação da Linguagem: Especificacao_Linguagem.md
   - Implementação:
     - Lexer: Lexer.md
+    - Parser: Parser.md
+  - Testes:
+    - Relatório de Testes Léxicos: Testes.md
