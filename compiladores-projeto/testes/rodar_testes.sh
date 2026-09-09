@@ -3,6 +3,11 @@
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR/.."
 
+if [ ! -x ./compilador ]; then
+    echo "Executavel './compilador' nao encontrado. Rode 'make' antes dos testes."
+    exit 1
+fi
+
 PASSOU=0
 FALHOU=0
 
@@ -41,19 +46,39 @@ rodar_teste() {
 echo "========================================="
 echo "   Rodando testes do compilador"
 echo "========================================="
-echo ""
 
-echo "--- Testes que devem PASSAR (codigo valido) ---"
+echo ""
+echo "--- Testes LEXICOS que devem PASSAR (codigo valido) ---"
 rodar_teste "testes/Testes1.py" "nao"
 rodar_teste "testes/Testes2.py" "nao"
 rodar_teste "testes/Testes3.py" "nao"
 rodar_teste "testes/Testes4.py" "nao"
 
 echo ""
-echo "--- Testes que devem FALHAR (codigo invalido) ---"
+echo "--- Testes LEXICOS que devem FALHAR (codigo invalido) ---"
 rodar_teste "testes/Testes5.py" "sim"
+
+echo ""
+echo "--- Testes SINTATICOS que devem PASSAR (codigo valido) ---"
+rodar_teste "testes/TestesParser1.py" "nao"
+rodar_teste "testes/TestesParser2.py" "nao"
+rodar_teste "testes/TestesParser3.py" "nao"
+rodar_teste "testes/TestesParser4.py" "nao"
+rodar_teste "testes/TestesParser5.py" "nao"
+
+echo ""
+echo "--- Testes SINTATICOS que devem FALHAR (codigo invalido) ---"
+rodar_teste "testes/TestesParserErro1.py" "sim"
+rodar_teste "testes/TestesParserErro2.py" "sim"
+rodar_teste "testes/TestesParserErro3.py" "sim"
+rodar_teste "testes/TestesParserErro4.py" "sim"
+rodar_teste "testes/TestesParserErro5.py" "sim"
 
 echo ""
 echo "========================================="
 echo "   Resultado: $PASSOU passaram, $FALHOU falharam"
 echo "========================================="
+
+if [ "$FALHOU" -ne 0 ]; then
+    exit 1
+fi
