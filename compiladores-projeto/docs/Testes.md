@@ -1,8 +1,19 @@
-# Relatório de Testes Léxicos
+# Relatório de Testes
 
 ## Visão Geral
 
-Este documento descreve os testes criados para validar o analisador léxico do compilador. Os testes estão organizados em 5 arquivos, sendo 4 com código válido (que devem ser aceitos) e 1 com código inválido (que deve ser rejeitado). Um script de automação (`rodar_testes.sh`) executa todos os testes e exibe o resultado.
+Este documento descreve os testes criados para validar o compilador. Eles estão divididos em dois grupos:
+
+- **Testes léxicos** (`Testes1.py` a `Testes5.py`): cobrem o reconhecimento de tokens.
+- **Testes sintáticos** (`TestesParser*.py`): cobrem as construções da gramática do parser.
+
+São 15 arquivos no total — 9 com código válido (que devem ser aceitos) e 6 com código
+inválido (que devem ser rejeitados). Um script de automação (`rodar_testes.sh`) executa
+todos e exibe o resultado, retornando código de saída diferente de zero se algum falhar.
+
+---
+
+## Parte 1 — Testes Léxicos
 
 ---
 
@@ -111,6 +122,104 @@ Testa que o compilador rejeita corretamente entradas com erros léxicos e sintá
 
 ---
 
+---
+
+## Parte 2 — Testes Sintáticos
+
+Validam a gramática do parser: terminação de comandos por `NEWLINE`, blocos delimitados
+por `INDENT`/`DEDENT`, cadeias `if/elif/else`, laços, funções com parâmetros e chamadas.
+
+### TestesParser1.py — Atribuições e Expressões
+
+| Construção testada | Exemplo no arquivo |
+|---|---|
+| Atribuições simples em linhas separadas | `x = 1`, `y = 2`, `z = 3` |
+| Atribuição múltipla encadeada | `a = b = c = 0` |
+| Literais de todos os tipos | `"Beatriz"`, `'bia'`, `3.14`, `1e10`, `True`, `False` |
+| Operadores aritméticos | `x + y`, `x - y`, `x * y`, `x / y` |
+| Menos unário | `-x` |
+| Precedência e agrupamento | `x + y * z`, `(x + y) * (z - x) / y` |
+| Listas (vazia e com elementos) | `[]`, `[1, 2, 3]`, `[1, "dois", 3.0, True]` |
+| Operadores relacionais e lógicos | `x == y`, `x >= y`, `True and False`, `not True`, `x in lista` |
+| Entrada nativa | `input()` |
+
+**Resultado esperado:** aceito sem erros.
+
+### TestesParser2.py — Condicionais com Blocos Indentados
+
+| Construção testada | Exemplo no arquivo |
+|---|---|
+| `if` isolado | `if x > y:` |
+| `if`/`else` | `else:` com bloco indentado |
+| Cadeia de vários `elif` | `elif x == 2:`, `elif x == 3:` |
+| Bloco com múltiplos comandos | três comandos dentro do mesmo `if` |
+| Condição composta | `if x > 0 and y > 0:` |
+| `if` aninhado com `else` no bloco **interno** | dois níveis de indentação |
+| `if` aninhado com `else` no bloco **externo** | testa o dangling else |
+
+**Resultado esperado:** aceito sem erros.
+
+### TestesParser3.py — Laços com Blocos Indentados
+
+| Construção testada | Exemplo no arquivo |
+|---|---|
+| `while` simples e com corpo múltiplo | `while x > 0:` |
+| `while` com condição composta | `while x > 0 and total < 100:` |
+| `for` com `range` de 1, 2 e 3 argumentos | `range(10)`, `range(1, 10)`, `range(0, 20, 2)` |
+| `range` com expressão | `range(x + 1)` |
+| `while` dentro de `while` | dois níveis |
+| `for` dentro de `for` | dois níveis |
+| `for` dentro de `while` | mistura de laços |
+| `if`/`else` dentro de `while` | condicional dentro de laço |
+
+**Resultado esperado:** aceito sem erros.
+
+### TestesParser4.py — Funções com Parâmetros e Chamadas
+
+| Construção testada | Exemplo no arquivo |
+|---|---|
+| `def` sem parâmetros | `def sem_parametros():` |
+| `def` com 1, 2 e 3 parâmetros | `def tres_parametros(a, b, c):` |
+| `return` com valor e `return` vazio | `return soma`, `return` |
+| Corpo com vários comandos | função com 5 comandos |
+| Chamada como comando | `dois_parametros(1, 2)` |
+| Chamada em atribuição | `r3 = dois_parametros(r1, r2)` |
+| Chamada com expressões como argumento | `tres_parametros(1 + 1, 2 * 2, 3)` |
+| Chamadas aninhadas | `dois_parametros(um_parametro(1), um_parametro(2))` |
+| Chamada dentro de `if`, `while`, `for` e `print` | `print(chama_outra(1, 2))` |
+
+**Resultado esperado:** aceito sem erros.
+
+### TestesParser5.py — Estruturas Aninhadas Complexas
+
+| Cenário testado | Descrição |
+|---|---|
+| `if`/`elif`/`else` dentro de `for` dentro de `def` | três níveis de indentação |
+| `if` dentro de `if` dentro de `for` dentro de `while` dentro de `def` | quatro níveis |
+| `for` → `while` → `if` dentro de função | fechamento de múltiplos `DEDENT` seguidos |
+| `return` em cada ramo de um `if`/`elif`/`else` | dentro de função |
+| Chamadas de função dentro de blocos aninhados no nível global | `print(processa(i))` |
+
+**Resultado esperado:** aceito sem erros.
+
+### TestesParserErro1.py a TestesParserErro5.py — Erros Sintáticos
+
+O `TestesParserErro1.py` reúne os cinco erros exigidos pela issue. Como o Bison **aborta no
+primeiro erro encontrado**, os arquivos `TestesParserErro2.py` a `TestesParserErro5.py`
+isolam os demais casos, garantindo que cada um seja efetivamente exercitado.
+
+| Arquivo | Erro testado | Exemplo | Mensagem |
+|---|---|---|---|
+| Erro1 | `if` sem `:` | `if x > 1` | `Erro sintático na linha 9` |
+| Erro2 | `def` sem `():` | `def soma` | `Erro sintático na linha 4` |
+| Erro3 | `for` sem `in range` | `for i in 10:` | `Erro sintático na linha 3` |
+| Erro4 | Indentação inconsistente | bloco com 4 e depois 2 espaços | `Erro léxico: indentação inconsistente na linha 6` |
+| Erro5 | Parênteses não balanceados | `print(x` | `Erro sintático na linha 5` |
+
+**Resultado esperado:** erro detectado em todos.
+
+---
+
 ## Como Executar
 
 ```bash
@@ -125,16 +234,30 @@ make clean && make
    Rodando testes do compilador
 =========================================
 
---- Testes que devem PASSAR (codigo valido) ---
+--- Testes LEXICOS que devem PASSAR (codigo valido) ---
 [OK]    Testes1.py - aceito com sucesso
 [OK]    Testes2.py - aceito com sucesso
 [OK]    Testes3.py - aceito com sucesso
 [OK]    Testes4.py - aceito com sucesso
 
---- Testes que devem FALHAR (codigo invalido) ---
+--- Testes LEXICOS que devem FALHAR (codigo invalido) ---
 [OK]    Testes5.py - erro detectado como esperado
 
+--- Testes SINTATICOS que devem PASSAR (codigo valido) ---
+[OK]    TestesParser1.py - aceito com sucesso
+[OK]    TestesParser2.py - aceito com sucesso
+[OK]    TestesParser3.py - aceito com sucesso
+[OK]    TestesParser4.py - aceito com sucesso
+[OK]    TestesParser5.py - aceito com sucesso
+
+--- Testes SINTATICOS que devem FALHAR (codigo invalido) ---
+[OK]    TestesParserErro1.py - erro detectado como esperado
+[OK]    TestesParserErro2.py - erro detectado como esperado
+[OK]    TestesParserErro3.py - erro detectado como esperado
+[OK]    TestesParserErro4.py - erro detectado como esperado
+[OK]    TestesParserErro5.py - erro detectado como esperado
+
 =========================================
-   Resultado: 5 passaram, 0 falharam
+   Resultado: 15 passaram, 0 falharam
 =========================================
 ```

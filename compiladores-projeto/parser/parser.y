@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+extern int linha_atual;
+
 int yylex(void);
 void yyerror(const char *s);
 %}
@@ -18,8 +20,8 @@ void yyerror(const char *s);
 %token ID
 %token PLUS MINUS TIMES DIVIDE LPAREN RPAREN COLON LCOLCH RCOLCH
 %token ASSIGN EQ NEQ GTE LTE GT LT COMMA
-%token IF ELSE ELIF WHILE FOR IN RANGE DEF RETURN PRINT INPUT 
-%token FALSE TRUE NOT AND OR 
+%token IF ELSE ELIF WHILE FOR IN RANGE DEF RETURN PRINT INPUT
+%token FALSE TRUE NOT AND OR
 %token INDENT DEDENT NEWLINE
 
 %right ASSIGN
@@ -36,25 +38,66 @@ void yyerror(const char *s);
 
 %%
 
-programa: 
-    comandos
-;
+programa:
+      %empty
+    | comandos
+    ;
 
 comandos:
-     comando
-    |comandos comando
+      comando
+    | comandos comando
     ;
 
 comando:
+      comando_simples NEWLINE
+    | comando_composto
+    ;
+
+ /* Bloco indentado: o NEWLINE fecha a linha do cabeçalho (if/while/def/...),
+    o INDENT abre o bloco e o DEDENT o fecha. */
+bloco:
+      NEWLINE INDENT comandos DEDENT
+    ;
+
+comando_simples:
       expressao
-    | IF expressao COLON comando
-    | ELSE COLON comando
-    | ELIF expressao COLON comando 
-    | WHILE expressao COLON comando 
-    | FOR ID IN RANGE LPAREN expressao RPAREN COLON comando
-    | PRINT LPAREN expressao RPAREN
-    | RETURN expressao 
-    | DEF ID LPAREN  RPAREN COLON comando
+    | RETURN
+    | RETURN expressao
+    | PRINT LPAREN argumentos_opt RPAREN
+    ;
+
+comando_composto:
+      IF expressao COLON bloco lista_elif senao_opt
+    | WHILE expressao COLON bloco
+    | FOR ID IN RANGE LPAREN argumentos_opt RPAREN COLON bloco
+    | DEF ID LPAREN parametros_opt RPAREN COLON bloco
+    ;
+
+lista_elif:
+      %empty
+    | lista_elif ELIF expressao COLON bloco
+    ;
+
+senao_opt:
+      %empty            %prec LOWER_THAN_ELSE
+    | ELSE COLON bloco
+    ;
+
+parametros_opt:
+      %empty
+    | parametros
+    ;
+
+parametros:
+      ID
+    | parametros COMMA ID
+    ;
+
+ /* Uma expressão já cobre listas separadas por vírgula (regra expressao COMMA
+    expressao), então a lista de argumentos é apenas uma expressão opcional. */
+argumentos_opt:
+      %empty
+    | expressao
     ;
 
 expressao:
@@ -70,13 +113,16 @@ expressao:
     | expressao COMMA expressao
     | expressao TIMES expressao
     | expressao DIVIDE expressao
-    | expressao AND expressao   
-    | expressao OR expressao 
-    | NOT expressao 
+    | expressao AND expressao
+    | expressao OR expressao
+    | NOT expressao
     | expressao IN expressao
+    | MINUS expressao %prec NOT
     | LPAREN expressao RPAREN
+    | LCOLCH RCOLCH
     | LCOLCH expressao RCOLCH
-    | INPUT LPAREN RPAREN
+    | INPUT LPAREN argumentos_opt RPAREN
+    | ID LPAREN argumentos_opt RPAREN
     | FALSE
     | TRUE
     | NUM_INT
@@ -88,10 +134,9 @@ expressao:
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Erro sintático: %s\n", s);
+    fprintf(stderr, "Erro sintático na linha %d: %s\n", linha_atual, s);
 }
 
 int main(void) {
-    yyparse();
-    return 0;
+    return yyparse();
 }

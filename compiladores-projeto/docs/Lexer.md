@@ -118,22 +118,39 @@ Seguindo o modelo da linguagem Python, os blocos de código são definidos por n
 
 #### Funcionamento
 
-1. **Ao encontrar uma quebra de linha (`\n`)**, o lexer conta os espaços/tabulações que a seguem.
-2. Se a quantidade de espaços **aumentou** em relação ao nível atual → emite `INDENT` e empilha o novo nível.
-3. Se a quantidade de espaços **diminuiu** → emite `DEDENT` e desempilha. Se houver múltiplos níveis de recuo, o lexer re-injeta o texto com `yyless(0)` para emitir múltiplos `DEDENT` em sequência.
-4. Se a quantidade **permaneceu igual** → emite `NEWLINE` (fim de instrução lógica).
+O lexer gerado pelo Flex é renomeado para `scanner()`; a função `yylex()` chamada pelo
+parser é um invólucro que mantém uma **fila** de tokens de indentação. Isso é necessário
+porque uma única quebra de linha pode gerar vários tokens (`NEWLINE` seguido de um ou
+mais `DEDENT`), e uma regra do Flex só consegue devolver um token por vez.
+
+1. **Ao encontrar uma quebra de linha**, o padrão `\n([ \t]*(#[^\n]*)?\n)*[ \t]*` consome
+   a quebra, todas as **linhas em branco ou somente-comentário** seguintes e a indentação
+   da próxima linha real. Assim linhas vazias nunca afetam a pilha de indentação.
+2. O lexer emite `NEWLINE` (fim da instrução lógica) — mas apenas se a linha lógica
+   produziu algum token real, evitando `NEWLINE` espúrio em linhas vazias.
+3. Em seguida, comparando a indentação com o topo da pilha:
+    - **aumentou** → enfileira um `INDENT` e empilha o novo nível;
+    - **diminuiu** → desempilha, enfileirando um `DEDENT` para cada nível fechado;
+    - **igual** → nada além do `NEWLINE`.
+4. Se, após desempilhar, a coluna não coincidir com nenhum nível da pilha, o lexer reporta
+   `Erro léxico: indentação inconsistente na linha N`.
+
+A ordem entregue ao parser é sempre `NEWLINE` → `INDENT`/`DEDENT`, que é exatamente o
+formato consumido pela regra `bloco: NEWLINE INDENT comandos DEDENT` da gramática.
 
 #### Tratamento de Fim de Arquivo (EOF)
 
-Ao atingir o fim do arquivo, o lexer emite tokens `DEDENT` pendentes para cada nível de indentação ainda aberto na pilha, garantindo que todos os blocos sejam fechados corretamente.
+Ao atingir o fim do arquivo, o lexer emite um `NEWLINE` final (caso a última linha não
+termine com quebra de linha) e depois um `DEDENT` para cada nível ainda aberto na pilha,
+garantindo que todos os blocos sejam fechados corretamente.
 
 #### Exemplo
 
 ```python
-if x > 0:        # NEWLINE
-    print(x)      # INDENT + ... + NEWLINE
-    if x > 10:    # ... + NEWLINE
-        print(y)  # INDENT + ... + DEDENT + DEDENT (ao voltar)
+if x > 0:         # IF ... COLON NEWLINE INDENT
+    print(x)      # PRINT ... NEWLINE
+    if x > 10:    # IF ... COLON NEWLINE INDENT
+        print(y)  # PRINT ... NEWLINE DEDENT DEDENT (no fim do arquivo)
 ```
 
 ### 10. Espaços em Branco
@@ -142,4 +159,4 @@ Espaços e tabulações **no meio de uma linha** (`[ \t]+`) são simplesmente ig
 
 ---
 
-*Qualquer outro caractere não reconhecido pelas regras acima emitirá um aviso de "Caractere inválido".*
+*Qualquer outro caractere não reconhecido pelas regras acima emitirá a mensagem `Erro léxico: caractere inválido '<c>' na linha N`.*

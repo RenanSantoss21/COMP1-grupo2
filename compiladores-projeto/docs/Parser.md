@@ -40,56 +40,93 @@ Além disso, são definidas regras de precedência para resolução do problema 
 #### Programa e Comandos
 
 ```text
-programa → comandos
+programa → ε | comandos
 comandos → comando | comandos comando
+comando  → comando_simples NEWLINE | comando_composto
 ```
 
-O programa é uma sequência de um ou mais comandos.
+Um programa é uma sequência de comandos. Todo **comando simples** é terminado por um
+`NEWLINE`; **comandos compostos** (aqueles que abrem bloco) são terminados pelo `DEDENT`
+do seu próprio bloco.
 
-#### Comando
+#### Blocos Indentados
 
-Um comando pode ser qualquer uma das seguintes construções:
+```text
+bloco → NEWLINE INDENT comandos DEDENT
+```
+
+O `NEWLINE` fecha a linha do cabeçalho (`if`/`while`/`for`/`def`), o `INDENT` abre o bloco
+e o `DEDENT` o fecha. Como os blocos são delimitados por tokens explícitos, o problema do
+**dangling else** deixa de existir: um `else` de bloco externo é sempre precedido pelos
+`DEDENT` correspondentes, então o parser é determinístico (a gramática compila com **zero
+conflitos** shift/reduce).
+
+#### Comando Simples
 
 | Construção | Regra |
 |---|---|
-| Expressão simples | `expressao` |
-| Condicional if | `IF expressao COLON comando` |
-| Bloco else | `ELSE COLON comando` |
-| Bloco elif | `ELIF expressao COLON comando` |
-| Laço while | `WHILE expressao COLON comando` |
-| Laço for | `FOR ID IN RANGE LPAREN expressao RPAREN COLON comando` |
-| Print | `PRINT LPAREN expressao RPAREN` |
-| Return | `RETURN expressao` |
-| Definição de função | `DEF ID LPAREN RPAREN COLON comando` |
+| Expressão (inclui atribuição) | `expressao` |
+| Return sem valor | `RETURN` |
+| Return com valor | `RETURN expressao` |
+| Print | `PRINT LPAREN argumentos_opt RPAREN` |
+
+#### Comando Composto
+
+| Construção | Regra |
+|---|---|
+| Condicional | `IF expressao COLON bloco lista_elif senao_opt` |
+| Cadeia de elif | `lista_elif → ε \| lista_elif ELIF expressao COLON bloco` |
+| Else opcional | `senao_opt → ε \| ELSE COLON bloco` |
+| Laço while | `WHILE expressao COLON bloco` |
+| Laço for | `FOR ID IN RANGE LPAREN argumentos_opt RPAREN COLON bloco` |
+| Definição de função | `DEF ID LPAREN parametros_opt RPAREN COLON bloco` |
+
+#### Parâmetros e Argumentos
+
+```text
+parametros_opt → ε | parametros
+parametros     → ID | parametros COMMA ID
+argumentos_opt → ε | expressao
+```
+
+A lista de argumentos é apenas uma `expressao` opcional porque a própria regra
+`expressao COMMA expressao` já cobre sequências separadas por vírgula.
 
 #### Expressão
 
 Expressões suportam:
 
-- **Operações aritméticas**: `+`, `-`, `*`, `/`
-- **Atribuição**: `=`
+- **Operações aritméticas**: `+`, `-`, `*`, `/` e menos unário (`-x`)
+- **Atribuição**: `=` (associativa à direita, permitindo `a = b = 0`)
 - **Comparações**: `==`, `!=`, `>`, `<`, `>=`, `<=`
 - **Operadores lógicos**: `and`, `or`, `not`, `in`
-- **Agrupamento**: `( )` e `[ ]`
-- **Chamadas nativas**: `input()`
+- **Agrupamento**: `( )`
+- **Listas**: `[ ]` (vazia) e `[ expressao ]`
+- **Chamada de função**: `ID LPAREN argumentos_opt RPAREN`
+- **Entrada nativa**: `INPUT LPAREN argumentos_opt RPAREN`
 - **Literais**: `NUM_INT`, `NUM_FLOAT`, `STRING_LITERAL`, `TRUE`, `FALSE`
 - **Identificadores**: `ID`
-- **Listas com vírgula**: `expressao COMMA expressao`
 
 ## Tratamento de Erros
 
 Quando uma sequência de tokens não corresponde a nenhuma regra da gramática, a função `yyerror()` é chamada, imprimindo:
 
 ```
-Erro sintático: <mensagem>
+Erro sintático na linha <N>: <mensagem>
+```
+
+Erros de indentação são detectados ainda na fase léxica:
+
+```
+Erro léxico: indentação inconsistente na linha <N>
 ```
 
 ## Limitações Atuais
 
-- **Funções sem parâmetros**: A regra `DEF ID LPAREN RPAREN` não suporta lista de parâmetros.
-- **Sem blocos com INDENT/DEDENT**: Os tokens `INDENT`, `DEDENT` e `NEWLINE` são declarados mas ainda não são utilizados nas regras gramaticais para definir blocos de código.
 - **Sem AST**: O parser apenas valida a sintaxe; ainda não constrói uma Árvore Sintática Abstrata (AST).
+- **`for` restrito a `range`**: A regra do `for` exige `in range(...)`; iteração direta sobre listas ainda não é suportada.
+- **Sem análise semântica**: Não há verificação de tipos, escopo ou de variáveis/funções não declaradas.
 
 ---
 
-*A gramática será expandida nas próximas sprints para incluir parâmetros de função, blocos indentados e construção da AST.*
+*A gramática será expandida nas próximas sprints para incluir a construção da AST e a análise semântica.*
