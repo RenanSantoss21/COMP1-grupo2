@@ -43,6 +43,24 @@ rodar_teste() {
     fi
 }
 
+# Verifica a recuperacao de erros: o parser deve reportar TODOS os erros
+# sintaticos do arquivo, e nao apenas o primeiro.
+rodar_teste_recuperacao() {
+    arquivo=$1
+    esperados=$2
+    nome=$(basename "$arquivo")
+
+    obtidos=$(./compilador < "$arquivo" 2>&1 | grep -c "Erro sintático")
+
+    if [ "$obtidos" -eq "$esperados" ]; then
+        echo "[OK]    $nome - $obtidos erros sintaticos reportados"
+        PASSOU=$((PASSOU + 1))
+    else
+        echo "[FALHA] $nome - esperava $esperados erros sintaticos, obteve $obtidos"
+        FALHOU=$((FALHOU + 1))
+    fi
+}
+
 echo "========================================="
 echo "   Rodando testes do compilador"
 echo "========================================="
@@ -73,6 +91,11 @@ rodar_teste "testes/TestesParserErro2.py" "sim"
 rodar_teste "testes/TestesParserErro3.py" "sim"
 rodar_teste "testes/TestesParserErro4.py" "sim"
 rodar_teste "testes/TestesParserErro5.py" "sim"
+
+echo ""
+echo "--- RECUPERACAO de erros (todos os erros devem ser reportados) ---"
+rodar_teste_recuperacao "testes/TestesParserErro1.py" 5
+rodar_teste_recuperacao "testes/Testes5.py" 9
 
 echo ""
 echo "========================================="

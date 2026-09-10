@@ -12,6 +12,16 @@
 
 int linha_atual = 1;
 
+/* Linha do último token entregue ao parser, usada nas mensagens de erro
+   sintático. Não dá para usar linha_atual (nem yylineno): o token NEWLINE
+   consome a quebra de linha, as linhas em branco seguintes e a indentação da
+   próxima linha, então quando o parser reclama do NEWLINE o contador já está
+   apontando para a linha de baixo. */
+int linha_token = 1;
+
+/* Executado antes da ação de toda regra: registra a linha onde o token começa. */
+#define YY_USER_ACTION linha_token = linha_atual;
+
 static int indent_stack[MAX_NIVEIS] = {0};
 static int nivel_atual = 0;
 
@@ -34,6 +44,15 @@ static int fila_vazia(void) { return fila_ini == fila_fim; }
 static int desenfileirar(void) {
     int token = fila[fila_ini++];
     if (fila_ini == fila_fim) fila_ini = fila_fim = 0;
+    return token;
+}
+
+/* Entrega o próximo token da fila ajustando a linha: o INDENT pertence à
+   linha recém-indentada; o DEDENT mantém a linha do último token, onde está
+   o bloco que acabou de ser fechado. */
+static int token_da_fila(void) {
+    int token = desenfileirar();
+    if (token == INDENT) linha_token = linha_atual;
     return token;
 }
 
@@ -113,7 +132,12 @@ static int tratar_fim_de_arquivo(void) {
 ":"             { return COLON; }
 ","             { return COMMA; }
 
-"/*"([^*]|\*+[^*/])*\*+"/" { /* Ignorar comentários em bloco */ }
+"/*"([^*]|\*+[^*/])*\*+"/" {
+    /* Ignorar comentários em bloco, contando as linhas que eles ocupam */
+    int i;
+    for (i = 0; i < yyleng; i++)
+        if (yytext[i] == '\n') linha_atual++;
+}
 "#"[^\n]*       { /* Ignorar comentários de linha */ }
 
 [a-zA-Z_][a-zA-Z0-9_]* { return ID; }
@@ -159,7 +183,7 @@ static int tratar_fim_de_arquivo(void) {
         linha_tem_token = 0;
         return NEWLINE;
     }
-    if (!fila_vazia()) return desenfileirar();
+    if (!fila_vazia()) return token_da_fila();
     /* linha em branco no início do arquivo: nada a emitir */
 }
 
@@ -172,7 +196,7 @@ static int tratar_fim_de_arquivo(void) {
         int token = tratar_fim_de_arquivo();
         if (token) return token;
     }
-    if (!fila_vazia()) return desenfileirar();
+    if (!fila_vazia()) return token_da_fila();
     yyterminate();
 }
 
@@ -183,7 +207,7 @@ static int tratar_fim_de_arquivo(void) {
 int yylex(void) {
     int token;
 
-    if (!fila_vazia()) return desenfileirar();
+    if (!fila_vazia()) return token_da_fila();
 
     token = scanner();
 

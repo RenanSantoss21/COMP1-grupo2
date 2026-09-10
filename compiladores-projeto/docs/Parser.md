@@ -112,8 +112,68 @@ Expressões suportam:
 Quando uma sequência de tokens não corresponde a nenhuma regra da gramática, a função `yyerror()` é chamada, imprimindo:
 
 ```
-Erro sintático na linha <N>: <mensagem>
+Erro sintático na linha <N>: unexpected <TOKEN>, expecting <TOKENS>
 ```
+
+A mensagem vem do modo `%define parse.error verbose` do Bison, que informa o token
+encontrado e (quando são poucos) os tokens esperados; `%define parse.lac full` garante que
+essa lista esteja correta. Exemplo: `def soma` sem parênteses gera
+`Erro sintático na linha 3: unexpected NEWLINE, expecting LPAREN`.
+
+### Número da linha
+
+A linha informada é a do token que causou o erro (variável `linha_token`, mantida pelo
+lexer via `YY_USER_ACTION`). Não usamos `linha_atual` nem `yylineno` porque o token
+`NEWLINE` consome a quebra de linha e a indentação da linha seguinte: quando o parser
+reclama de um `NEWLINE` (o caso mais comum, ex.: `if` sem `:`), esses contadores já
+apontam para a linha de baixo.
+
+### Recuperação de Erros
+
+O parser **não aborta no primeiro erro**: ele se recupera e continua a análise, reportando
+todos os erros em uma única execução. Para isso a gramática usa o token especial `error`
+do Bison:
+
+```text
+comando          → ... | erro_linha
+                       | erro_linha INDENT comandos DEDENT
+                       | erro_indentacao comandos DEDENT
+erro_linha       → error NEWLINE      { yyerrok; yyclearin; }
+erro_indentacao  → error INDENT       { yyerrok; yyclearin; }
+```
+
+Ao detectar um erro, o Bison desempilha estados até um ponto onde um comando pode começar,
+empilha `error` e descarta tokens até encontrar um que continue uma dessas regras:
+
+| Situação | Regra usada | O que acontece |
+|---|---|---|
+| Erro em um comando simples (`y = 1 +`) | `erro_linha` | descarta o resto da linha e segue na próxima |
+| Erro no cabeçalho de um bloco (`if x > 1` sem `:`) | `erro_linha INDENT comandos DEDENT` | descarta o cabeçalho, mas o corpo do bloco é analisado normalmente |
+| Bloco indentado sem cabeçalho (`INDENT` inesperado) | `erro_indentacao comandos DEDENT` | o conteúdo do bloco é analisado normalmente |
+
+- `yyerrok` sai do modo de recuperação imediatamente, para que o próximo erro também seja
+  reportado (sem ele o Bison silencia erros nos 3 tokens seguintes).
+- `yyclearin` descarta o token de lookahead, se houver, para recomeçar com um token novo.
+
+Não há regra `error DEDENT`: o lexer sempre emite o `NEWLINE` antes dos `DEDENT` de uma
+linha, então a sincronização por `NEWLINE` já cobre o fim dos blocos sem consumir o
+`DEDENT` que fecha o bloco externo.
+
+Ao final, se houve algum erro, é impresso um resumo e o compilador sai com código 1
+(com a recuperação, `yyparse()` pode retornar sucesso mesmo após erros, então o código de
+saída é decidido pelo contador `erros_sintaticos`):
+
+```
+Erro sintático na linha 8: unexpected NEWLINE
+Erro sintático na linha 12: unexpected NEWLINE, expecting LPAREN
+Erro sintático na linha 16: unexpected NUM_INT, expecting IN
+...
+5 erro(s) sintático(s) encontrado(s).
+```
+
+O único caso sem recuperação é o fim do arquivo no meio de uma construção (ex.: `if x:`
+na última linha, sem corpo): não há mais tokens para sincronizar, então o erro é reportado
+e a análise termina.
 
 Erros de indentação são detectados ainda na fase léxica:
 

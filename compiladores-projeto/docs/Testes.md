@@ -10,6 +10,8 @@ Este documento descreve os testes criados para validar o compilador. Eles estão
 São 15 arquivos no total — 9 com código válido (que devem ser aceitos) e 6 com código
 inválido (que devem ser rejeitados). Um script de automação (`rodar_testes.sh`) executa
 todos e exibe o resultado, retornando código de saída diferente de zero se algum falhar.
+Dois dos arquivos inválidos também são usados para verificar a **recuperação de erros**
+(todos os erros reportados em uma única execução), totalizando 17 verificações.
 
 ---
 
@@ -204,19 +206,31 @@ por `INDENT`/`DEDENT`, cadeias `if/elif/else`, laços, funções com parâmetros
 
 ### TestesParserErro1.py a TestesParserErro5.py — Erros Sintáticos
 
-O `TestesParserErro1.py` reúne os cinco erros exigidos pela issue. Como o Bison **aborta no
-primeiro erro encontrado**, os arquivos `TestesParserErro2.py` a `TestesParserErro5.py`
-isolam os demais casos, garantindo que cada um seja efetivamente exercitado.
+O `TestesParserErro1.py` reúne os cinco erros exigidos pela issue. Com a **recuperação de
+erros** o parser continua após cada erro e reporta todos eles em uma única execução; os
+arquivos `TestesParserErro2.py` a `TestesParserErro5.py` isolam cada caso individualmente.
 
 | Arquivo | Erro testado | Exemplo | Mensagem |
 |---|---|---|---|
-| Erro1 | `if` sem `:` | `if x > 1` | `Erro sintático na linha 9` |
-| Erro2 | `def` sem `():` | `def soma` | `Erro sintático na linha 4` |
-| Erro3 | `for` sem `in range` | `for i in 10:` | `Erro sintático na linha 3` |
+| Erro1 | os cinco erros abaixo juntos | — | 5 erros sintáticos (linhas 8, 12, 16, 25 e 26) + 1 léxico (linha 22) |
+| Erro2 | `def` sem `():` | `def soma` | `Erro sintático na linha 3: unexpected NEWLINE, expecting LPAREN` |
+| Erro3 | `for` sem `in range` | `for i in 10:` | `Erro sintático na linha 3: unexpected NUM_INT, expecting RANGE` |
 | Erro4 | Indentação inconsistente | bloco com 4 e depois 2 espaços | `Erro léxico: indentação inconsistente na linha 6` |
-| Erro5 | Parênteses não balanceados | `print(x` | `Erro sintático na linha 5` |
+| Erro5 | Parênteses não balanceados | `print(x` | `Erro sintático na linha 4: unexpected NEWLINE` |
 
 **Resultado esperado:** erro detectado em todos.
+
+### Recuperação de Erros
+
+Além de detectar o erro, a suíte verifica que o parser **não aborta no primeiro**: conta as
+linhas `Erro sintático` da saída e compara com o número de erros do arquivo.
+
+| Arquivo | Erros sintáticos esperados |
+|---|---|
+| `TestesParserErro1.py` | 5 |
+| `Testes5.py` | 9 (um por linha inválida; o `@` da linha 1 é erro léxico e também deixa `x =` incompleto) |
+
+**Resultado esperado:** todos os erros reportados em uma única execução.
 
 ---
 
@@ -257,7 +271,11 @@ make clean && make
 [OK]    TestesParserErro4.py - erro detectado como esperado
 [OK]    TestesParserErro5.py - erro detectado como esperado
 
+--- RECUPERACAO de erros (todos os erros devem ser reportados) ---
+[OK]    TestesParserErro1.py - 5 erros sintaticos reportados
+[OK]    Testes5.py - 9 erros sintaticos reportados
+
 =========================================
-   Resultado: 15 passaram, 0 falharam
+   Resultado: 17 passaram, 0 falharam
 =========================================
 ```

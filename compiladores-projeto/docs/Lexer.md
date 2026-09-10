@@ -111,6 +111,8 @@ Os comentários não geram tokens, eles são identificados e **descartados** (ig
 - **Comentários de bloco:** Textos delimitados por `/*` e `*/` podendo se estender por múltiplas linhas.
   - Exemplo: `/* Comentário de bloco */`
   - **Regex:** `"/*"([^*]|\*+[^*/])*\*+"/"`
+  - As quebras de linha dentro do comentário são contadas, para que a numeração das
+    linhas seguintes (usada nas mensagens de erro) continue correta.
 
 ### 9. Controle de Indentação (INDENT / DEDENT / NEWLINE)
 
@@ -156,6 +158,25 @@ if x > 0:         # IF ... COLON NEWLINE INDENT
 ### 10. Espaços em Branco
 
 Espaços e tabulações **no meio de uma linha** (`[ \t]+`) são simplesmente ignorados pelo lexer. Quebras de linha (`\n`) **não são ignoradas**: elas disparam a lógica de indentação descrita acima.
+
+### 11. Número de Linha
+
+O lexer mantém dois contadores:
+
+| Variável | Significado | Usada em |
+|---|---|---|
+| `linha_atual` | linha em que o scanner está lendo agora | erros léxicos |
+| `linha_token` | linha onde começa o último token entregue ao parser | erros sintáticos (`yyerror`) |
+
+Os dois são necessários porque o token `NEWLINE` consome a quebra de linha, as linhas em
+branco seguintes e a indentação da próxima linha. Quando o parser reclama de um `NEWLINE`
+(ex.: `if x > 1` sem `:`), `linha_atual` — e também o `yylineno` do Flex — já aponta para
+a linha de baixo. Por isso as mensagens de erro sintático usam `linha_token`:
+
+- É atualizada automaticamente antes da ação de cada regra, via
+  `#define YY_USER_ACTION linha_token = linha_atual;`.
+- Para tokens da fila de indentação: o `INDENT` recebe a linha recém-indentada; o `DEDENT`
+  mantém a linha do último token, onde está o bloco que acabou de ser fechado.
 
 ---
 

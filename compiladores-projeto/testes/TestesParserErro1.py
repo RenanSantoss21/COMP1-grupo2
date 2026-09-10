@@ -1,8 +1,8 @@
 # TestesParserErro1 - Erros sintaticos (codigo invalido)
 #
-# Este arquivo reune os cinco erros exigidos pela issue. O Bison aborta no
-# PRIMEIRO erro encontrado, entao os arquivos TestesParserErro2..5 isolam os
-# demais casos para que cada um seja de fato exercitado pela suite.
+# Este arquivo reune os cinco erros exigidos pela issue. Com a recuperacao de
+# erros o parser continua depois de cada erro e reporta todos eles numa unica
+# execucao; os arquivos TestesParserErro2..5 isolam cada caso individualmente.
 
 # 1) if sem ':'
 if x > 1
