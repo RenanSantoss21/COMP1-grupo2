@@ -6,4 +6,8 @@ compilador: lexer/lexer.l parser/parser.y
 	gcc -o compilador lex.yy.c parser.tab.c -lfl
 
 clean:
-	rm -f compilador lex.yy.c parser.tab.c parser.tab.h
+	rm -f compilador lex.yy.c parser.tab.c parser.tab.h testes/tdd/teste_tabela
+
+test_tabela: testes/tdd/teste_tabela.c src/tabela.c
+	gcc -o testes/tdd/teste_tabela testes/tdd/teste_tabela.c src/tabela.c
+	./testes/tdd/teste_tabela
