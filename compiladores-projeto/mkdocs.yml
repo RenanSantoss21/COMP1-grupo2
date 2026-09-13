@@ -35,5 +35,6 @@ nav:
   - Implementação:
     - Lexer: Lexer.md
     - Parser: Parser.md
+    - AST: AST.md
   - Testes:
     - Relatório de Testes Léxicos: Testes.md
