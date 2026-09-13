@@ -30,6 +30,8 @@ theme:
 
 nav:
   - Início: index.md
+  - Guias:
+    - Guia do Makefile: Makefile.md
   - Planejamento:
     - Especificação da Linguagem: Especificacao_Linguagem.md
   - Implementação:
