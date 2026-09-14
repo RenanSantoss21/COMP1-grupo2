@@ -4,6 +4,8 @@
 
 #include <string.h>
 #include "src/ast.h"
+#include "src/tabela.h"
+#include "src/semantica.h"
 
 /* Linha do token que o parser está examinando (mantida pelo lexer). */
 extern int linha_token;
@@ -287,10 +289,22 @@ int main(void) {
         return 1;
     }
 
-    /* Critério de aceite final: imprimir a árvore estruturada se o parsing tiver sucesso */
     if (raiz_ast != NULL) {
-        printf("\n--- Árvore Sintática Abstrata Gerada ---\n");
-        imprimir_ast(raiz_ast, 0);
+        // printf("\n--- Árvore Sintática Abstrata Gerada ---\n");
+        // imprimir_ast(raiz_ast, 0);
+        
+        TabelaSimbolos *tabela = tabela_criar();
+        int erros_semanticos = analisar_semantica(raiz_ast, tabela);
+        
+        if (erros_semanticos > 0) {
+            fprintf(stderr, "%d erro(s) semântico(s) encontrado(s).\n", erros_semanticos);
+            return 1;
+        } else {
+            printf("Análise semântica concluída sem erros.\n");
+        }
+        
+        tabela_liberar(tabela);
+        liberar_ast(raiz_ast);
     }
 
     return resultado;

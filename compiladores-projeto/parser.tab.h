@@ -54,29 +54,66 @@ extern int yydebug;
     YYEOF = 0,                     /* "end of file"  */
     YYerror = 256,                 /* error  */
     YYUNDEF = 257,                 /* "invalid token"  */
-    NUM = 258,                     /* NUM  */
-    PLUS = 259,                    /* PLUS  */
-    MINUS = 260,                   /* MINUS  */
-    TIMES = 261,                   /* TIMES  */
-    DIVIDE = 262,                  /* DIVIDE  */
-    LPAREN = 263,                  /* LPAREN  */
-    RPAREN = 264,                  /* RPAREN  */
-    EQ = 265,                      /* EQ  */
-    NEQ = 266,                     /* NEQ  */
-    GT = 267,                      /* GT  */
-    LT = 268,                      /* LT  */
-    GTE = 269,                     /* GTE  */
-    LTE = 270,                     /* LTE  */
+    NUM_INT = 258,                 /* NUM_INT  */
+    NUM_FLOAT = 259,               /* NUM_FLOAT  */
+    STRING_LITERAL = 260,          /* STRING_LITERAL  */
+    ID = 261,                      /* ID  */
+    PLUS = 262,                    /* PLUS  */
+    MINUS = 263,                   /* MINUS  */
+    TIMES = 264,                   /* TIMES  */
+    DIVIDE = 265,                  /* DIVIDE  */
+    LPAREN = 266,                  /* LPAREN  */
+    RPAREN = 267,                  /* RPAREN  */
+    COLON = 268,                   /* COLON  */
+    LCOLCH = 269,                  /* LCOLCH  */
+    RCOLCH = 270,                  /* RCOLCH  */
     ASSIGN = 271,                  /* ASSIGN  */
-    COLON = 272,                   /* COLON  */
-    COMMA = 273                    /* COMMA  */
+    EQ = 272,                      /* EQ  */
+    NEQ = 273,                     /* NEQ  */
+    GTE = 274,                     /* GTE  */
+    LTE = 275,                     /* LTE  */
+    GT = 276,                      /* GT  */
+    LT = 277,                      /* LT  */
+    COMMA = 278,                   /* COMMA  */
+    IF = 279,                      /* IF  */
+    ELSE = 280,                    /* ELSE  */
+    ELIF = 281,                    /* ELIF  */
+    WHILE = 282,                   /* WHILE  */
+    FOR = 283,                     /* FOR  */
+    IN = 284,                      /* IN  */
+    RANGE = 285,                   /* RANGE  */
+    DEF = 286,                     /* DEF  */
+    RETURN = 287,                  /* RETURN  */
+    PRINT = 288,                   /* PRINT  */
+    INPUT = 289,                   /* INPUT  */
+    FALSE = 290,                   /* FALSE  */
+    TRUE = 291,                    /* TRUE  */
+    NOT = 292,                     /* NOT  */
+    AND = 293,                     /* AND  */
+    OR = 294,                      /* OR  */
+    INDENT = 295,                  /* INDENT  */
+    DEDENT = 296,                  /* DEDENT  */
+    NEWLINE = 297,                 /* NEWLINE  */
+    LOWER_THAN_ELSE = 298          /* LOWER_THAN_ELSE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef int YYSTYPE;
+union YYSTYPE
+{
+#line 47 "parser/parser.y"
+
+    int ival;
+    double dval;
+    char *sval;
+    struct noAST *ast;
+
+#line 114 "parser.tab.h"
+
+};
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
