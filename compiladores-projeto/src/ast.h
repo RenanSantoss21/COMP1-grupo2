@@ -57,6 +57,9 @@ typedef struct noAST {
 
     /* Operador para BinOp e UnaryOp */
     int operador;
+    
+    /* Tipo resolvido pela analise semantica */
+    TipoDado tipo_resolvido;
 
     /* Filhos principais */
     struct noAST *condicao;

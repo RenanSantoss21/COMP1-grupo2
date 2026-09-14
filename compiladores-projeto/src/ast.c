@@ -12,6 +12,7 @@ static NoAST *alocar_no(TipoNo tipo, int linha) {
     }
     no->tipo = tipo;
     no->linha = linha;
+    no->tipo_resolvido = TIPO_DESCONHECIDO;
     return no;
 }
 
