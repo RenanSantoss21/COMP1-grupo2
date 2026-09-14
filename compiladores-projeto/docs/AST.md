@@ -161,12 +161,29 @@ Programa
 
 ## Integração com o Parser
 
-A integração da AST com o `parser.y` será feita na fase seguinte. As ações semânticas do Bison chamarão as funções `criar_no_*()` para construir a árvore durante o parsing. Isso envolverá:
+## Integração com o Parser
 
-1. Adicionar `#include "ast.h"` e `NoAST *raiz_ast;` ao prólogo do parser
-2. Expandir o `%union` com o tipo `NoAST *ast`
-3. Declarar `%type <ast>` para cada não-terminal
-4. Adicionar ações `{ $$ = criar_no_*(...); }` em cada regra da gramática
+A integração da AST com o analisador sintático (`parser/parser.y`) foi concluída utilizando ações semânticas do Bison para construir a árvore de baixo para cima (*bottom-up*) durante a análise gramatical. O processo envolveu as seguintes modificações estruturais:
+
+### 1. Configuração Global e Tipagem
+* **Cabeçalhos:** Adição de `#include "src/ast.h"` no prólogo do parser e declaração da variável global `NoAST *raiz_ast;` para armazenar a raiz da árvore completa.
+* **Expansão do `%union`:** Inclusão do ponteiro `struct noAST *ast` no `%union` do Bison para permitir a navegação de nós entre as regras.
+* **Tipagem Dinâmica:** Declaração de `%type <ast>` para todos os não-terminais que representam comandos, expressões ou blocos. O token de identificador foi ajustado para `%token <sval> ID` para transportar o nome das variáveis e funções.
+
+### 2. Ações Semânticas e Construtores
+* Em cada regra gramatical, foram adicionadas ações no formato `{ $$ = criar_no_*(...); }` utilizando a API de construtores.
+* A variável global `linha_token` (gerenciada pelo lexer) foi repassada no último parâmetro de todas as chamadas `criar_no_*` para garantir a rastreabilidade exata em caso de erros semânticos.
+
+### 3. Gerenciamento de Listas Dinâmicas
+Como a análise do Bison é reduzida de baixo para cima, o tamanho final de blocos de código ou listas de argumentos não é conhecido previamente.
+* Foram implementadas as funções auxiliares `criar_lista()` e `adicionar_lista()` no prólogo do `parser.y`.
+* Essas funções utilizam nós genéricos do tipo `NO_BLOCO` temporariamente para acumular o vetor `**argumentos` dinamicamente via `malloc`/`realloc`, repassando-os em seguida para construtores estruturados como `criar_no_if`, `criar_no_print` e `criar_no_funcdef`.
+
+### 4. Integração com o Analisador Léxico
+Para garantir que a árvore receba dados válidos sem gerar falhas de segmentação (*Segmentation Fault*), o analisador léxico (`lexer/lexer.l`) foi atualizado. A regra para identificadores (`ID`) agora realiza a alocação de memória do texto usando `yylval.sval = strdup(yytext);`.
+
+### 5. Saída e Validação
+A função `main()` do compilador invoca `imprimir_ast(raiz_ast, 0)` imediatamente após o sucesso de `yyparse()`, permitindo validar visualmente a estrutura gerada.
 
 ---
 
