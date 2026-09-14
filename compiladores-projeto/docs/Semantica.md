@@ -33,7 +33,19 @@ O motor conta com a função `inferir_tipo`, que percorre a árvore de baixo par
 - **Operações Aritméticas (`+`, `-`, `*`, `/`):** Verifica se os operandos são numéricos, recusando operações com strings ou booleanos. Se a operação envolver um inteiro e um float, o analisador automaticamente **promove** o resultado da expressão para float (`cast` implícito).
 - **Operações Relacionais e Lógicas (`==`, `<`, `and`, etc.):** Comparações verificam a compatibilidade dos operandos (barrando comparação de string com número, por exemplo) e garantem que o nó da AST resultante sempre receba o `TIPO_BOOL`.
 - **Condicionais Estritos (`if` e `while`):** O analisador obriga que a expressão dentro de um laço ou condição seja puramente booleana. Ao contrário de linguagens permissivas (que aceitariam `if "texto"`), nosso compilador exige `TIPO_BOOL` e lança um erro semântico direto se isso for violado.
-- **Funções:** Chamadas de função (`NO_FUNCCALL`) e retornos (`NO_RETURN`) também passam pela inferência para garantir rastreabilidade dos tipos devolvidos e utilizados ao longo do programa.
+- **Funções (Assinatura e Compatibilidade):** Chamadas de função (`NO_FUNCCALL`) não são apenas inferidas, mas passam por uma checagem rigorosa de contrato. O analisador valida se:
+  1. O identificador corresponde a uma função existente.
+  2. A quantidade de argumentos da chamada é idêntica à quantidade de parâmetros cadastrados na Tabela de Símbolos.
+  3. Os tipos de todos os argumentos correspondem às especificações (caso conhecidas).
+  
+## Validação de Contexto de Execução
+
+Alguns comandos da linguagem possuem restrições ligadas ao ambiente onde são criados.
+
+- **Uso do comando `return`:**
+  O analisador semântico controla a flag `dentro_de_funcao` da Tabela de Símbolos. Se um `NO_RETURN` for encontrado no nível global do arquivo (fora de uma definição), o analisador emite imediatamente: `Erro semântico... 'return' fora de função gera erro.`
+- **Consistência do Tipo de Retorno:**
+  Dentro de uma mesma função, se houver múltiplos nós `return` em caminhos de ramificação (ex: `if` / `else`), o analisador assegura que todos devolvam tipos compatíveis, rastreando o `tipo_retorno_atual` na tabela. Qualquer desvio gera um erro de inconsistência de tipo.
 
 ## Testes (TDD)
 

@@ -27,6 +27,7 @@ Cada identificador encontrado no código é armazenado em uma struct `Simbolo`, 
 - `linha_declaracao` (`int`): A linha do código-fonte onde ocorreu a declaração.
 - `e_funcao` (`bool`): `true` se o identificador for uma função, `false` se for variável.
 - `num_parametros` (`int`): O número de argumentos exigidos (se for uma função).
+- `tipos_parametros` (`TipoDado*`): Um array dinâmico guardando os tipos de cada parâmetro (usado na checagem semântica).
 
 ### 3. Tabela (`TabelaSimbolos`)
 
@@ -35,6 +36,8 @@ A estrutura da tabela em si mantém os símbolos e o estado atual do escopo:
 - `array_simbolos`: Um array dinâmico que armazena os símbolos inseridos.
 - `tamanho` / `capacidade`: Variáveis de controle para o redimensionamento automático (`realloc`) do array.
 - `escopo_atual`: Um inteiro que indica a profundidade do bloco de código atual. O escopo global é `0`.
+- `dentro_de_funcao` (`bool`): Flag usada para indicar se o analisador se encontra dentro do escopo de uma definição de função.
+- `tipo_retorno_atual` (`TipoDado`): Rastreia o tipo que a função corrente está devolvendo, para garantir consistência.
 
 ## Operações (API)
 
