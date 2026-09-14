@@ -140,7 +140,10 @@ static int tratar_fim_de_arquivo(void) {
 }
 "#"[^\n]*       { /* Ignorar comentários de linha */ }
 
-[a-zA-Z_][a-zA-Z0-9_]* { return ID; }
+[a-zA-Z_][a-zA-Z0-9_]* { 
+    yylval.sval = strdup(yytext); /* Preenche o yylval.sval com a string copiada */    
+    return ID; 
+}
 
  /* Literais */
 [0-9]+"."[0-9]*([eE][+-]?[0-9]+)? |
