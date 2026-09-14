@@ -38,5 +38,7 @@ nav:
     - Lexer: Lexer.md
     - Parser: Parser.md
     - AST: AST.md
+    - Tabela de Símbolos: TabelaSimbolos.md
+    - Análise Semântica: Semantica.md
   - Testes:
     - Relatório de Testes Léxicos: Testes.md
