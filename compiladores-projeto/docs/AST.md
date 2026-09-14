@@ -57,6 +57,9 @@ typedef struct noAST {
     /* Operador para BinOp e UnaryOp (ex: '+', '-', OP_AND, OP_NOT, etc.) */
     int operador;
 
+    /* Tipo resolvido pela análise semântica (usado na checagem e geração de código) */
+    TipoDado tipo_resolvido;
+
     /* Filhos principais (condição, expressão) */
     struct noAST *condicao;
     struct noAST *esquerda;
@@ -66,7 +69,7 @@ typedef struct noAST {
     struct noAST *bloco_if;
     struct noAST *bloco_else;
 
-    /* Lista encadeada (elif, argumentos, parâmetros, comandos) */
+    /* Lista encadeada/dinâmica (elif, argumentos, parâmetros, comandos) */
     struct noAST **argumentos;
     int num_argumentos;
 
@@ -138,16 +141,16 @@ Cada tipo de nó possui uma função construtora que aloca o nó, inicializa seu
 
 ---
 
-## Exemplo de Saída de `imprimir_ast`
+## Exemplo e Representação Visual
 
-Para o código:
+Para o código de exemplo:
 ```python
 x = 10 + 5
 print(x)
 ```
 
-A saída esperada seria:
-```
+A saída textual de `imprimir_ast` é:
+```text
 Programa
   Assign: x
     BinOp: +
@@ -157,9 +160,27 @@ Programa
     Id: x
 ```
 
----
+E a estrutura em árvore correspondente gerada na memória é:
 
-## Integração com o Parser
+```mermaid
+graph TD
+    Prog["NO_PROGRAMA"]
+    Assign["NO_ASSIGN (x)"]
+    BinOp["NO_BINOP (+)"]
+    N10["NO_NUM_INT (10)"]
+    N5["NO_NUM_INT (5)"]
+    Print["NO_PRINT"]
+    IdX["NO_ID (x)"]
+
+    Prog --> Assign
+    Prog --> Print
+    Assign --> BinOp
+    BinOp --> N10
+    BinOp --> N5
+    Print --> IdX
+```
+
+---
 
 ## Integração com o Parser
 
@@ -183,15 +204,24 @@ Como a análise do Bison é reduzida de baixo para cima, o tamanho final de bloc
 Para garantir que a árvore receba dados válidos sem gerar falhas de segmentação (*Segmentation Fault*), o analisador léxico (`lexer/lexer.l`) foi atualizado. A regra para identificadores (`ID`) agora realiza a alocação de memória do texto usando `yylval.sval = strdup(yytext);`.
 
 ### 5. Saída e Validação
-A função `main()` do compilador invoca `imprimir_ast(raiz_ast, 0)` imediatamente após o sucesso de `yyparse()`, permitindo validar visualmente a estrutura gerada.
+A função `main()` do compilador invoca `imprimir_ast(raiz_ast, 0)` ou repassa a raiz diretamente para a Análise Semântica via `analisar_semantica(raiz_ast, tabela)`.
 
 ---
 
-## Referência
+## Testes Unitários (TDD)
 
+O módulo AST conta com testes unitários em [`testes/tdd/teste_ast.c`](../testes/tdd/teste_ast.c), cobrindo a alocação e verificação de todos os nós, listas encadeadas/dinâmicas e desalocação recursiva de memória.
+
+Para compilar e executar os testes unitários da AST:
+```bash
+make test_ast
+```
+
+---
+
+## Referências
+
+- Implementação: [`src/ast.h`](../src/ast.h) e [`src/ast.c`](../src/ast.c)
+- Suíte de Testes: [`testes/tdd/teste_ast.c`](../testes/tdd/teste_ast.c)
 - Exemplo da disciplina: `Aulas/semana 06/src/ast.h` e `ast.c`
-- Issue de origem: GitHub Issue #7
-
----
-
-*Este módulo será criado na Sprint 3 e será pré-requisito para a análise semântica e geração de código.*
+- Issues relacionadas: #7 (AST) e #19 (Documentação AST e Tabela de Símbolos)
