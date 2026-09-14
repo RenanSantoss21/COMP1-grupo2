@@ -7,6 +7,8 @@ TabelaSimbolos* tabela_criar() {
         tab->escopo_atual = 0;
         tab->tamanho = 0;
         tab->capacidade = 10;
+        tab->dentro_de_funcao = false;
+        tab->tipo_retorno_atual = TIPO_DESCONHECIDO;
         tab->array_simbolos = malloc(sizeof(Simbolo) * tab->capacidade);
     }
     return tab;
@@ -26,6 +28,7 @@ void tabela_inserir(TabelaSimbolos* tab, char* nome, TipoDado tipo, int linha) {
     s->linha_declaracao = linha;
     s->e_funcao = false;
     s->num_parametros = 0;
+    s->tipos_parametros = NULL;
 }
 
 Simbolo* tabela_buscar(TabelaSimbolos* tab, char* nome) {
@@ -43,6 +46,9 @@ void tabela_entrar_escopo(TabelaSimbolos* tab) {
 
 void tabela_sair_escopo(TabelaSimbolos* tab) {
     while (tab->tamanho > 0 && tab->array_simbolos[tab->tamanho - 1].escopo == tab->escopo_atual) {
+        if (tab->array_simbolos[tab->tamanho - 1].tipos_parametros != NULL) {
+            free(tab->array_simbolos[tab->tamanho - 1].tipos_parametros);
+        }
         free(tab->array_simbolos[tab->tamanho - 1].nome);
         tab->tamanho--;
     }
@@ -63,6 +69,9 @@ void tabela_imprimir(TabelaSimbolos* tab) {
 void tabela_liberar(TabelaSimbolos* tab) {
     if (tab != NULL) {
         for (int i = 0; i < tab->tamanho; i++) {
+            if (tab->array_simbolos[i].tipos_parametros != NULL) {
+                free(tab->array_simbolos[i].tipos_parametros);
+            }
             free(tab->array_simbolos[i].nome);
         }
         free(tab->array_simbolos);

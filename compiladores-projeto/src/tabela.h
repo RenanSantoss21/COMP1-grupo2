@@ -11,6 +11,7 @@ typedef struct {
     int linha_declaracao;
     bool e_funcao;
     int num_parametros;
+    TipoDado* tipos_parametros;
 } Simbolo;
 
 typedef struct {
@@ -18,6 +19,8 @@ typedef struct {
     int tamanho;
     int capacidade;
     int escopo_atual;
+    bool dentro_de_funcao;
+    TipoDado tipo_retorno_atual;
 } TabelaSimbolos;
 
 TabelaSimbolos* tabela_criar();

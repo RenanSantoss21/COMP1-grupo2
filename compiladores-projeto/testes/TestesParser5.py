@@ -52,7 +52,8 @@ def com_if_elif_else_aninhado(x, y):
             print(i)
         return y
 
-resultado = classifica([1, 2, 3], 3)
+minha_lista = [1, 2, 3]
+resultado = classifica(minha_lista, 3)
 if resultado > 0:
     for i in range(resultado):
         if i in [0, 1]:

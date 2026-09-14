@@ -78,7 +78,22 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
         }
         case NO_FUNCCALL: {
             Simbolo *sim = tabela_buscar(tabela, raiz->nome);
-            if (sim != NULL) { // Simplificacao
+            if (sim != NULL) {
+                if (!sim->e_funcao) {
+                    fprintf(stderr, "Erro semântico na linha %d: '%s' não é uma função.\n", raiz->linha, raiz->nome);
+                    if (erros) *erros += 1;
+                } else if (raiz->num_argumentos != sim->num_parametros) {
+                    fprintf(stderr, "Erro semântico na linha %d: Número errado de argumentos.\n", raiz->linha);
+                    if (erros) *erros += 1;
+                } else {
+                    for (int i = 0; i < raiz->num_argumentos; i++) {
+                        TipoDado tipo_arg = inferir_tipo(raiz->argumentos[i], tabela, erros);
+                        if (sim->tipos_parametros != NULL && sim->tipos_parametros[i] != TIPO_DESCONHECIDO && sim->tipos_parametros[i] != tipo_arg) {
+                            fprintf(stderr, "Erro semântico na linha %d: Tipos dos argumentos são incompatíveis.\n", raiz->linha);
+                            if (erros) *erros += 1;
+                        }
+                    }
+                }
                 tipo_inferido = sim->tipo;
             } else {
                 fprintf(stderr, "Erro semântico na linha %d: Chamada a função não declarada '%s'.\n", raiz->linha, raiz->nome);
@@ -166,7 +181,18 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
             s = tabela_buscar(tabela, raiz->nome);
             s->e_funcao = true;
             s->num_parametros = raiz->num_argumentos;
+            if (raiz->num_argumentos > 0) {
+                s->tipos_parametros = malloc(sizeof(TipoDado) * raiz->num_argumentos);
+                for (int i = 0; i < raiz->num_argumentos; i++) {
+                    s->tipos_parametros[i] = TIPO_DESCONHECIDO;
+                }
+            }
         }
+        
+        bool escopo_func_anterior = tabela->dentro_de_funcao;
+        TipoDado tipo_ret_anterior = tabela->tipo_retorno_atual;
+        tabela->dentro_de_funcao = true;
+        tabela->tipo_retorno_atual = TIPO_DESCONHECIDO;
         
         tabela_entrar_escopo(tabela);
         if (raiz->argumentos) {
@@ -176,14 +202,53 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
         }
         erros += analisar_semantica(raiz->bloco_if, tabela);
         tabela_sair_escopo(tabela);
+        
+        if (s != NULL) {
+            s->tipo = tabela->tipo_retorno_atual;
+        }
+        
+        tabela->dentro_de_funcao = escopo_func_anterior;
+        tabela->tipo_retorno_atual = tipo_ret_anterior;
+        
         return erros;
     }
     
     if (raiz->tipo == NO_RETURN) {
+        if (!tabela->dentro_de_funcao) {
+            fprintf(stderr, "Erro semântico na linha %d: 'return' fora de função gera erro.\n", raiz->linha);
+            erros += 1;
+        }
+        
+        TipoDado tipo_ret = TIPO_DESCONHECIDO;
         if (raiz->esquerda) {
-            inferir_tipo(raiz->esquerda, tabela, &erros);
+            tipo_ret = inferir_tipo(raiz->esquerda, tabela, &erros);
             erros += analisar_semantica(raiz->esquerda, tabela);
         }
+        
+        if (tabela->dentro_de_funcao) {
+            if (tabela->tipo_retorno_atual == TIPO_DESCONHECIDO) {
+                tabela->tipo_retorno_atual = tipo_ret;
+            } else if (tipo_ret != TIPO_DESCONHECIDO && tabela->tipo_retorno_atual != tipo_ret) {
+                fprintf(stderr, "Erro semântico na linha %d: Tipo do retorno é inconsistente.\n", raiz->linha);
+                erros += 1;
+            }
+        }
+        
+        return erros;
+    }
+    
+    if (raiz->tipo == NO_FOR) {
+        tabela_entrar_escopo(tabela);
+        if (raiz->nome) {
+            tabela_inserir(tabela, raiz->nome, TIPO_INT, raiz->linha);
+        }
+        if (raiz->esquerda) {
+            erros += analisar_semantica(raiz->esquerda, tabela);
+        }
+        if (raiz->bloco_if) {
+            erros += analisar_semantica(raiz->bloco_if, tabela);
+        }
+        tabela_sair_escopo(tabela);
         return erros;
     }
     

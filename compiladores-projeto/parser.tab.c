@@ -2498,8 +2498,6 @@ int main(void) {
         if (erros_semanticos > 0) {
             fprintf(stderr, "%d erro(s) semântico(s) encontrado(s).\n", erros_semanticos);
             return 1;
-        } else {
-            printf("Análise semântica concluída sem erros.\n");
         }
         
         tabela_liberar(tabela);

@@ -1,3 +1,4 @@
+x = 0
 if True:
     if True:
         x = 1
