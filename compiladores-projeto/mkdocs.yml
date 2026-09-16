@@ -33,6 +33,7 @@ nav:
   - Guias:
     - Guia do Makefile: Makefile.md
   - Planejamento:
+    - Sprints e Andamento: Sprints.md
     - Especificação da Linguagem: Especificacao_Linguagem.md
   - Implementação:
     - Lexer: Lexer.md
