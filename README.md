@@ -23,6 +23,17 @@ Demais pastas (como `semana 01` a `semana 06`) contêm exercícios práticos e m
 
 ## ⚙️ Como compilar e executar
 
+### Pré-requisitos
+É necessário ter o **Flex** e o **Bison** instalados no sistema, além das ferramentas básicas (`make` e `gcc`). 
+Em distribuições Linux baseadas em Debian/Ubuntu, você pode instalar com:
+
+```bash
+sudo apt-get update
+sudo apt-get install flex bison build-essential
+```
+
+### Compilação
+
 Todas as operações principais devem ser feitas dentro do diretório do projeto:
 
 ```bash
@@ -70,10 +81,10 @@ make clean
 ```
 ---
 
-## 👤 Integrantes & Funções
+## 👤 Integrantes
 
-* **Arthur Amaral:** Palavras-chave e Identificadores. Responsável por "mapear" o vocabulário da linguagem.
-* **Rafael Schetinger:** Símbolos, Operadores e Comentários. Responsável pela matemática e formatação do código.
-* **Andris:** Literais. Responsável pelos dados que o usuário digita.
-* **Renan Santos:** "Especialista" em Indentação.
-* **Beatriz Brandão:** Testes (Quality Assurance - QA) e Makefile.
+* Arthur Amaral
+* Rafael Schetinger
+* Andris
+* Renan Santos
+* Beatriz Brandão
