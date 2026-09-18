@@ -37,8 +37,16 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
             if (raiz->operador == OP_SOMA || raiz->operador == OP_SUB || 
                 raiz->operador == OP_MULT || raiz->operador == OP_DIV) {
                 
-                if (tipo_esq == TIPO_STRING || tipo_dir == TIPO_STRING || 
-                    tipo_esq == TIPO_BOOL || tipo_dir == TIPO_BOOL) {
+                if (tipo_esq == TIPO_STRING || tipo_dir == TIPO_STRING) {
+                    if (raiz->operador == OP_SOMA &&
+                        tipo_esq == TIPO_STRING && tipo_dir == TIPO_STRING) {
+                        tipo_inferido = TIPO_STRING;
+                    } else {
+                        fprintf(stderr, "Erro semântico na linha %d: Operação aritmética com tipos incompatíveis.\n", raiz->linha);
+                        if (erros) *erros += 1;
+                        tipo_inferido = TIPO_DESCONHECIDO;
+                    }
+                } else if (tipo_esq == TIPO_BOOL || tipo_dir == TIPO_BOOL) {
                     fprintf(stderr, "Erro semântico na linha %d: Operação aritmética com tipos incompatíveis.\n", raiz->linha);
                     if (erros) *erros += 1;
                     tipo_inferido = TIPO_DESCONHECIDO;

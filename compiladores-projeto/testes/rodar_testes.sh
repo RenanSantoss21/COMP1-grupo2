@@ -93,6 +93,18 @@ rodar_teste "testes/TestesParserErro4.py" "sim"
 rodar_teste "testes/TestesParserErro5.py" "sim"
 
 echo ""
+echo "--- Testes SEMANTICOS que devem PASSAR (codigo valido) ---"
+rodar_teste "testes/TestesSemanticaValidos1.py" "nao"
+rodar_teste "testes/TestesSemanticaValidos2.py" "nao"
+rodar_teste "testes/TestesSemanticaValidos3.py" "nao"
+
+echo ""
+echo "--- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---"
+rodar_teste "testes/TestesSemanticaErros1.py" "sim"
+rodar_teste "testes/TestesSemanticaErros2.py" "sim"
+rodar_teste "testes/TestesSemanticaErros3.py" "sim"
+
+echo ""
 echo "--- RECUPERACAO de erros (todos os erros devem ser reportados) ---"
 rodar_teste_recuperacao "testes/TestesParserErro1.py" 5
 rodar_teste_recuperacao "testes/Testes5.py" 9
