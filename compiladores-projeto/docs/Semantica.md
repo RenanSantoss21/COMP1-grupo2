@@ -30,7 +30,7 @@ Além de gerenciar variáveis, o módulo garante a integridade das operações e
 O motor conta com a função `inferir_tipo`, que percorre a árvore de baixo para cima resolvendo as seguintes regras:
 
 - **Literais e Variáveis:** Identifica nativamente se um valor é inteiro, float, string ou booleano, e consulta a Tabela de Símbolos para resgatar o tipo de variáveis sendo utilizadas.
-- **Operações Aritméticas (`+`, `-`, `*`, `/`):** Verifica se os operandos são numéricos, recusando operações com strings ou booleanos. Se a operação envolver um inteiro e um float, o analisador automaticamente **promove** o resultado da expressão para float (`cast` implícito).
+- **Operações Aritméticas (`+`, `-`, `*`, `/`):** Verifica se os operandos são numéricos, recusando operações com booleanos. Se a operação envolver um inteiro e um float, o analisador automaticamente **promove** o resultado da expressão para float (`cast` implícito). O operador `+` também suporta **concatenação de strings**: quando ambos os operandos são do tipo `TIPO_STRING`, o resultado é inferido como `TIPO_STRING`. Operações de subtração, multiplicação ou divisão com strings continuam sendo recusadas.
 - **Operações Relacionais e Lógicas (`==`, `<`, `and`, etc.):** Comparações verificam a compatibilidade dos operandos (barrando comparação de string com número, por exemplo) e garantem que o nó da AST resultante sempre receba o `TIPO_BOOL`.
 - **Condicionais Estritos (`if` e `while`):** O analisador obriga que a expressão dentro de um laço ou condição seja puramente booleana. Ao contrário de linguagens permissivas (que aceitariam `if "texto"`), nosso compilador exige `TIPO_BOOL` e lança um erro semântico direto se isso for violado.
 - **Funções (Assinatura e Compatibilidade):** Chamadas de função (`NO_FUNCCALL`) não são apenas inferidas, mas passam por uma checagem rigorosa de contrato. O analisador valida se:
@@ -47,13 +47,40 @@ Alguns comandos da linguagem possuem restrições ligadas ao ambiente onde são 
 - **Consistência do Tipo de Retorno:**
   Dentro de uma mesma função, se houver múltiplos nós `return` em caminhos de ramificação (ex: `if` / `else`), o analisador assegura que todos devolvam tipos compatíveis, rastreando o `tipo_retorno_atual` na tabela. Qualquer desvio gera um erro de inconsistência de tipo.
 
-## Testes (TDD)
+## Testes
 
-Toda essa implementação foi orientada a testes unitários (TDD). Para consultar e rodar os testes semânticos:
+### Testes Unitários (TDD)
+
+A implementação foi orientada a testes unitários (TDD). Para compilar e rodar os testes unitários semânticos:
 ```bash
 make test_semantica
 ```
 Esses testes simulam árvores AST básicas e atestam que os cenários de sucesso passam e variáveis com escopo incorreto (ou não declaradas) disparam erros precisamente contabilizados pela API.
+
+### Testes de Integração
+
+Além dos testes unitários, foram adicionados **6 testes de integração** que passam código Python real pelo compilador completo (Issue #17). Eles estão organizados na pasta `testes/` e são executados pelo script `rodar_testes.sh`.
+
+**Casos válidos (devem passar sem erros):**
+
+| Arquivo | Cenário Testado |
+|---------|-----------------|
+| `TestesSemanticaValidos1.py` | Atribuição e uso correto de variáveis |
+| `TestesSemanticaValidos2.py` | Operações compatíveis e promoção int→float, concatenação de strings |
+| `TestesSemanticaValidos3.py` | Chamada de função com quantidade correta de argumentos |
+
+**Casos de erro (devem gerar erros semânticos):**
+
+| Arquivo | Cenário Testado |
+|---------|-----------------|
+| `TestesSemanticaErros1.py` | Uso de variável não declarada |
+| `TestesSemanticaErros2.py` | Operação com tipos incompatíveis (string + int) |
+| `TestesSemanticaErros3.py` | Chamada de função com argumentos errados e `return` fora de função |
+
+Para rodar todos os testes do compilador (incluindo semânticos):
+```bash
+./testes/rodar_testes.sh
+```
 
 ## API do Módulo
 

@@ -44,3 +44,5 @@ nav:
   - Testes:
     - Testes Léxicos: Testes_Lexicos.md
     - Testes Sintáticos: Testes_Sintaticos.md
+    - Testes Semânticos: Testes_Semanticos.md
+
