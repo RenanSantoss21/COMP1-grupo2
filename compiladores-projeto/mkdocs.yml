@@ -8,7 +8,6 @@ theme:
   features:
     - navigation.tabs
     - navigation.sections
-    - toc.integrate
     - search.suggest
     - search.highlight
     - content.code.copy
@@ -30,5 +29,20 @@ theme:
 
 nav:
   - Início: index.md
+  - Guias:
+    - Guia do Makefile: Makefile.md
   - Planejamento:
+    - Sprints e Andamento: Sprints.md
+  - Decisões de Design (ADRs):
     - Especificação da Linguagem: Especificacao_Linguagem.md
+  - Implementação:
+    - Lexer: Lexer.md
+    - Parser: Parser.md
+    - AST: AST.md
+    - Tabela de Símbolos: TabelaSimbolos.md
+    - Análise Semântica: Semantica.md
+  - Testes:
+    - Testes Léxicos: Testes_Lexicos.md
+    - Testes Sintáticos: Testes_Sintaticos.md
+    - Testes Semânticos: Testes_Semanticos.md
+

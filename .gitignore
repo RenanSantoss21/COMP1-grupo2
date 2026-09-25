@@ -1,0 +1,17 @@
+node_modules/
+skills-lock.json
+.agents/
+.claude/
+AGENTS.md
+
+lex.yy.c
+parser.tab.c
+parser.tab.h
+
+compilador
+
+testes/tdd/teste_tabela
+testes/tdd/teste_ast
+testes/tdd/teste_semantica
+testes/tdd/_ast_test_output.tmp
+testes/tdd/teste_ast.exe
