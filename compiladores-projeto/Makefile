@@ -1,6 +1,9 @@
 SRC = src/ast.c src/tabela.c src/semantica.c
 HEADERS = src/ast.h src/tabela.h src/tipos.h src/semantica.h
 CFLAGS = -Wall
+ifdef CI
+CFLAGS += -Werror
+endif
 
 all: compilador
 

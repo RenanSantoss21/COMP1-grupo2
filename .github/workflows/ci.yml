@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main, Dev]
+  pull_request:
+    branches: [main, Dev]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: compiladores-projeto
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar dependências (Flex, Bison)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flex bison
+
+      - name: Compilar o projeto
+        run: make clean && make CI=1
+
+      - name: Rodar testes unitários (AST)
+        run: make CI=1 test_ast
+
+      - name: Rodar testes unitários (Tabela de Símbolos)
+        run: make CI=1 test_tabela
+
+      - name: Rodar testes unitários (Semântica)
+        run: make CI=1 test_semantica
+
+      - name: Rodar testes de integração
+        run: make CI=1 test_integracao

@@ -155,6 +155,7 @@ NoAST *criar_no_programa(NoAST **cmds, int n_cmds) {
 }
 
 /* ── Nomes legíveis para tipos de nó (debug) ─────────────────────── */
+/* Função de debug: descomentar quando necessário para depuração da AST.
 static const char *nome_tipo_no(TipoNo tipo) {
     switch (tipo) {
         case NO_NUM_INT:   return "NumInt";
@@ -179,6 +180,7 @@ static const char *nome_tipo_no(TipoNo tipo) {
         default:           return "???";
     }
 }
+*/
 
 static const char *nome_operador(int op) {
     switch (op) {
