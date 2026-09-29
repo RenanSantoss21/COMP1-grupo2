@@ -61,6 +61,26 @@ rodar_teste_recuperacao() {
     fi
 }
 
+# Verifica a analise semantica: o compilador deve reportar exatamente a
+# quantidade esperada de erros semanticos, sem erros lexicos ou sintaticos.
+rodar_teste_semantico() {
+    arquivo=$1
+    esperados=$2
+    nome=$(basename "$arquivo")
+
+    saida=$(./compilador < "$arquivo" 2>&1)
+    obtidos=$(echo "$saida" | grep -c "Erro semântico")
+    outros=$(echo "$saida" | grep -c "Erro sintático\|Erro léxico\|inválido")
+
+    if [ "$obtidos" -eq "$esperados" ] && [ "$outros" -eq 0 ]; then
+        echo "[OK]    $nome - $obtidos erros semanticos reportados"
+        PASSOU=$((PASSOU + 1))
+    else
+        echo "[FALHA] $nome - esperava $esperados erros semanticos, obteve $obtidos (outros erros: $outros)"
+        FALHOU=$((FALHOU + 1))
+    fi
+}
+
 echo "========================================="
 echo "   Rodando testes do compilador"
 echo "========================================="
@@ -108,6 +128,22 @@ echo ""
 echo "--- RECUPERACAO de erros (todos os erros devem ser reportados) ---"
 rodar_teste_recuperacao "testes/TestesParserErro1.py" 5
 rodar_teste_recuperacao "testes/Testes5.py" 9
+
+echo ""
+echo "--- Testes SEMANTICOS que devem PASSAR (codigo valido) ---"
+rodar_teste "testes/TestesSemantico1.py" "nao"
+rodar_teste "testes/TestesSemantico2.py" "nao"
+
+echo ""
+echo "--- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---"
+rodar_teste "testes/teste_semantico.py" "sim"
+rodar_teste "testes/TestesSemanticoErro1.py" "sim"
+rodar_teste "testes/TestesSemanticoErro2.py" "sim"
+
+echo ""
+echo "--- Contagem de erros SEMANTICOS (todos os erros devem ser reportados) ---"
+rodar_teste_semantico "testes/teste_semantico.py" 4
+rodar_teste_semantico "testes/TestesSemanticoErro1.py" 5
 
 echo ""
 echo "========================================="
