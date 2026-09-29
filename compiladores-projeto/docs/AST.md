@@ -1,0 +1,227 @@
+# Árvore Sintática Abstrata (AST)
+
+A Árvore Sintática Abstrata é a representação intermediária produzida pelo parser após validar a sintaxe do código-fonte. Diferentemente da árvore de derivação concreta (parse tree), a AST omite detalhes sintáticos (parênteses, dois-pontos, tokens `NEWLINE`/`INDENT`/`DEDENT`) e retém apenas a estrutura semântica do programa.
+
+## Motivação
+
+O parser atual apenas valida a sintaxe (aceita/rejeita), sem produzir nenhuma representação intermediária. A AST é necessária para que as fases seguintes (análise semântica e geração de código) possam trabalhar sobre uma estrutura de dados bem definida.
+
+## Módulo `ast.h` / `ast.c`
+
+Os arquivos ficam em `src/ast.h` e `src/ast.c`, seguindo o padrão estabelecido por `src/tabela.h` e `src/tabela.c`.
+
+---
+
+## Tipos de Nós (`TipoNo`)
+
+Cada nó da AST tem um tipo que identifica a construção sintática que ele representa. Os tipos são definidos pelo enum `TipoNo`:
+
+| Valor do Enum       | Construção Representada             | Campos Relevantes                                      |
+|----------------------|--------------------------------------|--------------------------------------------------------|
+| `NO_NUM_INT`         | Literal inteiro (`42`)              | `valor_int`                                            |
+| `NO_NUM_FLOAT`       | Literal float (`3.14`)              | `valor_float`                                          |
+| `NO_STRING`          | Literal string (`"olá"`)            | `valor_string`                                         |
+| `NO_BOOL`            | Literal booleano (`True` / `False`) | `valor_int` (1 = True, 0 = False)                      |
+| `NO_ID`              | Identificador (`x`, `soma`)         | `nome`                                                 |
+| `NO_BINOP`           | Operação binária (`a + b`)          | `operador`, `esquerda`, `direita`                      |
+| `NO_UNARYOP`         | Operação unária (`not x`, `-x`)     | `operador`, `esquerda`                                 |
+| `NO_ASSIGN`          | Atribuição (`x = 10`)              | `nome`, `esquerda` (expressão do valor)                |
+| `NO_PRINT`           | `print(expr)`                       | `esquerda` (expressão), `argumentos` (lista)           |
+| `NO_INPUT`           | `input()`                           | `esquerda` (prompt, opcional)                          |
+| `NO_IF`              | `if/elif/else`                      | `condicao`, `bloco_if`, `lista_elif`, `bloco_else`     |
+| `NO_ELIF`            | Cláusula `elif`                     | `condicao`, `bloco_if` (corpo do elif)                 |
+| `NO_WHILE`           | `while cond:`                       | `condicao`, `bloco_if` (corpo do while)                |
+| `NO_FOR`             | `for x in range(n):`               | `nome`, `esquerda` (range_expr), `bloco_if` (corpo)    |
+| `NO_FUNCDEF`         | `def nome(params):`                 | `nome`, `argumentos` (parâmetros), `bloco_if` (corpo)  |
+| `NO_RETURN`          | `return expr`                       | `esquerda` (expressão, pode ser NULL)                  |
+| `NO_FUNCCALL`        | `func(args)`                        | `nome`, `argumentos` (lista de argumentos)             |
+| `NO_BLOCO`           | Bloco de comandos                    | `argumentos` (lista de nós-comando)                    |
+| `NO_PROGRAMA`        | Raiz do programa                     | `argumentos` (lista de comandos top-level)             |
+
+---
+
+## Estrutura do Nó (`NoAST`)
+
+Todos os nós compartilham uma única struct `NoAST` com campos que são usados conforme o `TipoNo`:
+
+```c
+typedef struct noAST {
+    TipoNo tipo;
+
+    /* Literais e identificadores */
+    int    valor_int;
+    double valor_float;
+    char  *valor_string;
+    char  *nome;
+
+    /* Operador para BinOp e UnaryOp (ex: '+', '-', OP_AND, OP_NOT, etc.) */
+    int operador;
+
+    /* Tipo resolvido pela análise semântica (usado na checagem e geração de código) */
+    TipoDado tipo_resolvido;
+
+    /* Filhos principais (condição, expressão) */
+    struct noAST *condicao;
+    struct noAST *esquerda;
+    struct noAST *direita;
+
+    /* Blocos de código */
+    struct noAST *bloco_if;
+    struct noAST *bloco_else;
+
+    /* Lista encadeada/dinâmica (elif, argumentos, parâmetros, comandos) */
+    struct noAST **argumentos;
+    int num_argumentos;
+
+    /* Informação de localização para mensagens de erro */
+    int linha;
+} NoAST;
+```
+
+---
+
+## Operadores (`TipoOperador`)
+
+Operadores binários e unários são representados por um enum separado para evitar ambiguidade com os tokens do Bison:
+
+| Valor              | Operação  |
+|--------------------|-----------|
+| `OP_SOMA`          | `+`       |
+| `OP_SUB`           | `-`       |
+| `OP_MULT`          | `*`       |
+| `OP_DIV`           | `/`       |
+| `OP_EQ`            | `==`      |
+| `OP_NEQ`           | `!=`      |
+| `OP_GT`            | `>`       |
+| `OP_LT`            | `<`       |
+| `OP_GTE`           | `>=`      |
+| `OP_LTE`           | `<=`      |
+| `OP_AND`           | `and`     |
+| `OP_OR`            | `or`      |
+| `OP_NOT`           | `not`     |
+| `OP_NEG`           | `-` (unário) |
+| `OP_IN`            | `in`      |
+
+---
+
+## Funções da API
+
+### Construtores
+
+Cada tipo de nó possui uma função construtora que aloca o nó, inicializa seus campos e retorna o ponteiro:
+
+| Função                                                              | Descrição                          |
+|---------------------------------------------------------------------|------------------------------------|
+| `criar_no_int(int valor, int linha)`                                | Cria nó `NO_NUM_INT`              |
+| `criar_no_float(double valor, int linha)`                           | Cria nó `NO_NUM_FLOAT`            |
+| `criar_no_string(char *valor, int linha)`                           | Cria nó `NO_STRING`               |
+| `criar_no_bool(int valor, int linha)`                               | Cria nó `NO_BOOL`                 |
+| `criar_no_id(char *nome, int linha)`                                | Cria nó `NO_ID`                   |
+| `criar_no_binop(int op, NoAST *esq, NoAST *dir, int linha)`        | Cria nó `NO_BINOP`                |
+| `criar_no_unaryop(int op, NoAST *operando, int linha)`              | Cria nó `NO_UNARYOP`              |
+| `criar_no_assign(char *nome, NoAST *expr, int linha)`               | Cria nó `NO_ASSIGN`               |
+| `criar_no_print(NoAST **args, int num_args, int linha)`             | Cria nó `NO_PRINT`                |
+| `criar_no_input(NoAST *prompt, int linha)`                          | Cria nó `NO_INPUT`                |
+| `criar_no_if(NoAST *cond, NoAST *bloco, NoAST **elifs, int n_elifs, NoAST *else_bloco, int linha)` | Cria nó `NO_IF` |
+| `criar_no_elif(NoAST *cond, NoAST *bloco, int linha)`              | Cria nó `NO_ELIF`                 |
+| `criar_no_while(NoAST *cond, NoAST *bloco, int linha)`             | Cria nó `NO_WHILE`                |
+| `criar_no_for(char *var, NoAST *range, NoAST *bloco, int linha)`   | Cria nó `NO_FOR`                  |
+| `criar_no_funcdef(char *nome, NoAST **params, int n_params, NoAST *bloco, int linha)` | Cria nó `NO_FUNCDEF` |
+| `criar_no_return(NoAST *expr, int linha)`                           | Cria nó `NO_RETURN`               |
+| `criar_no_funccall(char *nome, NoAST **args, int n_args, int linha)` | Cria nó `NO_FUNCCALL`           |
+| `criar_no_bloco(NoAST **cmds, int n_cmds)`                         | Cria nó `NO_BLOCO`                |
+| `criar_no_programa(NoAST **cmds, int n_cmds)`                      | Cria nó `NO_PROGRAMA`             |
+
+### Utilitários
+
+| Função                          | Descrição                                                          |
+|---------------------------------|--------------------------------------------------------------------|
+| `imprimir_ast(NoAST *raiz, int nivel)` | Imprime a árvore formatada com indentação para debug          |
+| `liberar_ast(NoAST *raiz)`             | Libera toda a memória da árvore recursivamente                 |
+
+---
+
+## Exemplo e Representação Visual
+
+Para o código de exemplo:
+```python
+x = 10 + 5
+print(x)
+```
+
+A saída textual de `imprimir_ast` é:
+```text
+Programa
+  Assign: x
+    BinOp: +
+      NumInt: 10
+      NumInt: 5
+  Print
+    Id: x
+```
+
+E a estrutura em árvore correspondente gerada na memória é:
+
+```mermaid
+graph TD
+    Prog["NO_PROGRAMA"]
+    Assign["NO_ASSIGN (x)"]
+    BinOp["NO_BINOP (+)"]
+    N10["NO_NUM_INT (10)"]
+    N5["NO_NUM_INT (5)"]
+    Print["NO_PRINT"]
+    IdX["NO_ID (x)"]
+
+    Prog --> Assign
+    Prog --> Print
+    Assign --> BinOp
+    BinOp --> N10
+    BinOp --> N5
+    Print --> IdX
+```
+
+---
+
+## Integração com o Parser
+
+A integração da AST com o analisador sintático (`parser/parser.y`) foi concluída utilizando ações semânticas do Bison para construir a árvore de baixo para cima (*bottom-up*) durante a análise gramatical. O processo envolveu as seguintes modificações estruturais:
+
+### 1. Configuração Global e Tipagem
+* **Cabeçalhos:** Adição de `#include "src/ast.h"` no prólogo do parser e declaração da variável global `NoAST *raiz_ast;` para armazenar a raiz da árvore completa.
+* **Expansão do `%union`:** Inclusão do ponteiro `struct noAST *ast` no `%union` do Bison para permitir a navegação de nós entre as regras.
+* **Tipagem Dinâmica:** Declaração de `%type <ast>` para todos os não-terminais que representam comandos, expressões ou blocos. O token de identificador foi ajustado para `%token <sval> ID` para transportar o nome das variáveis e funções.
+
+### 2. Ações Semânticas e Construtores
+* Em cada regra gramatical, foram adicionadas ações no formato `{ $$ = criar_no_*(...); }` utilizando a API de construtores.
+* A variável global `linha_token` (gerenciada pelo lexer) foi repassada no último parâmetro de todas as chamadas `criar_no_*` para garantir a rastreabilidade exata em caso de erros semânticos.
+
+### 3. Gerenciamento de Listas Dinâmicas
+Como a análise do Bison é reduzida de baixo para cima, o tamanho final de blocos de código ou listas de argumentos não é conhecido previamente.
+* Foram implementadas as funções auxiliares `criar_lista()` e `adicionar_lista()` no prólogo do `parser.y`.
+* Essas funções utilizam nós genéricos do tipo `NO_BLOCO` temporariamente para acumular o vetor `**argumentos` dinamicamente via `malloc`/`realloc`, repassando-os em seguida para construtores estruturados como `criar_no_if`, `criar_no_print` e `criar_no_funcdef`.
+
+### 4. Integração com o Analisador Léxico
+Para garantir que a árvore receba dados válidos sem gerar falhas de segmentação (*Segmentation Fault*), o analisador léxico (`lexer/lexer.l`) foi atualizado. A regra para identificadores (`ID`) agora realiza a alocação de memória do texto usando `yylval.sval = strdup(yytext);`.
+
+### 5. Saída e Validação
+A função `main()` do compilador invoca `imprimir_ast(raiz_ast, 0)` ou repassa a raiz diretamente para a Análise Semântica via `analisar_semantica(raiz_ast, tabela)`.
+
+---
+
+## Testes Unitários (TDD)
+
+O módulo AST conta com testes unitários em [`testes/tdd/teste_ast.c`](../testes/tdd/teste_ast.c), cobrindo a alocação e verificação de todos os nós, listas encadeadas/dinâmicas e desalocação recursiva de memória.
+
+Para compilar e executar os testes unitários da AST:
+```bash
+make test_ast
+```
+
+---
+
+## Referências
+
+- Implementação: [`src/ast.h`](../src/ast.h) e [`src/ast.c`](../src/ast.c)
+- Suíte de Testes: [`testes/tdd/teste_ast.c`](../testes/tdd/teste_ast.c)
+- Exemplo da disciplina: `Aulas/semana 06/src/ast.h` e `ast.c`
+- Issues relacionadas: #7 (AST) e #19 (Documentação AST e Tabela de Símbolos)
