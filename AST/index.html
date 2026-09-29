@@ -1,0 +1,1943 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentação oficial do projeto de compiladores (Semestre atual).">
+      
+      
+        <meta name="author" content="Grupo 2">
+      
+      
+      
+        <link rel="prev" href="../Parser/">
+      
+      
+        <link rel="next" href="../TabelaSimbolos/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>AST - Documentação do Compilador Python-C#</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#arvore-sintatica-abstrata-ast" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="Documentação do Compilador Python-C#" class="md-header__button md-logo" aria-label="Documentação do Compilador Python-C#" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Documentação do Compilador Python-C#
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              AST
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Trocar para modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Trocar para modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Trocar para modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Trocar para modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Início
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Makefile/" class="md-tabs__link">
+          
+  
+  
+  Guias
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Sprints/" class="md-tabs__link">
+          
+  
+  
+  Planejamento
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Especificacao_Linguagem/" class="md-tabs__link">
+          
+  
+  
+  Decisões de Design (ADRs)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../Lexer/" class="md-tabs__link">
+          
+  
+  
+  Implementação
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Testes_Lexicos/" class="md-tabs__link">
+          
+  
+  
+  Testes
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Documentação do Compilador Python-C#" class="md-nav__button md-logo" aria-label="Documentação do Compilador Python-C#" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Documentação do Compilador Python-C#
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guias
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guias
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Makefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guia do Makefile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Planejamento
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Planejamento
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Sprints/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprints e Andamento
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões de Design (ADRs)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisões de Design (ADRs)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Especificacao_Linguagem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação da Linguagem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementação
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Implementação
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Lexer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Parser/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parser
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AST
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#motivacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motivação
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#modulo-asth-astc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Módulo ast.h / ast.c
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tipos-de-nos-tipono" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tipos de Nós (TipoNo)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#estrutura-do-no-noast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estrutura do Nó (NoAST)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operadores-tipooperador" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operadores (TipoOperador)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#funcoes-da-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Funções da API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Funções da API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#construtores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Construtores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#utilitarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Utilitários
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exemplo-e-representacao-visual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exemplo e Representação Visual
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integracao-com-o-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integração com o Parser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Integração com o Parser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-configuracao-global-e-tipagem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Configuração Global e Tipagem
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-acoes-semanticas-e-construtores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Ações Semânticas e Construtores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-gerenciamento-de-listas-dinamicas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Gerenciamento de Listas Dinâmicas
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-integracao-com-o-analisador-lexico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Integração com o Analisador Léxico
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-saida-e-validacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Saída e Validação
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testes-unitarios-tdd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testes Unitários (TDD)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referências
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TabelaSimbolos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tabela de Símbolos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Semantica/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Análise Semântica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Testes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Lexicos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Léxicos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Sintaticos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Sintáticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Semanticos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Semânticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#motivacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motivação
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#modulo-asth-astc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Módulo ast.h / ast.c
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tipos-de-nos-tipono" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tipos de Nós (TipoNo)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#estrutura-do-no-noast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estrutura do Nó (NoAST)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operadores-tipooperador" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operadores (TipoOperador)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#funcoes-da-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Funções da API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Funções da API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#construtores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Construtores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#utilitarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Utilitários
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exemplo-e-representacao-visual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exemplo e Representação Visual
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integracao-com-o-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integração com o Parser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Integração com o Parser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-configuracao-global-e-tipagem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Configuração Global e Tipagem
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-acoes-semanticas-e-construtores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Ações Semânticas e Construtores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-gerenciamento-de-listas-dinamicas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Gerenciamento de Listas Dinâmicas
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-integracao-com-o-analisador-lexico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Integração com o Analisador Léxico
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-saida-e-validacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Saída e Validação
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testes-unitarios-tdd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testes Unitários (TDD)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referências
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="arvore-sintatica-abstrata-ast">Árvore Sintática Abstrata (AST)</h1>
+<p>A Árvore Sintática Abstrata é a representação intermediária produzida pelo parser após validar a sintaxe do código-fonte. Diferentemente da árvore de derivação concreta (parse tree), a AST omite detalhes sintáticos (parênteses, dois-pontos, tokens <code>NEWLINE</code>/<code>INDENT</code>/<code>DEDENT</code>) e retém apenas a estrutura semântica do programa.</p>
+<h2 id="motivacao">Motivação</h2>
+<p>O parser atual apenas valida a sintaxe (aceita/rejeita), sem produzir nenhuma representação intermediária. A AST é necessária para que as fases seguintes (análise semântica e geração de código) possam trabalhar sobre uma estrutura de dados bem definida.</p>
+<h2 id="modulo-asth-astc">Módulo <code>ast.h</code> / <code>ast.c</code></h2>
+<p>Os arquivos ficam em <code>src/ast.h</code> e <code>src/ast.c</code>, seguindo o padrão estabelecido por <code>src/tabela.h</code> e <code>src/tabela.c</code>.</p>
+<hr />
+<h2 id="tipos-de-nos-tipono">Tipos de Nós (<code>TipoNo</code>)</h2>
+<p>Cada nó da AST tem um tipo que identifica a construção sintática que ele representa. Os tipos são definidos pelo enum <code>TipoNo</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Valor do Enum</th>
+<th>Construção Representada</th>
+<th>Campos Relevantes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NO_NUM_INT</code></td>
+<td>Literal inteiro (<code>42</code>)</td>
+<td><code>valor_int</code></td>
+</tr>
+<tr>
+<td><code>NO_NUM_FLOAT</code></td>
+<td>Literal float (<code>3.14</code>)</td>
+<td><code>valor_float</code></td>
+</tr>
+<tr>
+<td><code>NO_STRING</code></td>
+<td>Literal string (<code>"olá"</code>)</td>
+<td><code>valor_string</code></td>
+</tr>
+<tr>
+<td><code>NO_BOOL</code></td>
+<td>Literal booleano (<code>True</code> / <code>False</code>)</td>
+<td><code>valor_int</code> (1 = True, 0 = False)</td>
+</tr>
+<tr>
+<td><code>NO_ID</code></td>
+<td>Identificador (<code>x</code>, <code>soma</code>)</td>
+<td><code>nome</code></td>
+</tr>
+<tr>
+<td><code>NO_BINOP</code></td>
+<td>Operação binária (<code>a + b</code>)</td>
+<td><code>operador</code>, <code>esquerda</code>, <code>direita</code></td>
+</tr>
+<tr>
+<td><code>NO_UNARYOP</code></td>
+<td>Operação unária (<code>not x</code>, <code>-x</code>)</td>
+<td><code>operador</code>, <code>esquerda</code></td>
+</tr>
+<tr>
+<td><code>NO_ASSIGN</code></td>
+<td>Atribuição (<code>x = 10</code>)</td>
+<td><code>nome</code>, <code>esquerda</code> (expressão do valor)</td>
+</tr>
+<tr>
+<td><code>NO_PRINT</code></td>
+<td><code>print(expr)</code></td>
+<td><code>esquerda</code> (expressão), <code>argumentos</code> (lista)</td>
+</tr>
+<tr>
+<td><code>NO_INPUT</code></td>
+<td><code>input()</code></td>
+<td><code>esquerda</code> (prompt, opcional)</td>
+</tr>
+<tr>
+<td><code>NO_IF</code></td>
+<td><code>if/elif/else</code></td>
+<td><code>condicao</code>, <code>bloco_if</code>, <code>lista_elif</code>, <code>bloco_else</code></td>
+</tr>
+<tr>
+<td><code>NO_ELIF</code></td>
+<td>Cláusula <code>elif</code></td>
+<td><code>condicao</code>, <code>bloco_if</code> (corpo do elif)</td>
+</tr>
+<tr>
+<td><code>NO_WHILE</code></td>
+<td><code>while cond:</code></td>
+<td><code>condicao</code>, <code>bloco_if</code> (corpo do while)</td>
+</tr>
+<tr>
+<td><code>NO_FOR</code></td>
+<td><code>for x in range(n):</code></td>
+<td><code>nome</code>, <code>esquerda</code> (range_expr), <code>bloco_if</code> (corpo)</td>
+</tr>
+<tr>
+<td><code>NO_FUNCDEF</code></td>
+<td><code>def nome(params):</code></td>
+<td><code>nome</code>, <code>argumentos</code> (parâmetros), <code>bloco_if</code> (corpo)</td>
+</tr>
+<tr>
+<td><code>NO_RETURN</code></td>
+<td><code>return expr</code></td>
+<td><code>esquerda</code> (expressão, pode ser NULL)</td>
+</tr>
+<tr>
+<td><code>NO_FUNCCALL</code></td>
+<td><code>func(args)</code></td>
+<td><code>nome</code>, <code>argumentos</code> (lista de argumentos)</td>
+</tr>
+<tr>
+<td><code>NO_BLOCO</code></td>
+<td>Bloco de comandos</td>
+<td><code>argumentos</code> (lista de nós-comando)</td>
+</tr>
+<tr>
+<td><code>NO_PROGRAMA</code></td>
+<td>Raiz do programa</td>
+<td><code>argumentos</code> (lista de comandos top-level)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="estrutura-do-no-noast">Estrutura do Nó (<code>NoAST</code>)</h2>
+<p>Todos os nós compartilham uma única struct <code>NoAST</code> com campos que são usados conforme o <code>TipoNo</code>:</p>
+<pre><code class="language-c">typedef struct noAST {
+    TipoNo tipo;
+
+    /* Literais e identificadores */
+    int    valor_int;
+    double valor_float;
+    char  *valor_string;
+    char  *nome;
+
+    /* Operador para BinOp e UnaryOp (ex: '+', '-', OP_AND, OP_NOT, etc.) */
+    int operador;
+
+    /* Tipo resolvido pela análise semântica (usado na checagem e geração de código) */
+    TipoDado tipo_resolvido;
+
+    /* Filhos principais (condição, expressão) */
+    struct noAST *condicao;
+    struct noAST *esquerda;
+    struct noAST *direita;
+
+    /* Blocos de código */
+    struct noAST *bloco_if;
+    struct noAST *bloco_else;
+
+    /* Lista encadeada/dinâmica (elif, argumentos, parâmetros, comandos) */
+    struct noAST **argumentos;
+    int num_argumentos;
+
+    /* Informação de localização para mensagens de erro */
+    int linha;
+} NoAST;
+</code></pre>
+<hr />
+<h2 id="operadores-tipooperador">Operadores (<code>TipoOperador</code>)</h2>
+<p>Operadores binários e unários são representados por um enum separado para evitar ambiguidade com os tokens do Bison:</p>
+<table>
+<thead>
+<tr>
+<th>Valor</th>
+<th>Operação</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OP_SOMA</code></td>
+<td><code>+</code></td>
+</tr>
+<tr>
+<td><code>OP_SUB</code></td>
+<td><code>-</code></td>
+</tr>
+<tr>
+<td><code>OP_MULT</code></td>
+<td><code>*</code></td>
+</tr>
+<tr>
+<td><code>OP_DIV</code></td>
+<td><code>/</code></td>
+</tr>
+<tr>
+<td><code>OP_EQ</code></td>
+<td><code>==</code></td>
+</tr>
+<tr>
+<td><code>OP_NEQ</code></td>
+<td><code>!=</code></td>
+</tr>
+<tr>
+<td><code>OP_GT</code></td>
+<td><code>&gt;</code></td>
+</tr>
+<tr>
+<td><code>OP_LT</code></td>
+<td><code>&lt;</code></td>
+</tr>
+<tr>
+<td><code>OP_GTE</code></td>
+<td><code>&gt;=</code></td>
+</tr>
+<tr>
+<td><code>OP_LTE</code></td>
+<td><code>&lt;=</code></td>
+</tr>
+<tr>
+<td><code>OP_AND</code></td>
+<td><code>and</code></td>
+</tr>
+<tr>
+<td><code>OP_OR</code></td>
+<td><code>or</code></td>
+</tr>
+<tr>
+<td><code>OP_NOT</code></td>
+<td><code>not</code></td>
+</tr>
+<tr>
+<td><code>OP_NEG</code></td>
+<td><code>-</code> (unário)</td>
+</tr>
+<tr>
+<td><code>OP_IN</code></td>
+<td><code>in</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="funcoes-da-api">Funções da API</h2>
+<h3 id="construtores">Construtores</h3>
+<p>Cada tipo de nó possui uma função construtora que aloca o nó, inicializa seus campos e retorna o ponteiro:</p>
+<table>
+<thead>
+<tr>
+<th>Função</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>criar_no_int(int valor, int linha)</code></td>
+<td>Cria nó <code>NO_NUM_INT</code></td>
+</tr>
+<tr>
+<td><code>criar_no_float(double valor, int linha)</code></td>
+<td>Cria nó <code>NO_NUM_FLOAT</code></td>
+</tr>
+<tr>
+<td><code>criar_no_string(char *valor, int linha)</code></td>
+<td>Cria nó <code>NO_STRING</code></td>
+</tr>
+<tr>
+<td><code>criar_no_bool(int valor, int linha)</code></td>
+<td>Cria nó <code>NO_BOOL</code></td>
+</tr>
+<tr>
+<td><code>criar_no_id(char *nome, int linha)</code></td>
+<td>Cria nó <code>NO_ID</code></td>
+</tr>
+<tr>
+<td><code>criar_no_binop(int op, NoAST *esq, NoAST *dir, int linha)</code></td>
+<td>Cria nó <code>NO_BINOP</code></td>
+</tr>
+<tr>
+<td><code>criar_no_unaryop(int op, NoAST *operando, int linha)</code></td>
+<td>Cria nó <code>NO_UNARYOP</code></td>
+</tr>
+<tr>
+<td><code>criar_no_assign(char *nome, NoAST *expr, int linha)</code></td>
+<td>Cria nó <code>NO_ASSIGN</code></td>
+</tr>
+<tr>
+<td><code>criar_no_print(NoAST **args, int num_args, int linha)</code></td>
+<td>Cria nó <code>NO_PRINT</code></td>
+</tr>
+<tr>
+<td><code>criar_no_input(NoAST *prompt, int linha)</code></td>
+<td>Cria nó <code>NO_INPUT</code></td>
+</tr>
+<tr>
+<td><code>criar_no_if(NoAST *cond, NoAST *bloco, NoAST **elifs, int n_elifs, NoAST *else_bloco, int linha)</code></td>
+<td>Cria nó <code>NO_IF</code></td>
+</tr>
+<tr>
+<td><code>criar_no_elif(NoAST *cond, NoAST *bloco, int linha)</code></td>
+<td>Cria nó <code>NO_ELIF</code></td>
+</tr>
+<tr>
+<td><code>criar_no_while(NoAST *cond, NoAST *bloco, int linha)</code></td>
+<td>Cria nó <code>NO_WHILE</code></td>
+</tr>
+<tr>
+<td><code>criar_no_for(char *var, NoAST *range, NoAST *bloco, int linha)</code></td>
+<td>Cria nó <code>NO_FOR</code></td>
+</tr>
+<tr>
+<td><code>criar_no_funcdef(char *nome, NoAST **params, int n_params, NoAST *bloco, int linha)</code></td>
+<td>Cria nó <code>NO_FUNCDEF</code></td>
+</tr>
+<tr>
+<td><code>criar_no_return(NoAST *expr, int linha)</code></td>
+<td>Cria nó <code>NO_RETURN</code></td>
+</tr>
+<tr>
+<td><code>criar_no_funccall(char *nome, NoAST **args, int n_args, int linha)</code></td>
+<td>Cria nó <code>NO_FUNCCALL</code></td>
+</tr>
+<tr>
+<td><code>criar_no_bloco(NoAST **cmds, int n_cmds)</code></td>
+<td>Cria nó <code>NO_BLOCO</code></td>
+</tr>
+<tr>
+<td><code>criar_no_programa(NoAST **cmds, int n_cmds)</code></td>
+<td>Cria nó <code>NO_PROGRAMA</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="utilitarios">Utilitários</h3>
+<table>
+<thead>
+<tr>
+<th>Função</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>imprimir_ast(NoAST *raiz, int nivel)</code></td>
+<td>Imprime a árvore formatada com indentação para debug</td>
+</tr>
+<tr>
+<td><code>liberar_ast(NoAST *raiz)</code></td>
+<td>Libera toda a memória da árvore recursivamente</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="exemplo-e-representacao-visual">Exemplo e Representação Visual</h2>
+<p>Para o código de exemplo:</p>
+<pre><code class="language-python">x = 10 + 5
+print(x)
+</code></pre>
+<p>A saída textual de <code>imprimir_ast</code> é:</p>
+<pre><code class="language-text">Programa
+  Assign: x
+    BinOp: +
+      NumInt: 10
+      NumInt: 5
+  Print
+    Id: x
+</code></pre>
+<p>E a estrutura em árvore correspondente gerada na memória é:</p>
+<pre><code class="language-mermaid">graph TD
+    Prog[&quot;NO_PROGRAMA&quot;]
+    Assign[&quot;NO_ASSIGN (x)&quot;]
+    BinOp[&quot;NO_BINOP (+)&quot;]
+    N10[&quot;NO_NUM_INT (10)&quot;]
+    N5[&quot;NO_NUM_INT (5)&quot;]
+    Print[&quot;NO_PRINT&quot;]
+    IdX[&quot;NO_ID (x)&quot;]
+
+    Prog --&gt; Assign
+    Prog --&gt; Print
+    Assign --&gt; BinOp
+    BinOp --&gt; N10
+    BinOp --&gt; N5
+    Print --&gt; IdX
+</code></pre>
+<hr />
+<h2 id="integracao-com-o-parser">Integração com o Parser</h2>
+<p>A integração da AST com o analisador sintático (<code>parser/parser.y</code>) foi concluída utilizando ações semânticas do Bison para construir a árvore de baixo para cima (<em>bottom-up</em>) durante a análise gramatical. O processo envolveu as seguintes modificações estruturais:</p>
+<h3 id="1-configuracao-global-e-tipagem">1. Configuração Global e Tipagem</h3>
+<ul>
+<li><strong>Cabeçalhos:</strong> Adição de <code>#include "src/ast.h"</code> no prólogo do parser e declaração da variável global <code>NoAST *raiz_ast;</code> para armazenar a raiz da árvore completa.</li>
+<li><strong>Expansão do <code>%union</code>:</strong> Inclusão do ponteiro <code>struct noAST *ast</code> no <code>%union</code> do Bison para permitir a navegação de nós entre as regras.</li>
+<li><strong>Tipagem Dinâmica:</strong> Declaração de <code>%type &lt;ast&gt;</code> para todos os não-terminais que representam comandos, expressões ou blocos. O token de identificador foi ajustado para <code>%token &lt;sval&gt; ID</code> para transportar o nome das variáveis e funções.</li>
+</ul>
+<h3 id="2-acoes-semanticas-e-construtores">2. Ações Semânticas e Construtores</h3>
+<ul>
+<li>Em cada regra gramatical, foram adicionadas ações no formato <code>{ $$ = criar_no_*(...); }</code> utilizando a API de construtores.</li>
+<li>A variável global <code>linha_token</code> (gerenciada pelo lexer) foi repassada no último parâmetro de todas as chamadas <code>criar_no_*</code> para garantir a rastreabilidade exata em caso de erros semânticos.</li>
+</ul>
+<h3 id="3-gerenciamento-de-listas-dinamicas">3. Gerenciamento de Listas Dinâmicas</h3>
+<p>Como a análise do Bison é reduzida de baixo para cima, o tamanho final de blocos de código ou listas de argumentos não é conhecido previamente.
+* Foram implementadas as funções auxiliares <code>criar_lista()</code> e <code>adicionar_lista()</code> no prólogo do <code>parser.y</code>.
+* Essas funções utilizam nós genéricos do tipo <code>NO_BLOCO</code> temporariamente para acumular o vetor <code>**argumentos</code> dinamicamente via <code>malloc</code>/<code>realloc</code>, repassando-os em seguida para construtores estruturados como <code>criar_no_if</code>, <code>criar_no_print</code> e <code>criar_no_funcdef</code>.</p>
+<h3 id="4-integracao-com-o-analisador-lexico">4. Integração com o Analisador Léxico</h3>
+<p>Para garantir que a árvore receba dados válidos sem gerar falhas de segmentação (<em>Segmentation Fault</em>), o analisador léxico (<code>lexer/lexer.l</code>) foi atualizado. A regra para identificadores (<code>ID</code>) agora realiza a alocação de memória do texto usando <code>yylval.sval = strdup(yytext);</code>.</p>
+<h3 id="5-saida-e-validacao">5. Saída e Validação</h3>
+<p>A função <code>main()</code> do compilador invoca <code>imprimir_ast(raiz_ast, 0)</code> ou repassa a raiz diretamente para a Análise Semântica via <code>analisar_semantica(raiz_ast, tabela)</code>.</p>
+<hr />
+<h2 id="testes-unitarios-tdd">Testes Unitários (TDD)</h2>
+<p>O módulo AST conta com testes unitários em <a href="../testes/tdd/teste_ast.c"><code>testes/tdd/teste_ast.c</code></a>, cobrindo a alocação e verificação de todos os nós, listas encadeadas/dinâmicas e desalocação recursiva de memória.</p>
+<p>Para compilar e executar os testes unitários da AST:</p>
+<pre><code class="language-bash">make test_ast
+</code></pre>
+<hr />
+<h2 id="referencias">Referências</h2>
+<ul>
+<li>Implementação: <a href="../src/ast.h"><code>src/ast.h</code></a> e <a href="../src/ast.c"><code>src/ast.c</code></a></li>
+<li>Suíte de Testes: <a href="../testes/tdd/teste_ast.c"><code>testes/tdd/teste_ast.c</code></a></li>
+<li>Exemplo da disciplina: <code>Aulas/semana 06/src/ast.h</code> e <code>ast.c</code></li>
+<li>Issues relacionadas: #7 (AST) e #19 (Documentação AST e Tabela de Símbolos)</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
