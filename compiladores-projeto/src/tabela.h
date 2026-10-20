@@ -22,7 +22,7 @@ typedef struct {
     bool dentro_de_funcao;
     TipoDado tipo_retorno_atual;
 } TabelaSimbolos;
-
+extern bool mostrar_tabela;
 TabelaSimbolos* tabela_criar();
 void tabela_inserir(TabelaSimbolos* tab, char* nome, TipoDado tipo, int linha);
 Simbolo* tabela_buscar(TabelaSimbolos* tab, char* nome);

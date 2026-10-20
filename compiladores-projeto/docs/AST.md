@@ -203,8 +203,12 @@ Como a análise do Bison é reduzida de baixo para cima, o tamanho final de bloc
 ### 4. Integração com o Analisador Léxico
 Para garantir que a árvore receba dados válidos sem gerar falhas de segmentação (*Segmentation Fault*), o analisador léxico (`lexer/lexer.l`) foi atualizado. A regra para identificadores (`ID`) agora realiza a alocação de memória do texto usando `yylval.sval = strdup(yytext);`.
 
-### 5. Saída e Validação
-A função `main()` do compilador invoca `imprimir_ast(raiz_ast, 0)` ou repassa a raiz diretamente para a Análise Semântica via `analisar_semantica(raiz_ast, tabela)`.
+### 5. Saída, Validação e Flag `--ast`
+A função `main()` do compilador repassa a raiz para a Análise Semântica via `analisar_semantica(raiz_ast, tabela)` (que preenche o `tipo_resolvido` de cada expressão) e, caso a flag `--ast` seja informada na linha de comando, invoca `imprimir_ast(raiz_ast, 0)` exibindo os nós da árvore e seus respectivos tipos resolvidos:
+
+```bash
+./compilador --ast < testes/Testes1.py
+```
 
 ---
 

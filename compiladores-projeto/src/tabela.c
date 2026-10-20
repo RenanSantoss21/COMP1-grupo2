@@ -1,6 +1,6 @@
 #include "tabela.h"
 #include <stdlib.h>
-
+bool mostrar_tabela=false;
 TabelaSimbolos* tabela_criar() {
     TabelaSimbolos* tab = malloc(sizeof(TabelaSimbolos));
     if (tab != NULL) {
@@ -42,9 +42,15 @@ Simbolo* tabela_buscar(TabelaSimbolos* tab, char* nome) {
 
 void tabela_entrar_escopo(TabelaSimbolos* tab) {
     tab->escopo_atual++;
+    if (mostrar_tabela) {
+        tabela_imprimir(tab);
+    }
 }
 
 void tabela_sair_escopo(TabelaSimbolos* tab) {
+    if (mostrar_tabela) {
+        tabela_imprimir(tab);
+    }
     while (tab->tamanho > 0 && tab->array_simbolos[tab->tamanho - 1].escopo == tab->escopo_atual) {
         if (tab->array_simbolos[tab->tamanho - 1].tipos_parametros != NULL) {
             free(tab->array_simbolos[tab->tamanho - 1].tipos_parametros);
@@ -61,7 +67,8 @@ void tabela_imprimir(TabelaSimbolos* tab) {
     printf("--- Tabela de Simbolos (Escopo Atual: %d) ---\n", tab->escopo_atual);
     for (int i = 0; i < tab->tamanho; i++) {
         Simbolo* s = &tab->array_simbolos[i];
-        printf("Nome: %s, Tipo: %d, Escopo: %d, Linha: %d\n", s->nome, s->tipo, s->escopo, s->linha_declaracao);
+        printf("Nome: %s, Tipo: %s, Escopo: %d, Linha: %d\n",
+               s->nome, tipo_para_string(s->tipo), s->escopo, s->linha_declaracao);
     }
     printf("---------------------------------------------\n");
 }

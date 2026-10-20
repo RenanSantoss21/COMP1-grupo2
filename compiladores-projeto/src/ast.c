@@ -155,7 +155,7 @@ NoAST *criar_no_programa(NoAST **cmds, int n_cmds) {
 }
 
 /* ── Nomes legíveis para tipos de nó (debug) ─────────────────────── */
-/* Função de debug: descomentar quando necessário para depuração da AST.
+//Função de debug: descomentar quando necessário para depuração da AST.
 static const char *nome_tipo_no(TipoNo tipo) {
     switch (tipo) {
         case NO_NUM_INT:   return "NumInt";
@@ -180,7 +180,7 @@ static const char *nome_tipo_no(TipoNo tipo) {
         default:           return "???";
     }
 }
-*/
+
 
 static const char *nome_operador(int op) {
     switch (op) {
@@ -209,6 +209,13 @@ static void indentar(int nivel) {
         printf("  ");
 }
 
+/* ── Impressão auxiliar de tipo resolvido ────────────────────────── */
+static void imprimir_tipo_resolvido(TipoDado tipo) {
+    if (tipo != TIPO_DESCONHECIDO) {
+        printf(" [%s]", tipo_para_string(tipo));
+    }
+}
+
 /* ── imprimir_ast ────────────────────────────────────────────────── */
 void imprimir_ast(NoAST *raiz, int nivel) {
     if (raiz == NULL) return;
@@ -217,45 +224,59 @@ void imprimir_ast(NoAST *raiz, int nivel) {
 
     switch (raiz->tipo) {
         case NO_NUM_INT:
-            printf("NumInt: %d\n", raiz->valor_int);
+            printf("%s: %d", nome_tipo_no(raiz->tipo), raiz->valor_int);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             break;
         case NO_NUM_FLOAT:
-            printf("NumFloat: %.6g\n", raiz->valor_float);
+            printf("%s: %.6g", nome_tipo_no(raiz->tipo), raiz->valor_float);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             break;
         case NO_STRING:
-            printf("String: %s\n", raiz->valor_string);
+            printf("%s: %s", nome_tipo_no(raiz->tipo), raiz->valor_string);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             break;
         case NO_BOOL:
-            printf("Bool: %s\n", raiz->valor_int ? "True" : "False");
+            printf("%s: %s", nome_tipo_no(raiz->tipo), raiz->valor_int ? "True" : "False");
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             break;
         case NO_ID:
-            printf("Id: %s\n", raiz->nome);
+            printf("%s: %s", nome_tipo_no(raiz->tipo), raiz->nome);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             break;
         case NO_BINOP:
-            printf("BinOp: %s\n", nome_operador(raiz->operador));
+            printf("%s: %s", nome_tipo_no(raiz->tipo), nome_operador(raiz->operador));
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             imprimir_ast(raiz->esquerda, nivel + 1);
             imprimir_ast(raiz->direita, nivel + 1);
             break;
         case NO_UNARYOP:
-            printf("UnaryOp: %s\n", nome_operador(raiz->operador));
+            printf("%s: %s", nome_tipo_no(raiz->tipo), nome_operador(raiz->operador));
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             imprimir_ast(raiz->esquerda, nivel + 1);
             break;
         case NO_ASSIGN:
-            printf("Assign: %s\n", raiz->nome);
+            printf("%s: %s\n", nome_tipo_no(raiz->tipo), raiz->nome);
             imprimir_ast(raiz->esquerda, nivel + 1);
             break;
         case NO_PRINT:
-            printf("Print\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             for (int i = 0; i < raiz->num_argumentos; i++)
                 imprimir_ast(raiz->argumentos[i], nivel + 1);
             break;
         case NO_INPUT:
-            printf("Input\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             if (raiz->esquerda)
                 imprimir_ast(raiz->esquerda, nivel + 1);
             break;
         case NO_IF:
-            printf("If\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             indentar(nivel + 1); printf("Cond:\n");
             imprimir_ast(raiz->condicao, nivel + 2);
             indentar(nivel + 1); printf("Entao:\n");
@@ -268,28 +289,28 @@ void imprimir_ast(NoAST *raiz, int nivel) {
             }
             break;
         case NO_ELIF:
-            printf("Elif\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             indentar(nivel + 1); printf("Cond:\n");
             imprimir_ast(raiz->condicao, nivel + 2);
             indentar(nivel + 1); printf("Entao:\n");
             imprimir_ast(raiz->bloco_if, nivel + 2);
             break;
         case NO_WHILE:
-            printf("While\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             indentar(nivel + 1); printf("Cond:\n");
             imprimir_ast(raiz->condicao, nivel + 2);
             indentar(nivel + 1); printf("Corpo:\n");
             imprimir_ast(raiz->bloco_if, nivel + 2);
             break;
         case NO_FOR:
-            printf("For: %s\n", raiz->nome);
+            printf("%s: %s\n", nome_tipo_no(raiz->tipo), raiz->nome);
             indentar(nivel + 1); printf("Range:\n");
             imprimir_ast(raiz->esquerda, nivel + 2);
             indentar(nivel + 1); printf("Corpo:\n");
             imprimir_ast(raiz->bloco_if, nivel + 2);
             break;
         case NO_FUNCDEF:
-            printf("FuncDef: %s\n", raiz->nome);
+            printf("%s: %s\n", nome_tipo_no(raiz->tipo), raiz->nome);
             if (raiz->num_argumentos > 0) {
                 indentar(nivel + 1); printf("Params:\n");
                 for (int i = 0; i < raiz->num_argumentos; i++)
@@ -299,22 +320,24 @@ void imprimir_ast(NoAST *raiz, int nivel) {
             imprimir_ast(raiz->bloco_if, nivel + 2);
             break;
         case NO_RETURN:
-            printf("Return\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             if (raiz->esquerda)
                 imprimir_ast(raiz->esquerda, nivel + 1);
             break;
         case NO_FUNCCALL:
-            printf("FuncCall: %s\n", raiz->nome);
+            printf("%s: %s", nome_tipo_no(raiz->tipo), raiz->nome);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             for (int i = 0; i < raiz->num_argumentos; i++)
                 imprimir_ast(raiz->argumentos[i], nivel + 1);
             break;
         case NO_BLOCO:
-            printf("Bloco\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             for (int i = 0; i < raiz->num_argumentos; i++)
                 imprimir_ast(raiz->argumentos[i], nivel + 1);
             break;
         case NO_PROGRAMA:
-            printf("Programa\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             for (int i = 0; i < raiz->num_argumentos; i++)
                 imprimir_ast(raiz->argumentos[i], nivel + 1);
             break;

@@ -104,8 +104,16 @@ Ao sair de um bloco (`tabela_sair_escopo`), todos os símbolos pertencentes ao e
 | `tabela_buscar(tab, nome)` | Busca linear reversa pelo identificador. Retorna o ponteiro `Simbolo*` mais recente ou `NULL`. |
 | `tabela_entrar_escopo(tab)` | Incrementa `escopo_atual` em 1. |
 | `tabela_sair_escopo(tab)` | Remove todos os símbolos do escopo corrente, desaloca suas memórias e decrementa `escopo_atual`. |
-| `tabela_imprimir(tab)` | Imprime o conteúdo da tabela e o escopo corrente (útil para depuração). |
+| `tabela_imprimir(tab)` | Imprime o conteúdo da tabela e o escopo corrente com tipos legíveis via `tipo_para_string` (ativado pela flag `--tabela`). |
 | `tabela_liberar(tab)` | Libera recursivamente todos os símbolos alocados e a própria tabela. |
+
+### Inspeção via Linha de Comando (`--tabela`)
+
+Para visualizar o estado da Tabela de Símbolos a cada entrada e saída de escopo durante a compilação, execute o compilador com a flag `--tabela`:
+
+```bash
+./compilador --tabela < testes/TestesSemanticaValidos1.py
+```
 
 ---
 

@@ -148,6 +148,8 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
         if (sim == NULL) {
             fprintf(stderr, "Erro semântico na linha %d: Variável '%s' não declarada.\n", raiz->linha, raiz->nome);
             erros += 1;
+        } else {
+            raiz->tipo_resolvido = sim->tipo;
         }
         return erros;
     }

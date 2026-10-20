@@ -281,7 +281,17 @@ void yyerror(const char *s) {
     fprintf(stderr, "Erro sintático na linha %d: %s\n", linha_token, s);
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
+    bool mostrar_ast = false;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--ast") == 0) {
+            mostrar_ast = true;
+        }
+        if (strcmp(argv[i], "--tabela") == 0) {
+            mostrar_tabela = true;
+        }
+    }
+
     int resultado = yyparse();
 
     if (erros_sintaticos > 0) {
@@ -290,17 +300,25 @@ int main(void) {
     }
 
     if (raiz_ast != NULL) {
-        // printf("\n--- Árvore Sintática Abstrata Gerada ---\n");
-        // imprimir_ast(raiz_ast, 0);
-        
         TabelaSimbolos *tabela = tabela_criar();
         int erros_semanticos = analisar_semantica(raiz_ast, tabela);
-        
+
+        if (mostrar_ast) {
+            printf("\n--- Árvore Sintática Abstrata Gerada ---\n");
+            imprimir_ast(raiz_ast, 0);
+        }
+
+        if (mostrar_tabela) {
+            tabela_imprimir(tabela);
+        }
+
         if (erros_semanticos > 0) {
             fprintf(stderr, "%d erro(s) semântico(s) encontrado(s).\n", erros_semanticos);
+            tabela_liberar(tabela);
+            liberar_ast(raiz_ast);
             return 1;
         }
-        
+
         tabela_liberar(tabela);
         liberar_ast(raiz_ast);
     }
