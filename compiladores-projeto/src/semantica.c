@@ -53,7 +53,7 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
                 } else if (tipo_esq == TIPO_FLOAT || tipo_dir == TIPO_FLOAT) {
                     tipo_inferido = TIPO_FLOAT;
                 } else if (tipo_esq == TIPO_INT && tipo_dir == TIPO_INT) {
-                    tipo_inferido = TIPO_INT;
+                    tipo_inferido = (raiz->operador == OP_DIV) ? TIPO_FLOAT : TIPO_INT;
                 } else {
                     tipo_inferido = TIPO_DESCONHECIDO;
                 }
