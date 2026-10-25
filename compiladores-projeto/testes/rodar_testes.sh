@@ -117,6 +117,7 @@ echo "--- Testes SEMANTICOS que devem PASSAR (codigo valido) ---"
 rodar_teste "testes/TestesSemanticaValidos1.py" "nao"
 rodar_teste "testes/TestesSemanticaValidos2.py" "nao"
 rodar_teste "testes/TestesSemanticaValidos3.py" "nao"
+rodar_teste "testes/TestesSemanticaValidos4.py" "nao"
 
 echo ""
 echo "--- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---"
@@ -144,6 +145,9 @@ echo ""
 echo "--- Contagem de erros SEMANTICOS (todos os erros devem ser reportados) ---"
 rodar_teste_semantico "testes/teste_semantico.py" 4
 rodar_teste_semantico "testes/TestesSemanticoErro1.py" 5
+rodar_teste_semantico "testes/TestesSemanticaErros4.py" 1
+rodar_teste_semantico "testes/TestesSemanticaErros5.py" 1
+rodar_teste_semantico "testes/TestesSemanticaErros6.py" 3
 
 echo ""
 echo "========================================="
