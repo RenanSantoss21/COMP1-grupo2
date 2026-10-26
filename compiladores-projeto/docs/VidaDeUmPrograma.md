@@ -152,3 +152,168 @@ digraph AST {
 
 ## 5. Análise Semântica
 
+A análise semântica começa no `main` (`parser/parser.y`), depois que `yyparse()` termina sem erros sintáticos:
+
+```c
+TabelaSimbolos *tabela = tabela_criar();
+int erros_semanticos = analisar_semantica(raiz_ast, tabela);
+```
+
+Ela recebe a AST pronta (`raiz_ast`) e uma tabela de símbolos vazia (escopo 0). Duas funções de `src/semantica.c` fazem o trabalho:
+
+- **`analisar_semantica(no, tabela)`** percorre os **comandos**: declara variáveis e funções na tabela, abre e fecha escopos, valida `return` e condições. Retorna o número de erros.
+- **`inferir_tipo(no, tabela, &erros)`** avalia uma **expressão** de baixo para cima, devolve o `TipoDado` dela e grava o resultado em `no->tipo_resolvido`.
+
+A sequência abaixo é a ordem real das chamadas para o programa de exemplo. A indentação mostra quem chamou quem, e `[esc=N]` é o `escopo_atual` da tabela no momento da chamada.
+
+### 5.1 Raiz: `Programa`
+
+```text
+analisar_semantica(Programa) [esc=0]
+```
+
+`NO_PROGRAMA` não tem tratamento próprio e cai no percurso genérico do fim da função, que visita os filhos em `argumentos[]`, um por comando: `FuncDef`, `Assign`, `If`, `Print`.
+
+> `NO_PROGRAMA` **não** abre escopo: o nível global é o escopo 0, criado por `tabela_criar()`.
+
+### 5.2 `def dobro(n): return n * 2`
+
+```text
+analisar_semantica(FuncDef(dobro)) [esc=0]
+  tabela_inserir(dobro, DESCONHECIDO, escopo 0)   e_funcao = true, num_parametros = 1
+  tabela_entrar_escopo -> 1
+  tabela_inserir(n, DESCONHECIDO, escopo 1)
+  analisar_semantica(Bloco) [esc=1]
+    tabela_entrar_escopo -> 2
+    analisar_semantica(Return) [esc=2]
+      inferir_tipo(BinOp *)        -> DESCONHECIDO
+        inferir_tipo(Id n)         -> DESCONHECIDO
+        inferir_tipo(NumInt 2)     -> INT
+      analisar_semantica(BinOp *)
+        analisar_semantica(Id n)
+        analisar_semantica(NumInt 2)
+    tabela_sair_escopo (2)
+  tabela_sair_escopo (1)            remove n
+  dobro.tipo = tipo_retorno_atual = DESCONHECIDO
+```
+
+O que acontece no ramo `NO_FUNCDEF`:
+
+1. A função é inserida no escopo atual (0) **antes** de analisar o corpo, com `e_funcao = true`, `num_parametros = 1` e `tipos_parametros = {DESCONHECIDO}`.
+2. As flags de contexto são salvas e trocadas: `dentro_de_funcao = true` e `tipo_retorno_atual = DESCONHECIDO`.
+3. Abre-se o escopo 1 e os parâmetros são inseridos nele. Como o parâmetro não tem anotação de tipo, `n` entra como `DESCONHECIDO`.
+4. O corpo é um `NO_BLOCO`, e todo `NO_BLOCO` abre mais um escopo (2). Uma função ocupa, portanto, **dois** níveis de escopo.
+5. No `NO_RETURN`, `dentro_de_funcao` é verdadeiro, então não há erro de "return fora de função". O tipo da expressão é inferido:
+   - `n` → `DESCONHECIDO` (o tipo que está na tabela)
+   - `2` → `INT`
+   - `n * 2`: não é string, nem bool, nem float, e não são dois `INT`, então o resultado é `DESCONHECIDO`.
+6. Como `tipo_retorno_atual` ainda era `DESCONHECIDO`, ele passa a ser o tipo deste `return` (`DESCONHECIDO`).
+7. Os escopos 2 e 1 são fechados (`n` sai da tabela), `dobro.tipo` recebe o tipo de retorno e as flags voltam aos valores salvos.
+
+Tabela ao fim do `def`:
+
+| Nome | Tipo | Escopo | Função? |
+|------|------|--------|---------|
+| `dobro` | DESCONHECIDO | 0 | sim (1 parâmetro) |
+
+### 5.3 `x = 3`
+
+```text
+analisar_semantica(Assign x) [esc=0]
+  analisar_semantica(NumInt 3)
+  inferir_tipo(NumInt 3) -> INT
+  tabela_inserir(x, INT, escopo 0)
+```
+
+No ramo `NO_ASSIGN`, a expressão do lado direito fica em `esquerda` (é assim que `criar_no_assign` monta o nó). O tipo dela é inferido (`INT`). Como não existe `x` no escopo atual, `x` é inserido.
+
+| Nome | Tipo | Escopo | Função? |
+|------|------|--------|---------|
+| `dobro` | DESCONHECIDO | 0 | sim |
+| `x` | INT | 0 | não |
+
+### 5.4 `if x > 2: y = dobro(x)`
+
+```text
+analisar_semantica(If) [esc=0]
+  inferir_tipo(BinOp >)        -> BOOL
+    inferir_tipo(Id x)         -> INT
+    inferir_tipo(NumInt 2)     -> INT
+  analisar_semantica(BinOp >)
+    analisar_semantica(Id x)
+    analisar_semantica(NumInt 2)
+  analisar_semantica(Bloco) [esc=0]
+    tabela_entrar_escopo -> 1
+    analisar_semantica(Assign y) [esc=1]
+      analisar_semantica(FuncCall dobro)
+        analisar_semantica(Id x)
+      inferir_tipo(FuncCall dobro) -> DESCONHECIDO
+        inferir_tipo(Id x)         -> INT
+      tabela_inserir(y, DESCONHECIDO, escopo 1)
+    tabela_sair_escopo (1)            remove y
+```
+
+- **Condição:** `x > 2` é uma comparação, então o resultado é sempre `BOOL`. Os operandos `INT`/`INT` não disparam nenhum erro de comparação. Como o tipo é `BOOL`, a regra "a condição deve ser estritamente booleana" é satisfeita.
+- **Bloco do `if`:** é um `NO_BLOCO`, então abre o escopo 1.
+- **`y = dobro(x)`:** no ramo `NO_FUNCCALL` de `inferir_tipo`:
+  1. `dobro` existe na tabela e é função;
+  2. 1 argumento para 1 parâmetro: a quantidade confere;
+  3. o argumento `x` é inferido como `INT`, mas o parâmetro está como `DESCONHECIDO`, que aceita qualquer tipo. Nenhum erro;
+  4. o tipo da chamada é o tipo da função: `DESCONHECIDO`.
+- `y` é inserido com tipo `DESCONHECIDO` **no escopo 1**.
+- Ao fechar o bloco, `tabela_sair_escopo` remove todos os símbolos do escopo 1, incluindo `y`.
+
+Tabela logo antes de `tabela_sair_escopo`:
+
+| Nome | Tipo | Escopo | Função? |
+|------|------|--------|---------|
+| `dobro` | DESCONHECIDO | 0 | sim |
+| `x` | INT | 0 | não |
+| `y` | DESCONHECIDO | 1 | não |
+
+Depois dela, só restam `dobro` e `x`.
+
+### 5.5 `print(y)`
+
+```text
+analisar_semantica(Print) [esc=0]
+  analisar_semantica(Id y) [esc=0]
+    tabela_buscar(y) -> NULL
+    Erro semântico na linha 6: Variável 'y' não declarada.
+```
+
+`NO_PRINT` cai no percurso genérico, que visita cada argumento. Para `NO_ID`, `analisar_semantica` só verifica se o nome existe. `y` já foi removido no passo 4, então o erro é emitido.
+
+### Resultado
+
+```text
+$ ./compilador < exemplo.py
+Erro semântico na linha 6: Variável 'y' não declarada.
+1 erro(s) semântico(s) encontrado(s).
+```
+
+Código de saída: `1`. Em Python, esse programa é válido e imprime `6`. A diferença vem do comportamento descrito na issue #45: o compilador trata o corpo do `if` como um escopo próprio, e Python não tem escopo de bloco.
+
+### Tipo inferido de cada expressão (`tipo_resolvido`)
+
+| Linha | Expressão | Tipo | Por quê |
+|------:|-----------|------|---------|
+| 2 | `n` | DESCONHECIDO | parâmetro sem tipo |
+| 2 | `2` | INT | literal inteiro |
+| 2 | `n * 2` | DESCONHECIDO | um dos operandos é desconhecido |
+| 3 | `3` | INT | literal inteiro |
+| 4 | `x` | INT | tipo de `x` na tabela |
+| 4 | `2` | INT | literal inteiro |
+| 4 | `x > 2` | BOOL | toda comparação é BOOL |
+| 5 | `x` (argumento) | INT | tipo de `x` na tabela |
+| 5 | `dobro(x)` | DESCONHECIDO | tipo de retorno de `dobro` |
+| 6 | `y` (em `print`) | — | não passa por `inferir_tipo`; só tem a existência verificada |
+
+São esses valores que aparecem entre colchetes na saída de `--ast` da [seção 3](#3-arvore-sintatica-abstrata-ast). Os nós `DESCONHECIDO` ou sem tipo resolvido (`Id: n`, `BinOp: *`, `FuncCall: dobro`, `Id: y`) são impressos sem anotação.
+
+### Observações do rastreio
+
+- **Cada expressão é visitada duas vezes:** uma por `inferir_tipo` (tipos) e outra por `analisar_semantica` (existência de variáveis). Por isso uma variável não declarada dentro de uma expressão gera o erro em dobro (issue #39).
+- **Os tipos `DESCONHECIDO` se propagam:** como os parâmetros não têm tipo, `n * 2`, o retorno de `dobro` e `y` ficam todos desconhecidos (issue #52).
+- **Linha do `If`:** o nó `If` é criado com a linha 6, porque `linha_token` já avançou até o fim do bloco quando a regra é reduzida (issue #46).
+- **Variante que passa:** com `y = 0` antes do `if`, o programa termina sem erros. Mesmo assim, o `y = dobro(x)` de dentro do bloco cria um **segundo** `y` no escopo 1, que sombreia o global em vez de atualizá-lo, porque o `NO_ASSIGN` só reatribui quando o símbolo está no escopo atual.
