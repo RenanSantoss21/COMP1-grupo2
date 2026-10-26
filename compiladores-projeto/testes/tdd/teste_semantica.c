@@ -138,6 +138,32 @@ static int test_inferencia_e_operacoes(void) {
     return 1;
 }
 
+static int test_divisao_resulta_float(void) {
+    printf("Running test_divisao_resulta_float...\n");
+
+    TabelaSimbolos *tab = tabela_criar();
+    NoAST *divisao = criar_no_binop(OP_DIV, criar_no_int(5, 1), criar_no_int(2, 1), 1);
+    NoAST *multiplicacao = criar_no_binop(OP_MULT, criar_no_int(5, 2), criar_no_int(2, 2), 2);
+    NoAST **comandos = malloc(2 * sizeof(NoAST *));
+    comandos[0] = criar_no_assign("a", divisao, 1);
+    comandos[1] = criar_no_assign("b", multiplicacao, 2);
+    NoAST *programa = criar_no_programa(comandos, 2);
+
+    int erros = analisar_semantica(programa, tab);
+    Simbolo *a = tabela_buscar(tab, "a");
+
+    ASSERT(erros == 0, "Should accept integer division");
+    ASSERT(divisao->tipo_resolvido == TIPO_FLOAT, "Should infer int / int as float");
+    ASSERT(a != NULL && a->tipo == TIPO_FLOAT, "Should register 'a' as float");
+    ASSERT(multiplicacao->tipo_resolvido == TIPO_INT, "Should keep int * int as int");
+
+    liberar_ast(programa);
+    tabela_liberar(tab);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
 static int test_funcoes_e_contexto(void) {
     printf("Running test_funcoes_e_contexto...\n");
 
@@ -199,6 +225,7 @@ int main(void) {
         test_declaracao_vs_uso(),
         test_escopos_aninhados(),
         test_inferencia_e_operacoes(),
+        test_divisao_resulta_float(),
         test_funcoes_e_contexto()
     };
 

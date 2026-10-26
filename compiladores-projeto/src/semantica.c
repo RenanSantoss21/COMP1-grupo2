@@ -53,7 +53,7 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
                 } else if (tipo_esq == TIPO_FLOAT || tipo_dir == TIPO_FLOAT) {
                     tipo_inferido = TIPO_FLOAT;
                 } else if (tipo_esq == TIPO_INT && tipo_dir == TIPO_INT) {
-                    tipo_inferido = TIPO_INT;
+                    tipo_inferido = (raiz->operador == OP_DIV) ? TIPO_FLOAT : TIPO_INT;
                 } else {
                     tipo_inferido = TIPO_DESCONHECIDO;
                 }
@@ -81,9 +81,34 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
                     if (erros) *erros += 1;
                 }
                 tipo_inferido = TIPO_BOOL;
+            } else if (raiz->operador == OP_IN) {
+                tipo_inferido = TIPO_BOOL;
             }
             break;
         }
+        case NO_UNARYOP: {
+            TipoDado tipo_op = inferir_tipo(raiz->esquerda, tabela, erros);
+
+            if (raiz->operador == OP_NEG) {
+                if (tipo_op == TIPO_INT || tipo_op == TIPO_FLOAT) {
+                    tipo_inferido = tipo_op;
+                } else if (tipo_op == TIPO_STRING || tipo_op == TIPO_BOOL) {
+                    fprintf(stderr, "Erro semântico na linha %d: Operador '-' exige operando numérico.\n", raiz->linha);
+                    if (erros) *erros += 1;
+                }
+            } else if (raiz->operador == OP_NOT) {
+                if (tipo_op != TIPO_BOOL && tipo_op != TIPO_DESCONHECIDO) {
+                    fprintf(stderr, "Erro semântico na linha %d: Operador 'not' exige booleano.\n", raiz->linha);
+                    if (erros) *erros += 1;
+                }
+                tipo_inferido = TIPO_BOOL;
+            }
+            break;
+        }
+        case NO_INPUT:
+            inferir_tipo(raiz->esquerda, tabela, erros);
+            tipo_inferido = TIPO_STRING;
+            break;
         case NO_FUNCCALL: {
             Simbolo *sim = tabela_buscar(tabela, raiz->nome);
             if (sim != NULL) {
