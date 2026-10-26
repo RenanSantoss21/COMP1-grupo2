@@ -36,6 +36,7 @@ nav:
   - Decisões de Design (ADRs):
     - Especificação da Linguagem: Especificacao_Linguagem.md
   - Implementação:
+    - Vida de um Programa: VidaDeUmPrograma.md
     - Lexer: Lexer.md
     - Parser: Parser.md
     - AST: AST.md
