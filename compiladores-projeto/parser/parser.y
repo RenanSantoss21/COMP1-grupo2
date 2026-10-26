@@ -283,12 +283,16 @@ void yyerror(const char *s) {
 
 int main(int argc, char *argv[]) {
     bool mostrar_ast = false;
+    bool mostrar_dot = false;
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--ast") == 0) {
             mostrar_ast = true;
         }
         if (strcmp(argv[i], "--tabela") == 0) {
             mostrar_tabela = true;
+        }
+        if (strcmp(argv[i], "--dot") == 0) {
+            mostrar_dot = true;
         }
     }
 
@@ -306,6 +310,24 @@ int main(int argc, char *argv[]) {
         if (mostrar_ast) {
             printf("\n--- Árvore Sintática Abstrata Gerada ---\n");
             imprimir_ast(raiz_ast, 0);
+        }
+
+        if (mostrar_dot) {
+            ast_para_dot(raiz_ast, stdout);
+            fflush(stdout);
+
+            FILE *arq_dot = fopen("ast.dot", "w");
+            if (arq_dot != NULL) {
+                ast_para_dot(raiz_ast, arq_dot);
+                fclose(arq_dot);
+                if (system("dot -Tpng ast.dot -o ast.png 2>/dev/null") == 0) {
+                    fprintf(stderr, "[AST] Imagem gerada em ast.png\n");
+                    if (getenv("CI") == NULL) {
+                        int ret = system("xdg-open ast.png >/dev/null 2>&1 &");
+                        (void)ret;
+                    }
+                }
+            }
         }
 
         if (mostrar_tabela) {

@@ -13,7 +13,7 @@ compilador: lexer/lexer.l parser/parser.y $(SRC) $(HEADERS)
 	gcc $(CFLAGS) -o compilador lex.yy.c parser.tab.c $(SRC) -lfl
 
 clean:
-	rm -f compilador lex.yy.c parser.tab.c parser.tab.h testes/tdd/teste_tabela testes/tdd/teste_ast testes/tdd/teste_semantica testes/tdd/_ast_test_output.tmp
+	rm -f compilador lex.yy.c parser.tab.c parser.tab.h ast.dot ast.png testes/tdd/teste_tabela testes/tdd/teste_ast testes/tdd/teste_semantica testes/tdd/_ast_test_output.tmp testes/tdd/_ast_test_dot.tmp
 
 test: test_ast test_tabela test_semantica test_integracao
 

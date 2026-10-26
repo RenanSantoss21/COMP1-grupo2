@@ -137,6 +137,7 @@ Cada tipo de nó possui uma função construtora que aloca o nó, inicializa seu
 | Função                          | Descrição                                                          |
 |---------------------------------|--------------------------------------------------------------------|
 | `imprimir_ast(NoAST *raiz, int nivel)` | Imprime a árvore formatada com indentação para debug          |
+| `ast_para_dot(NoAST *raiz, FILE *saida)` | Exporta a árvore no formato Graphviz DOT                    |
 | `liberar_ast(NoAST *raiz)`             | Libera toda a memória da árvore recursivamente                 |
 
 ---
@@ -203,12 +204,60 @@ Como a análise do Bison é reduzida de baixo para cima, o tamanho final de bloc
 ### 4. Integração com o Analisador Léxico
 Para garantir que a árvore receba dados válidos sem gerar falhas de segmentação (*Segmentation Fault*), o analisador léxico (`lexer/lexer.l`) foi atualizado. A regra para identificadores (`ID`) agora realiza a alocação de memória do texto usando `yylval.sval = strdup(yytext);`.
 
-### 5. Saída, Validação e Flag `--ast`
+### 5. Saída, Validação e Flags `--ast` e `--dot`
 A função `main()` do compilador repassa a raiz para a Análise Semântica via `analisar_semantica(raiz_ast, tabela)` (que preenche o `tipo_resolvido` de cada expressão) e, caso a flag `--ast` seja informada na linha de comando, invoca `imprimir_ast(raiz_ast, 0)` exibindo os nós da árvore e seus respectivos tipos resolvidos:
 
 ```bash
 ./compilador --ast < testes/Testes1.py
 ```
+
+Para exportar a AST no formato Graphviz DOT e gerar uma imagem visual (além de salvar e abrir automaticamente `ast.png` ao usar a flag `--dot`), utilize:
+
+```bash
+./compilador --dot < x.py > x.dot && dot -Tpng x.dot -o x.png
+```
+
+---
+
+## Visualização com Graphviz (`--dot`)
+
+Abaixo estão 3 exemplos gerados pelo compilador usando `--dot` e renderizados com Graphviz (`dot -Tpng`):
+
+### 1. Condicional (`if / elif / else`)
+
+```python
+x = 10
+if x > 10:
+    print("maior")
+elif x == 10:
+    print("igual")
+else:
+    print("menor")
+```
+
+![AST if/elif/else](img/ast_if_elif_else.png)
+
+### 2. Laço de Repetição (`for` com `range`)
+
+```python
+soma = 0
+for i in range(5):
+    soma = soma + i
+print(soma)
+```
+
+![AST for](img/ast_for.png)
+
+### 3. Definição e Chamada de Função (`def` + chamada)
+
+```python
+def dobro(n):
+    return n * 2
+res = dobro(5)
+print(res)
+```
+
+![AST def e chamada](img/ast_def_chamada.png)
 
 ---
 

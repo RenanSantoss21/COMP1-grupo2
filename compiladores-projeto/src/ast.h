@@ -1,6 +1,7 @@
 #ifndef AST_H
 #define AST_H
 
+#include <stdio.h>
 #include "tipos.h"
 
 /* ── Tipos de nó da AST ──────────────────────────────────────────── */
@@ -103,6 +104,7 @@ NoAST *criar_no_programa(NoAST **cmds, int n_cmds);
 
 /* ── Utilitários ─────────────────────────────────────────────────── */
 void imprimir_ast(NoAST *raiz, int nivel);
+void ast_para_dot(NoAST *raiz, FILE *saida);
 void liberar_ast(NoAST *raiz);
 
 #endif
