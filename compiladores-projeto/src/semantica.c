@@ -143,6 +143,31 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
     return tipo_inferido;
 }
 
+static void pre_registrar_funcoes(NoAST *bloco, TabelaSimbolos *tabela) {
+    if (bloco == NULL) return;
+
+    if (bloco->tipo != NO_PROGRAMA && bloco->tipo != NO_BLOCO) return;
+
+    for (int i = 0; i < bloco->num_argumentos; i++) {
+        NoAST *cmd = bloco->argumentos[i];
+        if (cmd == NULL || cmd->tipo != NO_FUNCDEF) continue;
+    
+        Simbolo *s = tabela_buscar(tabela, cmd->nome);
+        if (s && s->escopo == tabela->escopo_atual) continue;
+
+        tabela_inserir(tabela, cmd->nome, TIPO_DESCONHECIDO, cmd->linha);
+        s = tabela_buscar(tabela, cmd->nome);
+        s->e_funcao = true;
+        s->num_parametros = cmd->num_argumentos;
+        if (cmd->num_argumentos > 0) {
+            s->tipos_parametros = malloc(sizeof(TipoDado) * cmd->num_argumentos);
+            for (int j = 0; j < cmd->num_argumentos; j++) {
+                s->tipos_parametros[j] = TIPO_DESCONHECIDO;
+            }
+        }   
+    }
+}
+
 int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
     if (raiz == NULL) return 0;
     
@@ -185,6 +210,16 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
                 erros += analisar_semantica(raiz->argumentos[i], tabela);
             }
         }
+        return erros;
+    }
+
+    if (raiz->tipo == NO_PROGRAMA) {
+        pre_registrar_funcoes(raiz, tabela);
+
+        for (int i = 0; i < raiz->num_argumentos; i++) {
+            erros += analisar_semantica(raiz->argumentos[i], tabela);
+        }
+
         return erros;
     }
     
@@ -233,6 +268,8 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
                 tabela_inserir(tabela, raiz->argumentos[i]->nome, TIPO_DESCONHECIDO, raiz->argumentos[i]->linha);
             }
         }
+
+        pre_registrar_funcoes(raiz->bloco_if, tabela);
         erros += analisar_semantica(raiz->bloco_if, tabela);
         tabela_sair_escopo(tabela);
         

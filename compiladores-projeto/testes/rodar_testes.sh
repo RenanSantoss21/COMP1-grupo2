@@ -119,6 +119,8 @@ rodar_teste "testes/TestesSemanticaValidos2.py" "nao"
 rodar_teste "testes/TestesSemanticaValidos3.py" "nao"
 rodar_teste "testes/TestesSemanticaValidos4.py" "nao"
 rodar_teste "testes/TestesSemanticaValidos5.py" "nao"
+rodar_teste "testes/TestesSemanticaValidos6.py" "nao"
+rodar_teste "testes/TestesSemanticaValidos7.py" "nao"
 
 echo ""
 echo "--- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---"
