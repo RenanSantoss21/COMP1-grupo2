@@ -50,8 +50,8 @@ Valida que escopos internos enxergam variáveis do pai, mas variáveis internas 
 
 | Cenário | AST construída | Erros esperados |
 |---|---|---|
-| Variável `x` declarada fora, usada dentro de um `NO_BLOCO` | `[NO_ASSIGN(x), NO_BLOCO([NO_ID(x)])]` | 0 |
-| Variável `y` declarada dentro de `NO_BLOCO`, usada **fora** dele | `[NO_BLOCO([NO_ASSIGN(y)]), NO_ID(y)]` | 1 |
+| Variável `y` declarada dentro de `NO_BLOCO`, usada **fora** dele | `[NO_BLOCO([NO_ASSIGN(y)]), NO_ID(y)]` | 0 |
+| Variável local declarada em `NO_FUNCDEF`, usada **fora** da função | `[NO_FUNCDEF(foo, ...), NO_ID(var_local)]` | 1 |
 
 ---
 

@@ -136,7 +136,7 @@ flowchart LR
 3. **Validação de Variáveis e Funções:**
    Ao encontrar `NO_ID` ou `NO_FUNCCALL`, a função `tabela_buscar` verifica a existência do identificador e valida número e compatibilidade de tipos dos argumentos.
 4. **Controle de Escopos em Blocos e Funções:**
-   Ao visitar `NO_BLOCO` e `NO_FUNCDEF`, a análise chama `tabela_entrar_escopo()` no início e `tabela_sair_escopo()` ao término.
+   Em conformidade com a semântica de Python, blocos de controle de fluxo (`if`, `while`, `for`) não criam novos escopos. O escopo é criado e destruído exclusivamente na definição de funções (`NO_FUNCDEF`): a análise invoca `tabela_entrar_escopo()` ao entrar no corpo da função e `tabela_sair_escopo()` ao sair, garantindo que parâmetros e variáveis locais fiquem devidamente isolados.
 
 ---
 

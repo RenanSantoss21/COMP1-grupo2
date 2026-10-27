@@ -17,11 +17,11 @@ O nosso analisador percorre a Árvore Sintática Abstrata (AST) procurando por o
 
 ## Gerenciamento de Escopos
 
-A verificação semântica trabalha em estreita colaboração com o modelo de ambientes (environments) da tabela de símbolos para tratar blocos de código:
+A verificação semântica adota a regra de escopos do Python:
 
-- **Aninhamento (`NO_BLOCO`):** Sempre que a análise adentra um bloco de código recuado (como o corpo de um `if`, `while`, `for`, ou definição de função), ela invoca a função `tabela_entrar_escopo()`.
-- **Visibilidade Ascendente:** O analisador permite o uso de variáveis declaradas em um bloco pai. A busca da tabela sobe na hierarquia, tornando as globais ou variáveis externas acessíveis.
-- **Encapsulamento Descendente:** Variáveis declaradas dentro do escopo interno morrem com ele e não "vazam" para o escopo externo. Ao finalizar a visita aos filhos de um `NO_BLOCO`, o analisador invoca `tabela_sair_escopo()` para destruir referências às variáveis daquele bloco.
+- **Instruções de Controle de Fluxo (`if`, `while`, `for`):** Blocos identados (`NO_BLOCO`) e laços `for` (`NO_FOR`) *não* criam novos escopos. Variáveis atribuídas dentro dessas estruturas compartilham o escopo corrente e permanecem disponíveis após a saída do bloco.
+- **Funções (`NO_FUNCDEF`):** Apenas definições de função criam um novo escopo (`tabela_entrar_escopo()`). Parâmetros formais e variáveis atribuídas no corpo da função residem no escopo local da função.
+- **Isolamento de Funções** Ao término da análise do corpo da função, `tabela_sair_escopo()` é invocada, destruindo parâmetros e variáveis locais da tabela para que não vazem para o escopo chamador/externo.
 
 ## Inferência e Verificação de Tipos
 
