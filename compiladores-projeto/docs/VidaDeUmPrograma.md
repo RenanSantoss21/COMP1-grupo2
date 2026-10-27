@@ -147,6 +147,129 @@ digraph AST {
 
 ## 4. Tabela de Símbolos
 
+A Tabela de Símbolos gerencia os identificadores (variáveis e funções) e assegura a visibilidade e compatibilidade de tipos durante a Análise Semântica.
+
+Ela é mantida em um **array dinâmico contíguo** (`Simbolo* array_simbolos`) operado como pilha. A busca de nomes (`tabela_buscar`) é feita por **varredura reversa** (`i = tamanho - 1` até `0`). Conforme definido na resolução da **Issue #45**, para respeitar a semântica do Python, blocos de controle de fluxo (`if`, `for`, `while`) **não criam novos escopos**. Portanto, chamadas a `tabela_entrar_escopo()` e `tabela_sair_escopo()` ocorrem exclusivamente na definição de funções (`NO_FUNCDEF`).
+
+Abaixo é apresentado o rastreio do estado do `array_simbolos` ao longo do programa de exemplo.
+
+---
+
+### Estado 0: Inicialização do Escopo Global (`escopo_atual = 0`)
+
+O compilador inicializa a tabela alocando capacidade para 10 símbolos.
+
+- **Ação:** `tabela_criar()`
+- **Estado Interno:** `escopo_atual = 0`, `tamanho = 0`, `capacidade = 10`
+
+| Índice | Nome | Tipo | Escopo | Linha | É Função? | Detalhes |
+| :---: | :--- | :--- | :---: | :---: | :---: | :--- |
+| - | *(vazia)* | - | - | - | - | Nenhum símbolo registrado |
+
+---
+
+### Estado 1: Inserção de `dobro` e Escopo de Parâmetro (`escopo_atual = 1`)
+
+Ao processar `def dobro(n):`:
+1. `dobro` é inserida no **escopo 0** como função.
+2. `tabela_entrar_escopo()` incrementa `escopo_atual` para `1`.
+3. O parâmetro `n` é registrado no **escopo 1**.
+
+- **Ação:** `tabela_inserir("dobro")` -> `tabela_entrar_escopo()` -> `tabela_inserir("n")`
+- **Estado Interno:** `escopo_atual = 1`, `tamanho = 2`
+
+| Índice | Nome | Tipo | Escopo | Linha | É Função? | Detalhes |
+| :---: | :--- | :--- | :---: | :---: | :---: | :--- |
+| **`[0]`** | `dobro` | `TIPO_DESCONHECIDO` | 0 | 1 | `true` | `num_parametros = 1` |
+| **`[1]`** | `n` | `TIPO_DESCONHECIDO` | 1 | 1 | `false` | Parâmetro formal de `dobro` |
+
+---
+
+### Estado 2: Escopo do Bloco da Função `dobro` (`escopo_atual = 2`)
+
+O corpo da função é um `NO_BLOCO`, incrementando `escopo_atual` para `2`.
+
+- **Ação:** `tabela_entrar_escopo()`
+- **Estado Interno:** `escopo_atual = 2`, `tamanho = 2`
+
+| Índice | Nome | Tipo | Escopo | Linha | É Função? | Detalhes |
+| :---: | :--- | :--- | :---: | :---: | :---: | :--- |
+| **`[0]`** | `dobro` | `TIPO_DESCONHECIDO` | 0 | 1 | `true` | Visível via busca reversa |
+| **`[1]`** | `n` | `TIPO_DESCONHECIDO` | 1 | 1 | `false` | Visível via busca reversa |
+
+---
+
+### Estado 3: Saída da Função `dobro` (`escopo_atual = 0`)
+
+Ao término do corpo da função:
+1. `tabela_sair_escopo()` decrementa para 1.
+2. A segunda chamada desempilha `n` do índice `1` (`free`) e retorna ao `escopo_atual = 0`.
+
+- **Ação:** `tabela_sair_escopo()` -> `tabela_sair_escopo()`
+- **Estado Interno:** `escopo_atual = 0`, `tamanho = 1`
+
+| Índice | Nome | Tipo | Escopo | Linha | É Função? | Detalhes |
+| :---: | :--- | :--- | :---: | :---: | :---: | :--- |
+| **`[0]`** | `dobro` | `TIPO_DESCONHECIDO` | 0 | 1 | `true` | Mantido no escopo global |
+
+---
+
+### Estado 4: Atribuição Global `x = 3` (`escopo_atual = 0`)
+
+O compilador registra `x` no escopo global.
+
+- **Ação:** `tabela_inserir("x", TIPO_INT, linha 3)`
+- **Estado Interno:** `escopo_atual = 0`, `tamanho = 2`
+
+| Índice | Nome | Tipo | Escopo | Linha | É Função? | Detalhes |
+| :---: | :--- | :--- | :---: | :---: | :---: | :--- |
+| **`[0]`** | `dobro` | `TIPO_DESCONHECIDO` | 0 | 1 | `true` | `num_parametros = 1` |
+| **`[1]`** | `x` | `TIPO_INT` | 0 | 3 | `false` | Literal `3` inferido como `TIPO_INT` |
+
+---
+
+### Estado 5: Execução do `if` e Atribuição de `y` (`escopo_atual = 0`)
+
+Ao processar `if x > 2:`, a condição consulta `x` no índice `1`. Como o `if` **não abre novo escopo**, o comando `y = dobro(x)` insere `y` diretamente no **escopo 0**.
+
+- **Ação:** `tabela_inserir("y", TIPO_INT, linha 5)`
+- **Estado Interno:** `escopo_atual = 0`, `tamanho = 3`
+
+| Índice | Nome | Tipo | Escopo | Linha | É Função? | Detalhes |
+| :---: | :--- | :--- | :---: | :---: | :---: | :--- |
+| **`[0]`** | `dobro` | `TIPO_DESCONHECIDO` | 0 | 1 | `true` | Escopo Global |
+| **`[1]`** | `x` | `TIPO_INT` | 0 | 3 | `false` | Escopo Global |
+| **`[2]`** | `y` | `TIPO_INT` | 0 | 5 | `false` | Inserida no escopo global (vazamento de escopo) |
+
+---
+
+### Estado 6: Consulta e Execução do `print(y)` (`escopo_atual = 0`)
+
+No comando final `print(y)`:
+
+1. O compilador executa `tabela_buscar(tab, "y")`.
+2. A varredura reversa inicia no índice `2` (`tamanho - 1`).
+3. Localiza `y` no índice `2` com tipo `TIPO_INT`.
+4. A verificação semântica é concluída **sem erros**.
+
+- **Resultado:** O programa compila com sucesso e a execução gera o resultado esperado: `6`.
+
+---
+
+### Rastreio Sintético de Chamadas
+
+```text
+tabela_criar()                          -> tamanho = 0, escopo_atual = 0
+  tabela_inserir("dobro", ..., 1)       -> array[0] = { "dobro", esc: 0 }
+  tabela_entrar_escopo()                -> escopo_atual = 1
+    tabela_inserir("n", ..., 1)         -> array[1] = { "n", esc: 1 }
+    tabela_entrar_escopo()              -> escopo_atual = 2
+    tabela_sair_escopo()                -> escopo_atual = 1
+  tabela_sair_escopo()                  -> free("n"), tamanho = 1, escopo_atual = 0
+  tabela_inserir("x", TIPO_INT, 3)      -> array[1] = { "x", esc: 0 }
+  tabela_inserir("y", TIPO_INT, 5)      -> array[2] = { "y", esc: 0 }
+  tabela_buscar("y")                    -> Encontra 'y' no índice 2 -> Sucesso!
+```
 
 ---
 
