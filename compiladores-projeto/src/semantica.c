@@ -180,13 +180,11 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
     }
     
     if (raiz->tipo == NO_BLOCO) {
-        tabela_entrar_escopo(tabela);
         if (raiz->argumentos && raiz->num_argumentos > 0) {
             for (int i = 0; i < raiz->num_argumentos; i++) {
                 erros += analisar_semantica(raiz->argumentos[i], tabela);
             }
         }
-        tabela_sair_escopo(tabela);
         return erros;
     }
     
@@ -273,17 +271,23 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
     }
     
     if (raiz->tipo == NO_FOR) {
-        tabela_entrar_escopo(tabela);
         if (raiz->nome) {
-            tabela_inserir(tabela, raiz->nome, TIPO_INT, raiz->linha);
+            Simbolo *sim = tabela_buscar(tabela, raiz->nome);
+            if (sim != NULL && sim->escopo == tabela->escopo_atual) {
+                sim->tipo = TIPO_INT;
+            } else {
+                tabela_inserir(tabela, raiz->nome, TIPO_INT, raiz->linha);
+            }
         }
+
         if (raiz->esquerda) {
             erros += analisar_semantica(raiz->esquerda, tabela);
         }
+
         if (raiz->bloco_if) {
             erros += analisar_semantica(raiz->bloco_if, tabela);
         }
-        tabela_sair_escopo(tabela);
+        
         return erros;
     }
     
