@@ -118,12 +118,14 @@ rodar_teste "testes/TestesSemanticaValidos1.py" "nao"
 rodar_teste "testes/TestesSemanticaValidos2.py" "nao"
 rodar_teste "testes/TestesSemanticaValidos3.py" "nao"
 rodar_teste "testes/TestesSemanticaValidos4.py" "nao"
+rodar_teste "testes/TestesSemanticaValidos5.py" "nao"
 
 echo ""
 echo "--- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---"
 rodar_teste "testes/TestesSemanticaErros1.py" "sim"
 rodar_teste "testes/TestesSemanticaErros2.py" "sim"
 rodar_teste "testes/TestesSemanticaErros3.py" "sim"
+rodar_teste "testes/TestesSemanticaErros7.py" "sim"
 
 echo ""
 echo "--- RECUPERACAO de erros (todos os erros devem ser reportados) ---"
@@ -148,6 +150,7 @@ rodar_teste_semantico "testes/TestesSemanticoErro1.py" 5
 rodar_teste_semantico "testes/TestesSemanticaErros4.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros5.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros6.py" 3
+rodar_teste_semantico "testes/TestesSemanticaErros7.py" 1
 
 echo ""
 echo "========================================="

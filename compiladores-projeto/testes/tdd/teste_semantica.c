@@ -71,40 +71,40 @@ static int test_declaracao_vs_uso(void) {
 static int test_escopos_aninhados(void) {
     printf("Running test_escopos_aninhados...\n");
     
-    // Cenário 1: Acesso a variável do escopo pai
+    // Cenário 1: Variável declarada dentro de bloco vaza para fora
     TabelaSimbolos *tab1 = tabela_criar();
-    NoAST *decl_x = criar_no_assign("x", criar_no_int(10, 1), 1);
-    
-    NoAST **cmds_bloco = malloc(1 * sizeof(NoAST*));
-    cmds_bloco[0] = criar_no_id("x", 2);
-    NoAST *bloco = criar_no_bloco(cmds_bloco, 1);
-    
-    NoAST **cmds_prog = malloc(2 * sizeof(NoAST*));
-    cmds_prog[0] = decl_x;
-    cmds_prog[1] = bloco;
-    NoAST *prog1 = criar_no_programa(cmds_prog, 2);
-    
+    NoAST **cmds_bloco1 = malloc(1 * sizeof(NoAST*));
+    cmds_bloco1[0] = criar_no_assign("y", criar_no_int(20, 1), 1);
+    NoAST *bloco1 = criar_no_bloco(cmds_bloco1, 1);
+
+    NoAST *uso_y1 = criar_no_id("y", 2);
+
+    NoAST **cmds_prog1 = malloc(2 * sizeof(NoAST*));
+    cmds_prog1[0] = bloco1;
+    cmds_prog1[1] = uso_y1;
+    NoAST *prog1 = criar_no_programa(cmds_prog1, 2);
+
     int erros1 = analisar_semantica(prog1, tab1);
-    ASSERT(erros1 == 0, "Should access variable 'x' from outer scope");
+    ASSERT(erros1 == 0, "Variables inside blocks should remain accessible outside (Python scope rule)");
     liberar_ast(prog1);
     tabela_liberar(tab1);
     
-    // Cenário 2: Variável de escopo interno não vaza para fora
+    // Cenário 2: Variável declarada em função não vaza para fora
     TabelaSimbolos *tab2 = tabela_criar();
     
     NoAST **cmds_bloco2 = malloc(1 * sizeof(NoAST*));
-    cmds_bloco2[0] = criar_no_assign("y", criar_no_int(20, 1), 1);
-    NoAST *bloco2 = criar_no_bloco(cmds_bloco2, 1);
+    cmds_bloco2[0] = criar_no_assign("y", criar_no_int(99, 2), 2);
+    NoAST *bloco2 = criar_no_funcdef("funcao", NULL, 0, criar_no_bloco(cmds_bloco2, 1), 1);
     
-    NoAST *uso_y = criar_no_id("y", 2);
+    NoAST *uso_y2 = criar_no_id("y", 3);
     
     NoAST **cmds_prog2 = malloc(2 * sizeof(NoAST*));
     cmds_prog2[0] = bloco2;
-    cmds_prog2[1] = uso_y;
+    cmds_prog2[1] = uso_y2;
     NoAST *prog2 = criar_no_programa(cmds_prog2, 2);
     
     int erros2 = analisar_semantica(prog2, tab2);
-    ASSERT(erros2 == 1, "Should report 1 error for accessing inner variable 'y' from outer scope");
+    ASSERT(erros2 == 1, "Should report 1 error for accessing function local variable from outer scope");
     liberar_ast(prog2);
     tabela_liberar(tab2);
 
