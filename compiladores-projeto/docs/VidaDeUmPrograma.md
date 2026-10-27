@@ -17,6 +17,118 @@ print(y)
 
 ## 1. Análise Léxica (Lexer)
 
+A análise léxica é a primeira fase do processo de compilação. Sua função é ler o código-fonte, identificar as sequências de caracteres que formam as unidades léxicas da linguagem e classificá-las em tokens. Esses tokens são enviados ao analisador sintático, responsável por verificar se a sequência obedece às regras gramaticais da linguagem. O componente responsável por essa tarefa é chamado de analisador léxico, também conhecido como lexer ou scanner. Essa tarefa pode ser dividida em algumas etapas:
+
+#### Leitura de caracteres
+
+- Ele analisa cada caractere do código-fonte (um fluxo de texto). Nessa leitura, ocorre a remoção de caracteres irrelevantes, como espaços em branco ou comentários. Entretanto, esse comportamento depende das regras da linguagem.
+
+#### Agrupamento e classificação
+
+- Enquanto ocorre a leitura, o analisador agrupa os caracteres relevantes em lexemas e os classifica, gerando uma lista de tokens, que são os símbolos processados pelas demais etapas.
+
+#### Reconhecimento e classificação dos lexemas
+- Ao receber o código-fonte como um fluxo de caracteres, o analisador léxico identifica as sequências que correspondem aos padrões definidos pela linguagem, classificando-as e gerando os tokens correspondentes. Além disso, pode ignorar elementos que não precisam ser enviados às próximas etapas, como espaços em branco e comentários, dependendo das regras da linguagem. No Python, entretanto, nem todo espaço em branco é irrelevante, pois a indentação determina a estrutura dos blocos de código. Por isso, o analisador léxico pode gerar tokens específicos, como `INDENT` e `DEDENT`, que representam, respectivamente, o aumento e a diminuição do nível de indentação.
+
+### Conceitos
+
+Dessa forma, pode-se definir três tipos de relacionamentos ao implementar um analisador léxico:
+
+- **Lexema:** é uma sequência de caracteres de um programa-fonte, como uma palavra. Cada conjunto de caracteres forma um símbolo válido de uma linguagem de programação. O lexema pode ser também um único caractere.
+  - Por exemplo, em `int x = 5`, os lexemas encontrados são: `int`, `x`, `=`, `5`.
+- **Padrão:** descrição da forma que os lexemas podem assumir, ou seja, a maneira como se pode escrever os lexemas no programa. Funciona como as regras do que é aceito ou não. Dessa forma, uma sequência de caracteres forma uma palavra reservada ou um identificador (os caracteres que formam nomes de variáveis ou funções...).
+- **Token:** resultado da classificação. Se o lexema segue um padrão válido, ele se torna um token, possuindo um nome e um atributo. É um símbolo que representa uma unidade léxica. A palavra `if`, por exemplo, segue um padrão formado pelos caracteres `i` e `f`. O analisador possui uma regra na qual um lexema que reúne esses caracteres gera um token de palavra reservada que representa uma seleção. Já a variável `soma` segue um padrão de palavras formadas por um conjunto de caracteres, podendo ser um identificador. Além disso, essa unidade pode ser, por exemplo: palavras reservadas, identificadores, números...
+
+| Token | Padrão | Lexema | Descrição |
+| :---: | :--- | :--- | :---: |
+| `while` | sequência: w, h, i, l, e | `while` | Palavra reservada |
+| `numero, 18` | Dígitos numéricos | `18` | Constante numérica |
+
+Os tokens podem ser divididos em dois grupos:
+
+- **Tokens simples:** eles possuem um valor associado, já descrito na própria classe, como operadores ou palavras reservadas.
+- **Tokens com argumentos:** possuem um valor associado, como `<numero, 10>` ou `<id, 3>`.
+
+Possuindo uma estrutura de `<nome-token, valor-atributo>`.
+
+Tomando o exemplo principal como base:
+
+```python
+def dobro(n):
+    return n * 2
+x = 3
+if x > 2:
+    y = dobro(x)
+print(y)
+```
+
+A análise léxica deste arquivo pode gerar a seguinte sequência de tokens simplificada (omite alguns tokens de estrutura):
+
+```text
+<def, def>
+<id, dobro>
+<abre_parentese, (>
+<id, n>
+<fecha_parentese, )>
+<dois_pontos, :>
+
+<return, return>
+<id, n>
+<operador_multiplicacao, *>
+<numero, 2>
+
+<id, x>
+<igual, =>
+<numero, 3>
+
+<if, if>
+<id, x>
+<maior, >>
+<numero, 2>
+<dois_pontos, :>
+
+<id, y>
+<igual, =>
+<id, dobro>
+<abre_parentese, (>
+<id, x>
+<fecha_parentese, )>
+
+<print, print>
+<abre_parentese, (>
+<id, y>
+<fecha_parentese, )>
+```
+
+Dessa forma, ao encontrar o lexema `def`, por exemplo, o analisador reconhece uma palavra reservada e produz um token correspondente. Essa forma de análise se dá por todo o código, com diferentes categorias. Cada implementação pode gerar a sua própria nomenclatura.
+
+### Tratamento de erros
+
+- A identificação de erros do analisador léxico é voltada principalmente para a presença de caracteres que não são válidos na linguagem. Ao encontrar um caractere problemático, deve-se emitir uma mensagem de erro contendo informações sobre o caractere e a sua posição.
+
+### Relacionamento com outras etapas
+
+A análise léxica é a `primeira etapa do processo de compilação` e estabelece a comunicação entre o código-fonte e a análise sintática. O analisador léxico recebe uma `sequência de caracteres`, reconhece os lexemas e produz tokens. Em seguida, esses tokens são utilizados pelo analisador sintático para verificar se as instruções obedecem à gramática da linguagem. A interação entre essas etapas pode ocorrer de diferentes maneiras. Em uma abordagem comum, o analisador sintático solicita o próximo token sempre que precisa continuar a análise. O analisador léxico realiza a leitura necessária, reconhece o próximo elemento e o devolve ao analisador sintático. Essa abordagem evita a necessidade de armazenar previamente toda a sequência de tokens, embora a implementação possa optar por armazená-la quando isso for conveniente. Após a análise sintática, a análise semântica verifica aspectos relacionados ao significado do programa, como a compatibilidade de tipos, a utilização de identificadores e outras regras que dependem da linguagem. De forma simplificada, podemos representar essa relação da seguinte maneira:
+
+```text
+Código-fonte
+     |
+     v
+Analisador léxico
+     |
+     v
+Sequência de tokens
+     |
+     v
+Analisador sintático
+     |
+     v
+Estrutura sintática do programa
+     |
+     v
+Analisador semântico
+```
+A tabela de símbolos também pode ser utilizada por diferentes etapas para armazenar e consultar informações sobre os elementos identificados no programa.
 
 ---
 
