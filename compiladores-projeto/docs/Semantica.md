@@ -2,7 +2,7 @@
 
 A fase de Análise Semântica do compilador Python-C# é responsável por garantir que as construções sintáticas (que já foram validadas pelo Parser e transformadas em uma AST) façam sentido dentro das regras da linguagem.
 
-Atualmente, o foco principal da nossa análise semântica engloba a **Verificação de Declaração de Variáveis**, o **Gerenciamento de Escopos** e a **Inferência e Verificação de Tipos**.
+Atualmente, o foco principal da nossa análise semântica engloba a **Verificação de Declaração de Variáveis**, o **Gerenciamento de Escopos**, a **Inferência e Verificação de Tipos** e a **Análise em Duas Passadas** para suporte a *forward references* de funções.
 
 ## Verificação de Variáveis
 
@@ -47,6 +47,29 @@ Alguns comandos da linguagem possuem restrições ligadas ao ambiente onde são 
   O analisador semântico controla a flag `dentro_de_funcao` da Tabela de Símbolos. Se um `NO_RETURN` for encontrado no nível global do arquivo (fora de uma definição), o analisador emite imediatamente: `Erro semântico... 'return' fora de função gera erro.`
 - **Consistência do Tipo de Retorno:**
   Dentro de uma mesma função, se houver múltiplos nós `return` em caminhos de ramificação (ex: `if` / `else`), o analisador assegura que todos devolvam tipos compatíveis, rastreando o `tipo_retorno_atual` na tabela. Qualquer desvio gera um erro de inconsistência de tipo.
+
+## Análise em Duas Passadas (Forward References)
+
+Em Python, uma função pode chamar outra definida mais abaixo no arquivo, desde que a chamada só ocorra em tempo de execução (ex: dentro do corpo de outra função). Para suportar isso, a análise semântica executa **duas passagens** sobre os comandos de cada escopo:
+
+1. **1ª passagem — `pre_registrar_funcoes`:** Percorre apenas os comandos do nível corrente (`NO_PROGRAMA` ou `NO_BLOCO`) e registra na tabela de símbolos o nome e o número de parâmetros de todos os nós `NO_FUNCDEF`, sem analisar seus corpos. Isso garante que toda função definida no módulo já seja conhecida antes da análise completa.
+2. **2ª passagem — `analisar_semantica`:** Percorre normalmente todos os comandos, incluindo os corpos das funções. Agora, quando encontrar uma chamada a `g()` dentro de `f()`, o nome `g` já existe na tabela.
+
+Esta estratégia também se aplica recursivamente ao **corpo de cada função**, permitindo funções aninhadas que se referenciam mutuamente.
+
+**Comportamento decidido:** Chamar uma função *antes* de seu `def` no **nível do módulo** (execução imediata) continua sendo erro, pois em Python real isso também geraria um `NameError` em runtime.
+
+```python
+# Válido: a chamada de g() está dentro de f(), executada apenas quando f() for chamada.
+def f():
+    return g()
+def g():
+    return 1
+
+# Também válido: recursão direta.
+def f():
+    return f()
+```
 
 ## Testes
 
