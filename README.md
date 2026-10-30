@@ -1,4 +1,8 @@
+[![CI](https://github.com/RenanSantoss21/COMP1-grupo2/actions/workflows/ci.yml/badge.svg)](https://github.com/RenanSantoss21/COMP1-grupo2/actions/workflows/ci.yml)
+[![Deploy da documentação](https://github.com/RenanSantoss21/COMP1-grupo2/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/RenanSantoss21/COMP1-grupo2/actions/workflows/deploy-docs.yml)
 # Projeto de Compiladores com Flex e Bison
+
+
 
 Este repositório contém um compilador em desenvolvimento utilizando as ferramentas **Flex** (para análise léxica) e **Bison** (para análise sintática). O projeto conta com um lexer completo (com suporte a indentação, strings, números, operadores e 16 palavras-chave), um parser funcional com validação sintática e error recovery, uma Árvore Sintática Abstrata (AST), Tabela de Símbolos e Análise Semântica com verificação de tipos, escopos e funções.
 
