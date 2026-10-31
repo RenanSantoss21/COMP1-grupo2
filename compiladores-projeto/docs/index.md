@@ -30,15 +30,6 @@ Isso irá gerar um executável chamado `compilador`. Para executá-lo:
 ./compilador
 ```
 
-Você também pode usar as flags `--ast`, `--dot` e `--tabela` para inspecionar a Árvore Sintática Abstrata (em texto ou imagem Graphviz com os tipos resolvidos) e a Tabela de Símbolos em cada escopo:
-
-```bash
-./compilador --ast < testes/Testes1.py
-./compilador --dot < testes/Testes1.py > x.dot && dot -Tpng x.dot -o x.png
-./compilador --tabela < testes/TestesSemanticaValidos1.py
-./compilador --ast --tabela < testes/TestesSemanticaValidos1.py
-```
-
 Após iniciar o programa interativamente, você pode digitar código Python válido. Exemplo:
 
 ```python

@@ -83,23 +83,36 @@ Esses testes simulam árvores AST básicas e atestam que os cenários de sucesso
 
 ### Testes de Integração
 
-Além dos testes unitários, foram adicionados **6 testes de integração** que passam código Python real pelo compilador completo (Issue #17). Eles estão organizados na pasta `testes/` e são executados pelo script `rodar_testes.sh`.
+Além dos testes unitários, a suíte conta com **16 arquivos de testes de integração semântica** que passam código Python real pelo compilador completo. Eles estão organizados na pasta `testes/` e são executados pelo script `rodar_testes.sh`.
 
 **Casos válidos (devem passar sem erros):**
 
 | Arquivo | Cenário Testado |
 |---------|-----------------|
 | `TestesSemanticaValidos1.py` | Atribuição e uso correto de variáveis |
-| `TestesSemanticaValidos2.py` | Operações compatíveis e promoção int→float, concatenação de strings |
+| `TestesSemanticaValidos2.py` | Operações compatíveis, promoção `int`→`float` e concatenação de strings |
 | `TestesSemanticaValidos3.py` | Chamada de função com quantidade correta de argumentos |
+| `TestesSemanticaValidos4.py` | Operadores unários (`-`, `not`), `input()` e `in` com tipos corretos |
+| `TestesSemanticaValidos5.py` | Vazamento de escopo em bloco `if` (regra de escopo do Python) |
+| `TestesSemanticaValidos6.py` | *Forward reference* entre funções (duas passadas) |
+| `TestesSemanticaValidos7.py` | Função com chamada recursiva direta |
+| `TestesSemantico1.py` | Tipos, promoção numérica, condições booleanas e reatribuição dinâmica |
+| `TestesSemantico2.py` | Múltiplas funções, escopos isolados e laços `for`/`while` aninhados |
 
-**Casos de erro (devem gerar erros semânticos):**
+**Casos de erro (devem detectar e contabilizar os erros semânticos):**
 
 | Arquivo | Cenário Testado |
 |---------|-----------------|
 | `TestesSemanticaErros1.py` | Uso de variável não declarada |
-| `TestesSemanticaErros2.py` | Operação com tipos incompatíveis (string + int) |
+| `TestesSemanticaErros2.py` | Operação com tipos incompatíveis (`string + int`) |
 | `TestesSemanticaErros3.py` | Chamada de função com argumentos errados e `return` fora de função |
+| `TestesSemanticaErros4.py` | Soma inválida entre retorno `string` de `input()` e `int` (1 erro) |
+| `TestesSemanticaErros5.py` | Uso de `int` negativo (`-5`) como condição de `if` (1 erro) |
+| `TestesSemanticaErros6.py` | Operadores unários com operandos inválidos: `-"abc"`, `-True`, `not 3` (3 erros) |
+| `TestesSemanticaErros7.py` | Reatribuição de variável para `string` em laço seguida de soma com `int` (1 erro) |
+| `teste_semantico.py` | Tipos incompatíveis, condição não booleana e função não declarada (4 erros) |
+| `TestesSemanticoErro1.py` | Erros combinados de lógica, comparação, aridade, chamada inválida e `return` global (5 erros) |
+| `TestesSemanticoErro2.py` | Variável não declarada e tentativa de uso de variável local fora da função |
 
 Para rodar todos os testes do compilador (incluindo semânticos):
 ```bash

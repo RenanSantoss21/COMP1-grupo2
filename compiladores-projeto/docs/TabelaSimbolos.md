@@ -181,7 +181,7 @@ A integridade da Tabela de Símbolos é validada por testes unitários dedicados
 
 Para executar os testes:
 ```bash
-make teste_tabela
+make test_tabela
 ```
 
 Para verificar ausência de vazamentos de memória com Valgrind:

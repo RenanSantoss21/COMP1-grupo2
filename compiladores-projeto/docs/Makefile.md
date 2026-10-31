@@ -26,7 +26,9 @@ make all
 # ou
 make compilador
 ```
-Este é o comando padrão. Ele compila o analisador léxico (`lexer/lexer.l`), o analisador sintático (`parser/parser.y`) e os módulos do código-fonte em C localizados na pasta `src/` (como `ast.c` e `tabela.c`), e gera o executável final chamado `compilador` na raiz do projeto.
+Este é o comando padrão. Ele compila o analisador léxico (`lexer/lexer.l`), o analisador sintático (`parser/parser.y`) e todos os módulos em C localizados na pasta `src/` (`ast.c`, `tabela.c`, `semantica.c` e `codegen_intermediario.c`), gerando o executável final `compilador` na raiz do projeto.
+
+> **Nota sobre Integração Contínua (CI):** Quando a variável de ambiente `CI` está definida (`make CI=1`), o `Makefile` adiciona automaticamente a flag `-Werror` ao `CFLAGS`, tratando qualquer *warning* de compilação como erro.
 
 ---
 
@@ -34,12 +36,14 @@ Este é o comando padrão. Ele compila o analisador léxico (`lexer/lexer.l`), o
 ```bash
 make test
 ```
-Executa a suíte de testes de ponta a ponta. Ele faz isso executando na seguinte ordem:
-1. **`test_ast`**: Compila e roda os testes unitários do módulo da Árvore Sintática Abstrata (AST).
-2. **`test_tabela`**: Compila e roda os testes unitários da Tabela de Símbolos.
-3. **`test_integracao`**: Compila o executável principal `compilador` e em seguida utiliza o script `./testes/rodar_testes.sh` para testar os cenários de sucesso e falha sintática usando os arquivos `.py` na pasta de testes.
+Executa toda a suíte de testes unitários (TDD) e de integração na seguinte ordem:
+1. **`test_ast`**: Compila e executa os testes unitários da Árvore Sintática Abstrata (`testes/tdd/teste_ast.c`).
+2. **`test_tabela`**: Compila e executa os testes unitários da Tabela de Símbolos (`testes/tdd/teste_tabela.c`).
+3. **`test_semantica`**: Compila e executa os testes unitários da Análise Semântica (`testes/tdd/teste_semantica.c`).
+4. **`test_integracao`**: Compila o executável principal `compilador` e roda o script `./testes/rodar_testes.sh` com todos os cenários léxicos, sintáticos, semânticos e de recuperação de erros usando os arquivos `.py` da pasta `testes/`.
+5. **`test_tac`**: Compila e executa os testes unitários do gerador de Código Intermediário de Três Endereços (`testes/tdd/teste_tac.c`).
 
-O teste vai parar imediatamente caso alguma etapa venha a falhar.
+A execução para imediatamente caso qualquer etapa venha a falhar.
 
 ---
 
@@ -47,29 +51,42 @@ O teste vai parar imediatamente caso alguma etapa venha a falhar.
 ```bash
 make clean
 ```
-Limpa o repositório, removendo todos os arquivos gerados no processo de build e de testes. Isso inclui:
+Limpa o repositório, removendo todos os arquivos gerados no processo de build, visualização e testes. Isso inclui:
 - O executável principal `compilador`.
 - Os arquivos autogerados pelo Flex e Bison (`lex.yy.c`, `parser.tab.c`, `parser.tab.h`).
-- Os binários e arquivos temporários de teste (como `teste_tabela`, `teste_ast` e `_ast_test_output.tmp`).
+- Os arquivos de exportação visual da AST (`ast.dot`, `ast.png`).
+- Os binários e arquivos temporários dos testes unitários (`teste_tabela`, `teste_ast`, `teste_semantica`, `teste_tac`, `_ast_test_output.tmp` e `_ast_test_dot.tmp`).
 
 ## Comandos Específicos (Desenvolvimento)
 
-Durante o desenvolvimento de uma feature isolada, você pode não querer rodar todos os testes. O `Makefile` provê alvos específicos para testes menores:
+Durante o desenvolvimento de uma feature isolada, você pode rodar apenas o alvo correspondente ao módulo em que está trabalhando:
 
-### Testar apenas AST
+### Testar apenas a AST
 ```bash
 make test_ast
 ```
-Compila o arquivo de testes da AST junto com o `src/ast.c` e mostra os resultados de apenas essa suite.
+Compila `testes/tdd/teste_ast.c` junto com `src/ast.c` e executa a suíte unitária da AST.
 
 ### Testar apenas a Tabela de Símbolos
 ```bash
 make test_tabela
 ```
-Compila o arquivo de testes da Tabela de Símbolos junto com o `src/tabela.c` e mostra os resultados de apenas essa suite.
+Compila `testes/tdd/teste_tabela.c` junto com `src/tabela.c` e executa a suíte unitária da Tabela de Símbolos.
+
+### Testar apenas a Análise Semântica
+```bash
+make test_semantica
+```
+Compila `testes/tdd/teste_semantica.c` junto com `src/semantica.c`, `src/ast.c` e `src/tabela.c` e executa a suíte unitária semântica.
+
+### Testar apenas o Código Intermediário (TAC)
+```bash
+make test_tac
+```
+Compila `testes/tdd/teste_tac.c` junto com `src/codegen_intermediario.c` e executa a suíte unitária do TAC.
 
 ### Testar apenas Integração
 ```bash
 make test_integracao
 ```
-Compila o `compilador` e roda exclusivamente o script bash `rodar_testes.sh`, pulando os testes unitários da AST e da tabela em C.
+Compila o `compilador` e roda exclusivamente o script `./testes/rodar_testes.sh`, pulando os testes unitários em C.

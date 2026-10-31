@@ -104,31 +104,10 @@ Dessa forma, ao encontrar o lexema `def`, por exemplo, o analisador reconhece um
 
 ### Tratamento de erros
 
-- A identificação de erros do analisador léxico é voltada principalmente para a presença de caracteres que não são válidos na linguagem. Ao encontrar um caractere problemático, deve-se emitir uma mensagem de erro contendo informações sobre o caractere e a sua posição.
+A identificação de erros no analisador léxico é voltada para caracteres inválidos na linguagem e inconsistências de recuo:
 
-### Relacionamento com outras etapas
-
-A análise léxica é a `primeira etapa do processo de compilação` e estabelece a comunicação entre o código-fonte e a análise sintática. O analisador léxico recebe uma `sequência de caracteres`, reconhece os lexemas e produz tokens. Em seguida, esses tokens são utilizados pelo analisador sintático para verificar se as instruções obedecem à gramática da linguagem. A interação entre essas etapas pode ocorrer de diferentes maneiras. Em uma abordagem comum, o analisador sintático solicita o próximo token sempre que precisa continuar a análise. O analisador léxico realiza a leitura necessária, reconhece o próximo elemento e o devolve ao analisador sintático. Essa abordagem evita a necessidade de armazenar previamente toda a sequência de tokens, embora a implementação possa optar por armazená-la quando isso for conveniente. Após a análise sintática, a análise semântica verifica aspectos relacionados ao significado do programa, como a compatibilidade de tipos, a utilização de identificadores e outras regras que dependem da linguagem. De forma simplificada, podemos representar essa relação da seguinte maneira:
-
-```text
-Código-fonte
-     |
-     v
-Analisador léxico
-     |
-     v
-Sequência de tokens
-     |
-     v
-Analisador sintático
-     |
-     v
-Estrutura sintática do programa
-     |
-     v
-Analisador semântico
-```
-A tabela de símbolos também pode ser utilizada por diferentes etapas para armazenar e consultar informações sobre os elementos identificados no programa.
+- **Caractere inválido:** emite `Erro léxico: caractere inválido '<c>' na linha <N>` e prossegue a leitura.
+- **Indentação inconsistente:** quando o retorno de indentação não coincide com nenhum nível aberto na pilha, emite `Erro léxico: indentação inconsistente na linha <N>`.
 
 ---
 

@@ -114,13 +114,15 @@ Testa que o compilador rejeita corretamente entradas com erros léxicos e sintá
 ## Como Executar
 
 ```bash
+make test_integracao
+# ou
 make clean && make
 ./testes/rodar_testes.sh
 ```
 
 ## Resultado Obtido
 
-```
+```text
 =========================================
    Rodando testes do compilador
 =========================================
@@ -148,11 +150,43 @@ make clean && make
 [OK]    TestesParserErro4.py - erro detectado como esperado
 [OK]    TestesParserErro5.py - erro detectado como esperado
 
+--- Testes SEMANTICOS que devem PASSAR (codigo valido) ---
+[OK]    TestesSemanticaValidos1.py - aceito com sucesso
+[OK]    TestesSemanticaValidos2.py - aceito com sucesso
+[OK]    TestesSemanticaValidos3.py - aceito com sucesso
+[OK]    TestesSemanticaValidos4.py - aceito com sucesso
+[OK]    TestesSemanticaValidos5.py - aceito com sucesso
+[OK]    TestesSemanticaValidos6.py - aceito com sucesso
+[OK]    TestesSemanticaValidos7.py - aceito com sucesso
+
+--- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---
+[OK]    TestesSemanticaErros1.py - erro detectado como esperado
+[OK]    TestesSemanticaErros2.py - erro detectado como esperado
+[OK]    TestesSemanticaErros3.py - erro detectado como esperado
+[OK]    TestesSemanticaErros7.py - erro detectado como esperado
+
 --- RECUPERACAO de erros (todos os erros devem ser reportados) ---
 [OK]    TestesParserErro1.py - 5 erros sintaticos reportados
 [OK]    Testes5.py - 9 erros sintaticos reportados
 
+--- Testes SEMANTICOS que devem PASSAR (codigo valido) ---
+[OK]    TestesSemantico1.py - aceito com sucesso
+[OK]    TestesSemantico2.py - aceito com sucesso
+
+--- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---
+[OK]    teste_semantico.py - erro detectado como esperado
+[OK]    TestesSemanticoErro1.py - erro detectado como esperado
+[OK]    TestesSemanticoErro2.py - erro detectado como esperado
+
+--- Contagem de erros SEMANTICOS (todos os erros devem ser reportados) ---
+[OK]    teste_semantico.py - 4 erros semanticos reportados
+[OK]    TestesSemanticoErro1.py - 5 erros semanticos reportados
+[OK]    TestesSemanticaErros4.py - 1 erros semanticos reportados
+[OK]    TestesSemanticaErros5.py - 1 erros semanticos reportados
+[OK]    TestesSemanticaErros6.py - 3 erros semanticos reportados
+[OK]    TestesSemanticaErros7.py - 1 erros semanticos reportados
+
 =========================================
-   Resultado: 17 passaram, 0 falharam
+   Resultado: 39 passaram, 0 falharam
 =========================================
 ```

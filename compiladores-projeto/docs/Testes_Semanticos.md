@@ -67,6 +67,17 @@ Testa a inferência de tipos e a detecção de operações com tipos incompatív
 
 ---
 
+### test_divisao_resulta_float — Divisão real entre inteiros
+
+Verifica que a operação `/` entre dois inteiros resulta em `TIPO_FLOAT` (semântica do Python 3), enquanto `*` preserva `TIPO_INT`.
+
+| Cenário | AST construída | Erros esperados | Tipo resolvido |
+|---|---|---|---|
+| Divisão de inteiros: `5 / 2` | `NO_BINOP(OP_DIV, NO_NUM_INT(5), NO_NUM_INT(2))` | 0 | `TIPO_FLOAT` |
+| Multiplicação de inteiros: `5 * 2` | `NO_BINOP(OP_MULT, NO_NUM_INT(5), NO_NUM_INT(2))` | 0 | `TIPO_INT` |
+
+---
+
 ### test_funcoes_e_contexto — Funções, chamadas e return
 
 Testa a validação de funções: quantidade de argumentos nas chamadas e restrição de `return` fora de função.
@@ -147,6 +158,26 @@ resultado = identidade(10)
 
 ---
 
+### TestesSemanticaValidos4.py a TestesSemanticaValidos7.py — Unários, Escopo de Bloco e Forward References
+
+| Arquivo | Cenário Testado | Resultado esperado |
+|---|---|---|
+| `TestesSemanticaValidos4.py` | Operadores unários (`-5`, `-2.5`, `not ativo`), `input()` retornando `string` e operador `in` retornando `bool` | Aceito sem erros |
+| `TestesSemanticaValidos5.py` | Variável atribuída dentro de bloco `if` permanece visível fora do bloco (regra de escopo do Python) | Aceito sem erros |
+| `TestesSemanticaValidos6.py` | *Forward reference*: função `f()` chamando `g()` declarada mais abaixo no arquivo (análise em 2 passadas) | Aceito sem erros |
+| `TestesSemanticaValidos7.py` | Recursão direta: função `f()` chamando a si mesma | Aceito sem erros |
+
+---
+
+### TestesSemantico1.py e TestesSemantico2.py — Cenários Semânticos Completos
+
+| Arquivo | Cenário Testado | Resultado esperado |
+|---|---|---|
+| `TestesSemantico1.py` | Aritmética e promoção numérica, comparações compatíveis, operadores lógicos, condições estritamente booleanas e reatribuição mudando tipo | Aceito sem erros |
+| `TestesSemantico2.py` | Múltiplas funções, retorno condicional, visibilidade de variável global em laços `for` e `while` aninhados | Aceito sem erros |
+
+---
+
 ### TestesSemanticaErros1.py — Variável não declarada
 
 Código Python:
@@ -201,9 +232,27 @@ return 1
 
 ---
 
+### TestesSemanticaErros4.py a TestesSemanticaErros7.py e Suites de Múltiplos Erros
+
+Além de verificar a falha, o script `rodar_testes.sh` valida a **contagem exata de erros semânticos** emitidos por arquivo:
+
+| Arquivo | Cenário Testado | Erros semânticos esperados |
+|---|---|---|
+| `TestesSemanticaErros4.py` | `input("n") + 1` — soma de retorno `string` do `input` com `int` | 1 |
+| `TestesSemanticaErros5.py` | `x = -5; if x:` — unário `-` preserva `int`, que é inválido como condição booleana | 1 |
+| `TestesSemanticaErros6.py` | Operadores unários com operandos inválidos (`-"abc"`, `-True`, `not 3`) | 3 |
+| `TestesSemanticaErros7.py` | Reatribuição de `x` para `string` dentro de `while` seguida de `x + 1` fora do laço | 1 |
+| `teste_semantico.py` | Soma `string + int`, comparação `int == string`, `while ("texto")` e chamada a função inexistente | 4 |
+| `TestesSemanticoErro1.py` | `int and bool`, `bool == int`, número errado de argumentos, chamada de variável como função (`x()`) e `return` global | 5 |
+| `TestesSemanticoErro2.py` | Uso de variável nunca declarada e tentativa de acessar variável local de função fora do escopo | Erro detectado |
+
+---
+
 ## Como Executar
 
 ```bash
+make test_integracao
+# ou
 make clean && make
 ./testes/rodar_testes.sh
 ```
@@ -215,7 +264,7 @@ make test_semantica
 
 ## Resultado Obtido
 
-```
+```text
 =========================================
    Rodando testes do compilador
 =========================================
@@ -247,17 +296,39 @@ make test_semantica
 [OK]    TestesSemanticaValidos1.py - aceito com sucesso
 [OK]    TestesSemanticaValidos2.py - aceito com sucesso
 [OK]    TestesSemanticaValidos3.py - aceito com sucesso
+[OK]    TestesSemanticaValidos4.py - aceito com sucesso
+[OK]    TestesSemanticaValidos5.py - aceito com sucesso
+[OK]    TestesSemanticaValidos6.py - aceito com sucesso
+[OK]    TestesSemanticaValidos7.py - aceito com sucesso
 
 --- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---
 [OK]    TestesSemanticaErros1.py - erro detectado como esperado
 [OK]    TestesSemanticaErros2.py - erro detectado como esperado
 [OK]    TestesSemanticaErros3.py - erro detectado como esperado
+[OK]    TestesSemanticaErros7.py - erro detectado como esperado
 
 --- RECUPERACAO de erros (todos os erros devem ser reportados) ---
 [OK]    TestesParserErro1.py - 5 erros sintaticos reportados
 [OK]    Testes5.py - 9 erros sintaticos reportados
 
+--- Testes SEMANTICOS que devem PASSAR (codigo valido) ---
+[OK]    TestesSemantico1.py - aceito com sucesso
+[OK]    TestesSemantico2.py - aceito com sucesso
+
+--- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---
+[OK]    teste_semantico.py - erro detectado como esperado
+[OK]    TestesSemanticoErro1.py - erro detectado como esperado
+[OK]    TestesSemanticoErro2.py - erro detectado como esperado
+
+--- Contagem de erros SEMANTICOS (todos os erros devem ser reportados) ---
+[OK]    teste_semantico.py - 4 erros semanticos reportados
+[OK]    TestesSemanticoErro1.py - 5 erros semanticos reportados
+[OK]    TestesSemanticaErros4.py - 1 erros semanticos reportados
+[OK]    TestesSemanticaErros5.py - 1 erros semanticos reportados
+[OK]    TestesSemanticaErros6.py - 3 erros semanticos reportados
+[OK]    TestesSemanticaErros7.py - 1 erros semanticos reportados
+
 =========================================
-   Resultado: 23 passaram, 0 falharam
+   Resultado: 39 passaram, 0 falharam
 =========================================
 ```

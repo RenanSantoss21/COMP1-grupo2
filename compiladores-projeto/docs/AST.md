@@ -4,11 +4,11 @@ A Árvore Sintática Abstrata é a representação intermediária produzida pelo
 
 ## Motivação
 
-O parser atual apenas valida a sintaxe (aceita/rejeita), sem produzir nenhuma representação intermediária. A AST é necessária para que as fases seguintes (análise semântica e geração de código) possam trabalhar sobre uma estrutura de dados bem definida.
+A AST serve como contrato estrutural entre o *front-end* (Lexer e Parser) e as etapas posteriores do compilador (Análise Semântica, Geração de Código Intermediário TAC e Geração de Código C#). Construída automaticamente durante as reduções do Bison em `parser/parser.y`, ela armazena a hierarquia de comandos e expressões, a linha de origem de cada construção (`linha`) e o tipo inferido pela análise semântica (`tipo_resolvido`).
 
 ## Módulo `ast.h` / `ast.c`
 
-Os arquivos ficam em `src/ast.h` e `src/ast.c`, seguindo o padrão estabelecido por `src/tabela.h` e `src/tabela.c`.
+Os arquivos ficam em `src/ast.h` e `src/ast.c`, seguindo o padrão de modularização e gerenciamento de memória (*ownership*) do projeto.
 
 ---
 
@@ -18,25 +18,25 @@ Cada nó da AST tem um tipo que identifica a construção sintática que ele rep
 
 | Valor do Enum       | Construção Representada             | Campos Relevantes                                      |
 |----------------------|--------------------------------------|--------------------------------------------------------|
-| `NO_NUM_INT`         | Literal inteiro (`42`)              | `valor_int`                                            |
-| `NO_NUM_FLOAT`       | Literal float (`3.14`)              | `valor_float`                                          |
-| `NO_STRING`          | Literal string (`"olá"`)            | `valor_string`                                         |
-| `NO_BOOL`            | Literal booleano (`True` / `False`) | `valor_int` (1 = True, 0 = False)                      |
-| `NO_ID`              | Identificador (`x`, `soma`)         | `nome`                                                 |
-| `NO_BINOP`           | Operação binária (`a + b`)          | `operador`, `esquerda`, `direita`                      |
-| `NO_UNARYOP`         | Operação unária (`not x`, `-x`)     | `operador`, `esquerda`                                 |
+| `NO_NUM_INT`         | Literal inteiro (`42`)              | `valor_int`, `tipo_resolvido`                          |
+| `NO_NUM_FLOAT`       | Literal float (`3.14`)              | `valor_float`, `tipo_resolvido`                        |
+| `NO_STRING`          | Literal string (`"olá"`)            | `valor_string`, `tipo_resolvido`                       |
+| `NO_BOOL`            | Literal booleano (`True` / `False`) | `valor_int` (1 = True, 0 = False), `tipo_resolvido`    |
+| `NO_ID`              | Identificador (`x`, `soma`)         | `nome`, `tipo_resolvido`                               |
+| `NO_BINOP`           | Operação binária (`a + b`)          | `operador`, `esquerda`, `direita`, `tipo_resolvido`    |
+| `NO_UNARYOP`         | Operação unária (`not x`, `-x`)     | `operador`, `esquerda`, `tipo_resolvido`               |
 | `NO_ASSIGN`          | Atribuição (`x = 10`)              | `nome`, `esquerda` (expressão do valor)                |
-| `NO_PRINT`           | `print(expr)`                       | `esquerda` (expressão), `argumentos` (lista)           |
-| `NO_INPUT`           | `input()`                           | `esquerda` (prompt, opcional)                          |
-| `NO_IF`              | `if/elif/else`                      | `condicao`, `bloco_if`, `lista_elif`, `bloco_else`     |
+| `NO_PRINT`           | `print(expr, ...)`                  | `argumentos` (lista de expressões), `num_argumentos`   |
+| `NO_INPUT`           | `input()`                           | `esquerda` (prompt opcional), `tipo_resolvido`         |
+| `NO_IF`              | `if/elif/else`                      | `condicao`, `bloco_if`, `argumentos` (elifs), `num_argumentos`, `bloco_else` |
 | `NO_ELIF`            | Cláusula `elif`                     | `condicao`, `bloco_if` (corpo do elif)                 |
 | `NO_WHILE`           | `while cond:`                       | `condicao`, `bloco_if` (corpo do while)                |
-| `NO_FOR`             | `for x in range(n):`               | `nome`, `esquerda` (range_expr), `bloco_if` (corpo)    |
-| `NO_FUNCDEF`         | `def nome(params):`                 | `nome`, `argumentos` (parâmetros), `bloco_if` (corpo)  |
-| `NO_RETURN`          | `return expr`                       | `esquerda` (expressão, pode ser NULL)                  |
-| `NO_FUNCCALL`        | `func(args)`                        | `nome`, `argumentos` (lista de argumentos)             |
-| `NO_BLOCO`           | Bloco de comandos                    | `argumentos` (lista de nós-comando)                    |
-| `NO_PROGRAMA`        | Raiz do programa                     | `argumentos` (lista de comandos top-level)             |
+| `NO_FOR`             | `for x in range(...):`              | `nome`, `esquerda` (argumentos do range), `bloco_if` (corpo) |
+| `NO_FUNCDEF`         | `def nome(params):`                 | `nome`, `argumentos` (parâmetros), `num_argumentos`, `bloco_if` (corpo) |
+| `NO_RETURN`          | `return expr`                       | `esquerda` (expressão, pode ser `NULL`)                |
+| `NO_FUNCCALL`        | `func(args)`                        | `nome`, `argumentos` (lista de argumentos), `num_argumentos`, `tipo_resolvido` |
+| `NO_BLOCO`           | Bloco de comandos / lista de elementos | `argumentos` (lista de nós), `num_argumentos`       |
+| `NO_PROGRAMA`        | Raiz do programa                     | `argumentos` (lista de comandos top-level), `num_argumentos` |
 
 ---
 
@@ -150,15 +150,15 @@ x = 10 + 5
 print(x)
 ```
 
-A saída textual de `imprimir_ast` é:
+A saída textual de `imprimir_ast` (após a anotação de `tipo_resolvido` pela Análise Semântica) é:
 ```text
 Programa
   Assign: x
-    BinOp: +
-      NumInt: 10
-      NumInt: 5
+    BinOp: + [int]
+      NumInt: 10 [int]
+      NumInt: 5 [int]
   Print
-    Id: x
+    Id: x [int]
 ```
 
 E a estrutura em árvore correspondente gerada na memória é:
