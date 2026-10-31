@@ -131,3 +131,113 @@ void imprimir_codigo_intermediario(void){
         }
     }
 }
+
+static const char* operador_tac_string(int op) {
+    switch (op) {
+        case OP_SOMA: return "+";
+        case OP_SUB:  return "-";
+        case OP_MULT: return "*";
+        case OP_DIV:  return "/";
+        case OP_EQ:   return "==";
+        case OP_NEQ:  return "!=";
+        case OP_GT:   return ">";
+        case OP_LT:   return "<";
+        case OP_GTE:  return ">=";
+        case OP_LTE:  return "<=";
+        case OP_AND:  return "and";
+        case OP_OR:   return "or";
+        case OP_NOT:  return "not";
+        case OP_NEG:  return "-";
+        case OP_IN:   return "in";
+        default:      return "?";
+    }
+}
+
+char* codegen_gerar_expressao(NoAST *no) {
+    if (!no) return NULL;
+
+    char buffer[64];
+
+    switch (no->tipo) {
+        case NO_NUM_INT:
+            snprintf(buffer, sizeof(buffer), "%d", no->valor_int);
+            return strdup(buffer);
+
+        case NO_NUM_FLOAT:
+            snprintf(buffer, sizeof(buffer), "%.6g", no->valor_float);
+            return strdup(buffer);
+
+        case NO_BOOL:
+            return strdup(no->valor_int ? "True" : "False");
+
+        case NO_STRING:
+            return strdup(no->valor_string ? no->valor_string : "");
+
+        case NO_ID:
+            return strdup(no->nome ? no->nome : "");
+
+        case NO_BINOP: {
+            char *esq = codegen_gerar_expressao(no->esquerda);
+            char *dir = codegen_gerar_expressao(no->direita);
+            char *temp = novo_temporario();
+            const char *op = operador_tac_string(no->operador);
+
+            emitir(cria_instrucao(TAC_BINOP, temp, esq, dir, op));
+
+            free(esq);
+            free(dir);
+            return temp; /* Retorna o temporário (ex: "t0") para ser usado pelo pai */
+        }
+
+        case NO_UNARYOP: {
+            char *operando = codegen_gerar_expressao(no->esquerda);
+            char *temp = novo_temporario();
+            const char *op = operador_tac_string(no->operador);
+
+            emitir(cria_instrucao(TAC_UNOP, temp, operando, NULL, op));
+
+            free(operando);
+            return temp;
+        }
+
+        default:
+            return NULL;
+    }
+}
+
+void codegen_gerar_atribuicao(NoAST *no) {
+    if (!no || no->tipo != NO_ASSIGN) return;
+
+    char *valor = codegen_gerar_expressao(no->esquerda);
+    if (valor) {
+        emitir(cria_instrucao(TAC_ASSIGN, no->nome, valor, NULL, NULL));
+        free(valor);
+    }
+}
+
+void codegen_gerar_tac(NoAST *no) {
+    if (!no) return;
+
+    switch (no->tipo) {
+        case NO_PROGRAMA:
+        case NO_BLOCO:
+            for (int i = 0; i < no->num_argumentos; i++) {
+                codegen_gerar_tac(no->argumentos[i]);
+            }
+            break;
+
+        case NO_ASSIGN:
+            codegen_gerar_atribuicao(no);
+            break;
+
+        default:
+            /* Expressões soltas (ex: chamadas de função ou expressões isoladas) */
+            {
+                char *res = codegen_gerar_expressao(no);
+                if (res) free(res);
+            }
+            break;
+
+    }
+
+}

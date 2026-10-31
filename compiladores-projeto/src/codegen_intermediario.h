@@ -1,5 +1,11 @@
 #ifndef CODEGEN_INTERMEDIARIO_H
 #define CODEGEN_INTERMEDIARIO_H
+#include "ast.h"
+
+char* codegen_gerar_expressao(NoAST *no);
+void codegen_gerar_atribuicao(NoAST *no);
+void codegen_gerar_tac(NoAST *no);
+
 typedef enum{
     TAC_ASSIGN,
     TAC_BINOP,

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../../src/codegen_intermediario.h"
+#include "../../src/ast.h"
 
 int test_temporarios_e_rotulos(void) {
     printf("Running test_temporarios_e_rotulos...\n");
@@ -131,6 +132,44 @@ int test_crescimento_dinamico_realloc(void) {
     return 1;
 }
 
+int test_gerar_tac_expressao_e_atribuicao(void) {
+    printf("Running test_gerar_tac_expressao_e_atribuicao...\n");
+    liberar_tac();
+
+    /* Cria a AST para: x = a + b * 2 */
+    NoAST *num2 = criar_no_int(2, 1);
+    NoAST *id_b = criar_no_id("b", 1);
+    NoAST *mult = criar_no_binop(OP_MULT, id_b, num2, 1);
+    NoAST *id_a = criar_no_id("a", 1);
+    NoAST *soma = criar_no_binop(OP_SOMA, id_a, mult, 1);
+    NoAST *assign = criar_no_assign("x", soma, 1);
+
+    codegen_gerar_atribuicao(assign);
+
+    TAC *tac = obter_tac();
+
+    if (tac->tamanho != 3) {
+        printf("FAILED: esperava 3 instrucoes, obteve %d\n", tac->tamanho);
+        liberar_ast(assign);
+        liberar_tac();
+        return 0;
+    }
+    
+    if (tac->Instrucoes[0].tipo != TAC_BINOP || strcmp(tac->Instrucoes[0].operador, "*") != 0 ||
+        strcmp(tac->Instrucoes[1].tipo == TAC_BINOP ? tac->Instrucoes[1].operador : "", "+") != 0 ||
+        tac->Instrucoes[2].tipo != TAC_ASSIGN || strcmp(tac->Instrucoes[2].resultado, "x") != 0) {
+        printf("FAILED: sequencia de instrucoes incorreta\n");
+        liberar_ast(assign);
+        liberar_tac();
+        return 0;
+    }
+
+    liberar_ast(assign);
+    liberar_tac();
+    printf("PASSED\n");
+    return 1;
+}
+
 int main(void) {
     int passed = 0;
     int failed = 0;
@@ -138,7 +177,7 @@ int main(void) {
     if (test_temporarios_e_rotulos()) passed++; else failed++;
     if (test_emitir_e_obter_tac()) passed++; else failed++;
     if (test_crescimento_dinamico_realloc()) passed++; else failed++;
-
+    if (test_gerar_tac_expressao_e_atribuicao()) passed++; else failed++;
     printf("Tests run: %d, Passed: %d, Failed: %d\n", passed + failed, passed, failed);
     return failed == 0 ? 0 : 1;
 }

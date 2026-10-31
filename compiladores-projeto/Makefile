@@ -31,6 +31,6 @@ test_ast: testes/tdd/teste_ast.c src/ast.c
 test_semantica: testes/tdd/teste_semantica.c src/semantica.c src/ast.c src/tabela.c
 	gcc $(CFLAGS) -o testes/tdd/teste_semantica testes/tdd/teste_semantica.c src/semantica.c src/ast.c src/tabela.c
 	./testes/tdd/teste_semantica
-test_tac: testes/tdd/teste_tac.c src/codegen_intermediario.c
-	gcc $(CFLAGS) -o testes/tdd/teste_tac testes/tdd/teste_tac.c src/codegen_intermediario.c
+test_tac: testes/tdd/teste_tac.c src/codegen_intermediario.c src/ast.c
+	gcc $(CFLAGS) -o testes/tdd/teste_tac testes/tdd/teste_tac.c src/codegen_intermediario.c src/ast.c
 	./testes/tdd/teste_tac
