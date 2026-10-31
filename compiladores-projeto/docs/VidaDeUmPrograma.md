@@ -102,13 +102,9 @@ A análise léxica deste arquivo pode gerar a seguinte sequência de tokens simp
 
 Dessa forma, ao encontrar o lexema `def`, por exemplo, o analisador reconhece uma palavra reservada e produz um token correspondente. Essa forma de análise se dá por todo o código, com diferentes categorias. Cada implementação pode gerar a sua própria nomenclatura.
 
-### Tratamento de erros
-
-A identificação de erros no analisador léxico é voltada para caracteres inválidos na linguagem e inconsistências de recuo:
-
-- **Caractere inválido:** emite `Erro léxico: caractere inválido '<c>' na linha <N>` e prossegue a leitura.
-- **Indentação inconsistente:** quando o retorno de indentação não coincide com nenhum nível aberto na pilha, emite `Erro léxico: indentação inconsistente na linha <N>`.
-
+## Tratamento de erros
+---
+ A identificação de erros do analisador léxico é voltada principalmente para a presença de caracteres que não são válidos na linguagem. Ao encontrar um caractere problemático, deve-se emitir uma mensagem de erro contendo informações sobre o caractere e a sua posição.
 ---
 
 ## 2. Análise Sintática (Parser)
