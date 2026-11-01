@@ -6,6 +6,8 @@
 #include "src/ast.h"
 #include "src/tabela.h"
 #include "src/semantica.h"
+#include "src/codegen_intermediario.h"
+#include "src/otimizador.h"
 
 /* Linha do token que o parser está examinando (mantida pelo lexer). */
 extern int linha_token;
@@ -284,6 +286,8 @@ void yyerror(const char *s) {
 int main(int argc, char *argv[]) {
     bool mostrar_ast = false;
     bool mostrar_dot = false;
+    bool mostrar_tac = false;
+    bool otimizar = false;
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--ast") == 0) {
             mostrar_ast = true;
@@ -293,6 +297,12 @@ int main(int argc, char *argv[]) {
         }
         if (strcmp(argv[i], "--dot") == 0) {
             mostrar_dot = true;
+        }
+        if (strcmp(argv[i], "--tac") == 0) {
+            mostrar_tac = true;
+        }
+        if (strcmp(argv[i], "--opt") == 0) {
+            otimizar = true;
         }
     }
 
@@ -332,6 +342,15 @@ int main(int argc, char *argv[]) {
 
         if (mostrar_tabela) {
             tabela_imprimir(tabela);
+        }
+
+        if (mostrar_tac || otimizar) {
+            codegen_gerar_tac(raiz_ast);
+            if (otimizar) {
+                otimizar_tac(obter_tac());
+            }
+            imprimir_codigo_intermediario();
+            liberar_tac();
         }
 
         if (erros_semanticos > 0) {
