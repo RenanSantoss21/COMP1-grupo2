@@ -581,3 +581,78 @@ def dobrar(valor):
 Ao analisar o primeiro `return` da função, o analisador registra o tipo do valor retornado. Nos `return` seguintes, compara o tipo encontrado com o tipo já registrado. Se os tipos forem diferentes, emite a mensagem de erro e incrementa o contador de erros. A análise continua normalmente para encontrar outros possíveis erros.
 
 --- 
+
+## SEM-15 - Função '<nome>' já declarada na linha <M>.
+
+**Mensagem:**  
+```
+Erro semântico na linha <N>: Função '<nome>' já declarada na linha <M>.
+```
+
+**Onde é gerado:**  
+[`src/semantica.c`](../src/semantica.c), função `analisar_semantica` (caso `NO_FUNCDEF`).
+
+**Descrição:**  
+Ocorre quando uma função com o mesmo identificador é declarada mais de uma vez no mesmo escopo.
+
+**Código que dispara o erro:**
+
+```python
+def f():
+    return 1
+def f(a):
+    return 2
+f()
+```
+
+**Saída do compilador:**
+```
+Erro semântico na linha 3: Função 'f' já declarada na linha 1.
+```
+
+**Código que NÃO dispara o erro (válido):**
+
+```python
+def f():
+    return 1
+def g(a):
+    return 2
+f()
+```
+
+**Comportamento do analisador:**  
+Ao analisar `NO_FUNCDEF`, o analisador verifica se já existe uma função previamente declarada no escopo corrente (`tabela_buscar_escopo_atual`). Se existir (e não for apenas o pré-registro da primeira definição), emite a mensagem de erro referenciando a linha da declaração original, incrementa o contador de erros, preserva a assinatura original e continua analisando o corpo em escopo local para reportar eventuais erros adicionais.
+
+---
+
+## SEM-16 - Conflito de nome entre variável e função no mesmo escopo.
+
+**Mensagens:**  
+```
+Erro semântico na linha <N>: Identificador '<nome>' já declarado como função na linha <M>.
+Erro semântico na linha <N>: Identificador '<nome>' já declarado como variável na linha <M>.
+```
+
+**Onde é gerado:**  
+[`src/semantica.c`](../src/semantica.c), função `analisar_semantica` (casos `NO_ASSIGN`, `NO_FOR` e `NO_FUNCDEF`).
+
+**Descrição:**  
+Ocorre quando o código tenta atribuir um valor (ou usar em `for`) um identificador que já foi declarado como função no escopo corrente, ou quando tenta declarar uma função (`def`) usando um identificador que já foi declarado como variável no mesmo escopo.
+
+**Código que dispara o erro:**
+
+```python
+def dobro(x):
+    return x * 2
+dobro = 10
+```
+
+**Saída do compilador:**
+```
+Erro semântico na linha 3: Identificador 'dobro' já declarado como função na linha 1.
+```
+
+**Comportamento do analisador:**  
+Ao encontrar uma atribuição (`NO_ASSIGN`), laço (`NO_FOR`) ou definição de função (`NO_FUNCDEF`), o analisador consulta a tabela no escopo corrente (`tabela_buscar_escopo_atual`). Se o identificador já existir no mesmo escopo com categoria conflitante (variável vs. função), emite a mensagem de erro correspondente, incrementa o contador de erros e preserva o símbolo original.
+
+--- 

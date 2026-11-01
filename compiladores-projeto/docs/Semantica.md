@@ -71,6 +71,13 @@ def f():
     return f()
 ```
 
+## Política de Redefinição de Funções e Conflitos de Identificadores (Issue #50)
+
+Para manter a consistência com a geração de código final estática (C#) e evitar ambiguidades em tempo de compilação:
+
+1. **Redefinição de Função no Mesmo Escopo:** É proibido redefinir uma função com o mesmo identificador no mesmo escopo (`SEM-15`). Ao encontrar uma declaração duplicada, o analisador semântico emite um erro indicando a linha original e descarta a nova definição. Sombreamento (*shadowing*) em escopos filhos continua válido.
+2. **Conflito entre Variável e Função:** Uma variável ou laço `for` não pode sobrescrever um identificador já declarado como função no mesmo escopo (`SEM-16`), gerando erro semântico imediato.
+
 ## Testes
 
 ### Testes Unitários (TDD)
@@ -110,6 +117,7 @@ Além dos testes unitários, a suíte conta com **16 arquivos de testes de integ
 | `TestesSemanticaErros5.py` | Uso de `int` negativo (`-5`) como condição de `if` (1 erro) |
 | `TestesSemanticaErros6.py` | Operadores unários com operandos inválidos: `-"abc"`, `-True`, `not 3` (3 erros) |
 | `TestesSemanticaErros7.py` | Reatribuição de variável para `string` em laço seguida de soma com `int` (1 erro) |
+| `TestesSemanticaErros8.py` | Redefinição de função no mesmo escopo com assinaturas diferentes (1 erro) |
 | `teste_semantico.py` | Tipos incompatíveis, condição não booleana e função não declarada (4 erros) |
 | `TestesSemanticoErro1.py` | Erros combinados de lógica, comparação, aridade, chamada inválida e `return` global (5 erros) |
 | `TestesSemanticoErro2.py` | Variável não declarada e tentativa de uso de variável local fora da função |

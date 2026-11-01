@@ -90,6 +90,20 @@ Testa a validação de funções: quantidade de argumentos nas chamadas e restri
 
 ---
 
+### test_redefinicao_funcao_e_conflito — Redefinição de funções e colisão variável/função
+
+Valida a detecção de redefinição de funções no mesmo escopo, conflito de nomes entre variáveis e funções em qualquer ordem de declaração e sombreamento permitido em escopos internos.
+
+| Cenário | AST construída | Erros esperados |
+|---|---|---|
+| Redefinição de `def f()` seguida de `def f(a)` no mesmo escopo | `[NO_FUNCDEF(f, []), NO_FUNCDEF(f, [a])]` | 1 |
+| Função `def g()` seguida de atribuição `g = 10` no mesmo escopo | `[NO_FUNCDEF(g, []), NO_ASSIGN(g, 10)]` | 1 |
+| Sombreamento válido do nome `h` em função interna `h_filho` | `NO_FUNCDEF(h, [NO_FUNCDEF(h_filho, [NO_ASSIGN(h, 2)])])` | 0 |
+| Variável `k = 5` seguida de `def k()` no mesmo escopo | `[NO_ASSIGN(k, 5), NO_FUNCDEF(k, [])]` | 1 |
+| Função redefinida `m` contendo erro semântico interno no segundo corpo | `[NO_FUNCDEF(m, []), NO_FUNCDEF(m, [NO_RETURN(var_inexistente)])]` | 2 |
+
+---
+
 ## Parte 2 — Testes de Integração
 
 Os testes de integração passam código Python pelo compilador completo. Estão na pasta `testes/`
@@ -232,7 +246,7 @@ return 1
 
 ---
 
-### TestesSemanticaErros4.py a TestesSemanticaErros7.py e Suites de Múltiplos Erros
+### TestesSemanticaErros4.py a TestesSemanticaErros8.py e Suites de Múltiplos Erros
 
 Além de verificar a falha, o script `rodar_testes.sh` valida a **contagem exata de erros semânticos** emitidos por arquivo:
 
@@ -242,6 +256,7 @@ Além de verificar a falha, o script `rodar_testes.sh` valida a **contagem exata
 | `TestesSemanticaErros5.py` | `x = -5; if x:` — unário `-` preserva `int`, que é inválido como condição booleana | 1 |
 | `TestesSemanticaErros6.py` | Operadores unários com operandos inválidos (`-"abc"`, `-True`, `not 3`) | 3 |
 | `TestesSemanticaErros7.py` | Reatribuição de `x` para `string` dentro de `while` seguida de `x + 1` fora do laço | 1 |
+| `TestesSemanticaErros8.py` | Redefinição de função `f` no mesmo escopo e conflito de nome variável/função (`f = 10`) | 2 |
 | `teste_semantico.py` | Soma `string + int`, comparação `int == string`, `while ("texto")` e chamada a função inexistente | 4 |
 | `TestesSemanticoErro1.py` | `int and bool`, `bool == int`, número errado de argumentos, chamada de variável como função (`x()`) e `return` global | 5 |
 | `TestesSemanticoErro2.py` | Uso de variável nunca declarada e tentativa de acessar variável local de função fora do escopo | Erro detectado |
@@ -306,6 +321,7 @@ make test_semantica
 [OK]    TestesSemanticaErros2.py - erro detectado como esperado
 [OK]    TestesSemanticaErros3.py - erro detectado como esperado
 [OK]    TestesSemanticaErros7.py - erro detectado como esperado
+[OK]    TestesSemanticaErros8.py - erro detectado como esperado
 
 --- RECUPERACAO de erros (todos os erros devem ser reportados) ---
 [OK]    TestesParserErro1.py - 5 erros sintaticos reportados
@@ -327,8 +343,9 @@ make test_semantica
 [OK]    TestesSemanticaErros5.py - 1 erros semanticos reportados
 [OK]    TestesSemanticaErros6.py - 3 erros semanticos reportados
 [OK]    TestesSemanticaErros7.py - 1 erros semanticos reportados
+[OK]    TestesSemanticaErros8.py - 1 erros semanticos reportados
 
 =========================================
-   Resultado: 39 passaram, 0 falharam
+   Resultado: 41 passaram, 0 falharam
 =========================================
 ```

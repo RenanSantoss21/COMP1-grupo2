@@ -301,6 +301,83 @@ static int test_contagem_argumentos_de_chamada(void) {
     return 1;
 }
 
+static int test_redefinicao_funcao_e_conflito(void) {
+    printf("Running test_redefinicao_funcao_e_conflito...\n");
+
+    // Caso 1: Redefinição de função no mesmo escopo (def f(): return 1; def f(a): return 2)
+    NoAST **corpo1 = malloc(sizeof(NoAST *));
+    corpo1[0] = criar_no_return(criar_no_int(1, 2), 2);
+    NoAST *f1 = criar_no_funcdef("f", NULL, 0, criar_no_bloco(corpo1, 1), 1);
+
+    NoAST **params2 = malloc(sizeof(NoAST *));
+    params2[0] = criar_no_id("a", 3);
+    NoAST **corpo2 = malloc(sizeof(NoAST *));
+    corpo2[0] = criar_no_return(criar_no_int(2, 4), 4);
+    NoAST *f2 = criar_no_funcdef("f", params2, 1, criar_no_bloco(corpo2, 1), 3);
+
+    NoAST **prog1_cmds = malloc(2 * sizeof(NoAST *));
+    prog1_cmds[0] = f1;
+    prog1_cmds[1] = f2;
+    NoAST *prog1 = criar_no_programa(prog1_cmds, 2);
+    ASSERT(contar_erros(prog1) == 1, "Should report 1 error for function redefinition in same scope");
+
+    // Caso 2: Atribuição a nome de função já declarada (def g(): return 1; g = 10)
+    NoAST **corpo_g = malloc(sizeof(NoAST *));
+    corpo_g[0] = criar_no_return(criar_no_int(1, 2), 2);
+    NoAST *def_g = criar_no_funcdef("g", NULL, 0, criar_no_bloco(corpo_g, 1), 1);
+    NoAST *assign_g = criar_no_assign("g", criar_no_int(10, 3), 3);
+
+    NoAST **prog2_cmds = malloc(2 * sizeof(NoAST *));
+    prog2_cmds[0] = def_g;
+    prog2_cmds[1] = assign_g;
+    NoAST *prog2 = criar_no_programa(prog2_cmds, 2);
+    ASSERT(contar_erros(prog2) == 1, "Should report 1 error for assigning to an existing function name");
+
+    // Caso 3: Sombreamento válido em escopo filho (def h(): x = 1; def h_filho(): h = 2)
+    NoAST **corpo_h_filho = malloc(sizeof(NoAST *));
+    corpo_h_filho[0] = criar_no_assign("h", criar_no_int(2, 3), 3);
+    NoAST *def_h_filho = criar_no_funcdef("h_filho", NULL, 0, criar_no_bloco(corpo_h_filho, 1), 2);
+
+    NoAST **corpo_h = malloc(sizeof(NoAST *));
+    corpo_h[0] = def_h_filho;
+    NoAST *def_h = criar_no_funcdef("h", NULL, 0, criar_no_bloco(corpo_h, 1), 1);
+
+    NoAST **prog3_cmds = malloc(sizeof(NoAST *));
+    prog3_cmds[0] = def_h;
+    NoAST *prog3 = criar_no_programa(prog3_cmds, 1);
+    ASSERT(contar_erros(prog3) == 0, "Should allow shadowing function name in inner scope");
+
+    // Caso 4: Variável declarada antes de função com o mesmo nome (k = 5; def k(): return 1)
+    NoAST *assign_k = criar_no_assign("k", criar_no_int(5, 1), 1);
+    NoAST **corpo_k = malloc(sizeof(NoAST *));
+    corpo_k[0] = criar_no_return(criar_no_int(1, 3), 3);
+    NoAST *def_k = criar_no_funcdef("k", NULL, 0, criar_no_bloco(corpo_k, 1), 2);
+
+    NoAST **prog4_cmds = malloc(2 * sizeof(NoAST *));
+    prog4_cmds[0] = assign_k;
+    prog4_cmds[1] = def_k;
+    NoAST *prog4 = criar_no_programa(prog4_cmds, 2);
+    ASSERT(contar_erros(prog4) == 1, "Should report 1 error when function reuses an existing variable name");
+
+    // Caso 5: Função redefinida com erro semântico dentro do segundo corpo (deve reportar ambos: 2 erros)
+    NoAST **corpo_m1 = malloc(sizeof(NoAST *));
+    corpo_m1[0] = criar_no_return(criar_no_int(1, 2), 2);
+    NoAST *m1 = criar_no_funcdef("m", NULL, 0, criar_no_bloco(corpo_m1, 1), 1);
+
+    NoAST **corpo_m2 = malloc(sizeof(NoAST *));
+    corpo_m2[0] = criar_no_return(criar_no_id("var_inexistente", 4), 4);
+    NoAST *m2 = criar_no_funcdef("m", NULL, 0, criar_no_bloco(corpo_m2, 1), 3);
+
+    NoAST **prog5_cmds = malloc(2 * sizeof(NoAST *));
+    prog5_cmds[0] = m1;
+    prog5_cmds[1] = m2;
+    NoAST *prog5 = criar_no_programa(prog5_cmds, 2);
+    ASSERT(contar_erros(prog5) == 2, "Should report redefinition error AND analyze body of redefined function");
+
+    printf("  PASSED\n");
+    return 1;
+}
+
 int main(void) {
     printf("=======================================\n");
     printf(" TESTES DA ANÁLISE SEMÂNTICA\n");
@@ -314,7 +391,8 @@ int main(void) {
         test_divisao_resulta_float(),
         test_funcoes_e_contexto(),
         test_contagem_nao_declarada(),
-        test_contagem_argumentos_de_chamada()
+        test_contagem_argumentos_de_chamada(),
+        test_redefinicao_funcao_e_conflito()
     };
 
     int n_tests = sizeof(test_results) / sizeof(test_results[0]);

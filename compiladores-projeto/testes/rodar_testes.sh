@@ -3,7 +3,7 @@
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR/.."
 
-if [ ! -x ./compilador ]; then
+if [ ! -x ./compilador ] && [ ! -x ./compilador.exe ]; then
     echo "Executavel './compilador' nao encontrado. Rode 'make' antes dos testes."
     exit 1
 fi
@@ -128,6 +128,7 @@ rodar_teste "testes/TestesSemanticaErros1.py" "sim"
 rodar_teste "testes/TestesSemanticaErros2.py" "sim"
 rodar_teste "testes/TestesSemanticaErros3.py" "sim"
 rodar_teste "testes/TestesSemanticaErros7.py" "sim"
+rodar_teste "testes/TestesSemanticaErros8.py" "sim"
 
 echo ""
 echo "--- RECUPERACAO de erros (todos os erros devem ser reportados) ---"
@@ -153,6 +154,7 @@ rodar_teste_semantico "testes/TestesSemanticaErros4.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros5.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros6.py" 3
 rodar_teste_semantico "testes/TestesSemanticaErros7.py" 1
+rodar_teste_semantico "testes/TestesSemanticaErros8.py" 1
 
 echo ""
 echo "========================================="
