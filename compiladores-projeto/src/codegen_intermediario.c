@@ -215,6 +215,103 @@ void codegen_gerar_atribuicao(NoAST *no) {
     }
 }
 
+static void gerar_salto_se_falso(NoAST *condicao, const char *rotulo) {
+    char *cond = codegen_gerar_expressao(condicao);
+    emitir(cria_instrucao(TAC_IF_FALSE, rotulo, cond, NULL, NULL));
+    free(cond);
+}
+
+static void codegen_gerar_if(NoAST *no) {
+    /* Um rótulo de falha por ramo (if + elifs); sem else, o último é também o fim */
+    int n_ramos = no->num_argumentos + 1;
+    char **rotulos = malloc(sizeof(char*) * n_ramos);
+    for (int i = 0; i < n_ramos; i++) {
+        rotulos[i] = novo_rotulo();
+    }
+    char *rotulo_else_fim = no->bloco_else ? novo_rotulo() : NULL;
+    const char *rotulo_fim = rotulo_else_fim ? rotulo_else_fim : rotulos[n_ramos - 1];
+
+    for (int i = 0; i < n_ramos; i++) {
+        NoAST *ramo = (i == 0) ? no : no->argumentos[i - 1];
+
+        gerar_salto_se_falso(ramo->condicao, rotulos[i]);
+        codegen_gerar_tac(ramo->bloco_if);
+
+        if (rotulos[i] != rotulo_fim) {
+            emitir(cria_instrucao(TAC_GOTO, rotulo_fim, NULL, NULL, NULL));
+            emitir(cria_instrucao(TAC_LABEL, rotulos[i], NULL, NULL, NULL));
+        }
+    }
+
+    codegen_gerar_tac(no->bloco_else);
+    emitir(cria_instrucao(TAC_LABEL, rotulo_fim, NULL, NULL, NULL));
+
+    for (int i = 0; i < n_ramos; i++) {
+        free(rotulos[i]);
+    }
+    free(rotulos);
+    free(rotulo_else_fim);
+}
+
+static void codegen_gerar_while(NoAST *no) {
+    char *rotulo_inicio = novo_rotulo();
+    char *rotulo_fim = novo_rotulo();
+
+    emitir(cria_instrucao(TAC_LABEL, rotulo_inicio, NULL, NULL, NULL));
+    gerar_salto_se_falso(no->condicao, rotulo_fim);
+    codegen_gerar_tac(no->bloco_if);
+    emitir(cria_instrucao(TAC_GOTO, rotulo_inicio, NULL, NULL, NULL));
+    emitir(cria_instrucao(TAC_LABEL, rotulo_fim, NULL, NULL, NULL));
+
+    free(rotulo_inicio);
+    free(rotulo_fim);
+}
+
+static int passo_negativo(NoAST *passo) {
+    return (passo->tipo == NO_UNARYOP && passo->operador == OP_NEG) ||
+           (passo->tipo == NO_NUM_INT && passo->valor_int < 0);
+}
+
+static void codegen_gerar_for(NoAST *no) {
+    NoAST *range = no->esquerda;
+    if (!range) return;
+
+    /* range(fim), range(inicio, fim) ou range(inicio, fim, passo) */
+    int n_args = (range->tipo == NO_BLOCO) ? range->num_argumentos : 1;
+    NoAST **args = (range->tipo == NO_BLOCO) ? range->argumentos : &range;
+
+    char *inicio = (n_args >= 2) ? codegen_gerar_expressao(args[0]) : strdup("0");
+    char *limite = codegen_gerar_expressao(args[(n_args >= 2) ? 1 : 0]);
+    char *passo = (n_args >= 3) ? codegen_gerar_expressao(args[2]) : strdup("1");
+    const char *comparador = (n_args >= 3 && passo_negativo(args[2])) ? ">" : "<";
+
+    char *rotulo_inicio = novo_rotulo();
+    char *rotulo_fim = novo_rotulo();
+
+    emitir(cria_instrucao(TAC_ASSIGN, no->nome, inicio, NULL, NULL));
+    emitir(cria_instrucao(TAC_LABEL, rotulo_inicio, NULL, NULL, NULL));
+
+    char *cond = novo_temporario();
+    emitir(cria_instrucao(TAC_BINOP, cond, no->nome, limite, comparador));
+    emitir(cria_instrucao(TAC_IF_FALSE, rotulo_fim, cond, NULL, NULL));
+
+    codegen_gerar_tac(no->bloco_if);
+
+    char *proximo = novo_temporario();
+    emitir(cria_instrucao(TAC_BINOP, proximo, no->nome, passo, "+"));
+    emitir(cria_instrucao(TAC_ASSIGN, no->nome, proximo, NULL, NULL));
+    emitir(cria_instrucao(TAC_GOTO, rotulo_inicio, NULL, NULL, NULL));
+    emitir(cria_instrucao(TAC_LABEL, rotulo_fim, NULL, NULL, NULL));
+
+    free(inicio);
+    free(limite);
+    free(passo);
+    free(rotulo_inicio);
+    free(rotulo_fim);
+    free(cond);
+    free(proximo);
+}
+
 void codegen_gerar_tac(NoAST *no) {
     if (!no) return;
 
@@ -228,6 +325,18 @@ void codegen_gerar_tac(NoAST *no) {
 
         case NO_ASSIGN:
             codegen_gerar_atribuicao(no);
+            break;
+
+        case NO_IF:
+            codegen_gerar_if(no);
+            break;
+
+        case NO_WHILE:
+            codegen_gerar_while(no);
+            break;
+
+        case NO_FOR:
+            codegen_gerar_for(no);
             break;
 
         default:
