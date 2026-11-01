@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "semantica.h"
 
 TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
@@ -146,29 +147,49 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
     return tipo_inferido;
 }
 
-static void pre_registrar_funcoes(NoAST *bloco, TabelaSimbolos *tabela) {
-    if (bloco == NULL) return;
+static int pre_registrar_funcoes(NoAST *bloco, TabelaSimbolos *tabela) {
+    if (bloco == NULL) return 0;
 
-    if (bloco->tipo != NO_PROGRAMA && bloco->tipo != NO_BLOCO) return;
+    if (bloco->tipo != NO_PROGRAMA && bloco->tipo != NO_BLOCO) return 0;
 
+    int erros = 0;
     for (int i = 0; i < bloco->num_argumentos; i++) {
         NoAST *cmd = bloco->argumentos[i];
         if (cmd == NULL || cmd->tipo != NO_FUNCDEF) continue;
-    
-        Simbolo *s = tabela_buscar(tabela, cmd->nome);
-        if (s && s->escopo == tabela->escopo_atual) continue;
+
+        Simbolo *s = tabela_buscar_escopo_atual(tabela, cmd->nome);
+        if (s != NULL) {
+            continue;
+        }
+
+        bool declarada_como_var_antes = false;
+        for (int j = 0; j < i; j++) {
+            NoAST *ant = bloco->argumentos[j];
+            if (ant != NULL &&
+                (ant->tipo == NO_ASSIGN || ant->tipo == NO_FOR) &&
+                ant->nome != NULL &&
+                strcmp(ant->nome, cmd->nome) == 0) {
+                declarada_como_var_antes = true;
+                break;
+            }
+        }
+        if (declarada_como_var_antes) {
+            continue;
+        }
 
         tabela_inserir(tabela, cmd->nome, TIPO_DESCONHECIDO, cmd->linha);
-        s = tabela_buscar(tabela, cmd->nome);
+        s = tabela_buscar_escopo_atual(tabela, cmd->nome);
         s->e_funcao = true;
+        s->pre_registrada = true;
         s->num_parametros = cmd->num_argumentos;
         if (cmd->num_argumentos > 0) {
             s->tipos_parametros = malloc(sizeof(TipoDado) * cmd->num_argumentos);
             for (int j = 0; j < cmd->num_argumentos; j++) {
                 s->tipos_parametros[j] = TIPO_DESCONHECIDO;
             }
-        }   
+        }
     }
+    return erros;
 }
 
 int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
@@ -180,9 +201,16 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
         // Analisa a expressão à direita (que está armazenada em esquerda)
         TipoDado tipo_dir = inferir_tipo(raiz->esquerda, tabela, &erros);
         
+        // Verifica se o identificador já existe no escopo atual como função
+        Simbolo *sim = tabela_buscar_escopo_atual(tabela, raiz->nome);
+        if (sim != NULL && sim->e_funcao) {
+            fprintf(stderr, "Erro semântico na linha %d: Identificador '%s' já declarado como função na linha %d.\n",
+                    raiz->linha, raiz->nome, sim->linha_declaracao);
+            return erros + 1;
+        }
+
         // Verifica se a variável já existe no escopo atual. Se sim, atualiza o tipo (reatribuição dinâmica).
-        Simbolo *sim = tabela_buscar(tabela, raiz->nome);
-        if (sim != NULL && sim->escopo == tabela->escopo_atual) {
+        if (sim != NULL) {
             sim->tipo = tipo_dir;
         } else {
             tabela_inserir(tabela, raiz->nome, tipo_dir, raiz->linha);
@@ -213,7 +241,7 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
     }
 
     if (raiz->tipo == NO_PROGRAMA) {
-        pre_registrar_funcoes(raiz, tabela);
+        erros += pre_registrar_funcoes(raiz, tabela);
 
         for (int i = 0; i < raiz->num_argumentos; i++) {
             erros += analisar_semantica(raiz->argumentos[i], tabela);
@@ -241,17 +269,32 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
     }
     
     if (raiz->tipo == NO_FUNCDEF) {
-        Simbolo *s = tabela_buscar(tabela, raiz->nome);
-        if (!s || s->escopo != tabela->escopo_atual) {
+        Simbolo *s = tabela_buscar_escopo_atual(tabela, raiz->nome);
+        bool atualizar_simbolo = true;
+
+        if (s == NULL) {
             tabela_inserir(tabela, raiz->nome, TIPO_DESCONHECIDO, raiz->linha);
-            s = tabela_buscar(tabela, raiz->nome);
+            s = tabela_buscar_escopo_atual(tabela, raiz->nome);
             s->e_funcao = true;
+            s->pre_registrada = false;
             s->num_parametros = raiz->num_argumentos;
             if (raiz->num_argumentos > 0) {
                 s->tipos_parametros = malloc(sizeof(TipoDado) * raiz->num_argumentos);
                 for (int i = 0; i < raiz->num_argumentos; i++) {
                     s->tipos_parametros[i] = TIPO_DESCONHECIDO;
                 }
+            }
+        } else if (s->pre_registrada) {
+            s->pre_registrada = false;
+        } else {
+            atualizar_simbolo = false;
+            erros += 1;
+            if (s->e_funcao) {
+                fprintf(stderr, "Erro semântico na linha %d: Função '%s' já declarada na linha %d.\n",
+                        raiz->linha, raiz->nome, s->linha_declaracao);
+            } else {
+                fprintf(stderr, "Erro semântico na linha %d: Identificador '%s' já declarado como variável na linha %d.\n",
+                        raiz->linha, raiz->nome, s->linha_declaracao);
             }
         }
         
@@ -267,11 +310,11 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
             }
         }
 
-        pre_registrar_funcoes(raiz->bloco_if, tabela);
+        erros += pre_registrar_funcoes(raiz->bloco_if, tabela);
         erros += analisar_semantica(raiz->bloco_if, tabela);
         tabela_sair_escopo(tabela);
         
-        if (s != NULL) {
+        if (atualizar_simbolo && s != NULL) {
             s->tipo = tabela->tipo_retorno_atual;
         }
         
@@ -306,8 +349,12 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
     
     if (raiz->tipo == NO_FOR) {
         if (raiz->nome) {
-            Simbolo *sim = tabela_buscar(tabela, raiz->nome);
-            if (sim != NULL && sim->escopo == tabela->escopo_atual) {
+            Simbolo *sim = tabela_buscar_escopo_atual(tabela, raiz->nome);
+            if (sim != NULL && sim->e_funcao) {
+                fprintf(stderr, "Erro semântico na linha %d: Identificador '%s' já declarado como função na linha %d.\n",
+                        raiz->linha, raiz->nome, sim->linha_declaracao);
+                erros += 1;
+            } else if (sim != NULL) {
                 sim->tipo = TIPO_INT;
             } else {
                 tabela_inserir(tabela, raiz->nome, TIPO_INT, raiz->linha);

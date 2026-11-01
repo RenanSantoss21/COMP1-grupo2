@@ -10,6 +10,7 @@ typedef struct {
     int escopo;
     int linha_declaracao;
     bool e_funcao;
+    bool pre_registrada;
     int num_parametros;
     TipoDado* tipos_parametros;
 } Simbolo;
@@ -26,6 +27,7 @@ extern bool mostrar_tabela;
 TabelaSimbolos* tabela_criar();
 void tabela_inserir(TabelaSimbolos* tab, char* nome, TipoDado tipo, int linha);
 Simbolo* tabela_buscar(TabelaSimbolos* tab, char* nome);
+Simbolo* tabela_buscar_escopo_atual(TabelaSimbolos* tab, char* nome);
 void tabela_entrar_escopo(TabelaSimbolos* tab);
 void tabela_sair_escopo(TabelaSimbolos* tab);
 void tabela_imprimir(TabelaSimbolos* tab);

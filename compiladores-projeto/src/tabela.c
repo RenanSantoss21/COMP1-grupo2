@@ -27,6 +27,7 @@ void tabela_inserir(TabelaSimbolos* tab, char* nome, TipoDado tipo, int linha) {
     s->escopo = tab->escopo_atual;
     s->linha_declaracao = linha;
     s->e_funcao = false;
+    s->pre_registrada = false;
     s->num_parametros = 0;
     s->tipos_parametros = NULL;
 }
@@ -34,6 +35,17 @@ void tabela_inserir(TabelaSimbolos* tab, char* nome, TipoDado tipo, int linha) {
 Simbolo* tabela_buscar(TabelaSimbolos* tab, char* nome) {
     for (int i = tab->tamanho - 1; i >= 0; i--) {
         if (strcmp(tab->array_simbolos[i].nome, nome) == 0) {
+            return &tab->array_simbolos[i];
+        }
+    }
+    return NULL;
+}
+
+Simbolo* tabela_buscar_escopo_atual(TabelaSimbolos* tab, char* nome) {
+    if (tab == NULL || nome == NULL) return NULL;
+    for (int i = tab->tamanho - 1; i >= 0; i--) {
+        if (tab->array_simbolos[i].escopo == tab->escopo_atual &&
+            strcmp(tab->array_simbolos[i].nome, nome) == 0) {
             return &tab->array_simbolos[i];
         }
     }
