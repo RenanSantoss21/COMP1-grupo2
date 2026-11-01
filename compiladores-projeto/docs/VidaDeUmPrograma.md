@@ -109,6 +109,143 @@ Dessa forma, ao encontrar o lexema `def`, por exemplo, o analisador reconhece um
 
 ## 2. Análise Sintática (Parser)
 
+A análise sintática é a segunda fase do compilador. Sua função é receber o fluxo contínuo de tokens emitidos pelo analisador léxico (`yylex()`) e verificar se a ordem dos símbolos respeita as regras da gramática formal livre de contexto da linguagem.
+
+Nosso compilador utiliza o **GNU Bison** para gerar um analisador sintático ascendente (*bottom-up*) do tipo **LALR(1)** com resolução de ambiguidades por precedência de operadores e lookahead correction (**LAC** — *Lookahead Correction*).
+
+### Funcionamento do Analisador Ascendente (Shift-Reduce)
+
+Diferente de um analisador descendente, que tenta prever as regras a partir do símbolo inicial, o analisador do Bison opera por **empilhamento e redução** (*shift-reduce*):
+1. **Shift (Empilhamento):** Lê o próximo token fornecido pelo lexer e empilha seu símbolo e valor semântico (`yylval`).
+2. **Reduce (Redução):** Quando o topo da pilha coincide com o lado direito de uma regra gramatical, esses elementos são desempilhados e substituídos pelo não-terminal do lado esquerdo da regra, executando a ação semântica associada (`{ $$ = ... }`).
+3. As ações semânticas em [`parser/parser.y`](../parser/parser.y) chamam as funções construtoras de [`src/ast.c`](../src/ast.c) (`criar_no_*`), construindo a árvore sintática abstrata das folhas até a raiz.
+
+### Construção de Listas Dinâmicas no Bison
+
+Como a análise é ascendente, o tamanho de um bloco indentado ou de uma lista de argumentos/parâmetros só é conhecido após a leitura do último item. Para gerenciar isso sem estruturas intermediárias complexas, o parser emprega duas funções auxiliares:
+- `criar_lista(primeiro)`: Cria um nó `NO_BLOCO` com capacidade inicial contendo o primeiro nó.
+- `adicionar_lista(lista, novo)`: Realoca dinamicamente o vetor `argumentos` via `realloc` e insere o novo nó no final.
+
+Ao concluir uma regra composta, o nó `NO_BLOCO` temporário tem seus elementos transferidos para o nó definitivo (como `NO_FUNCDEF`, `NO_IF` ou `NO_PROGRAMA`) e sua casca é liberada com `free`.
+
+---
+
+### Rastreamento Passo a Passo do Programa de Exemplo
+
+Abaixo está o acompanhamento cronológico exato das regras acionadas e das chamadas `criar_no_*` durante a execução de `yyparse()` sobre o nosso programa de exemplo:
+
+```python
+def dobro(n):
+    return n * 2
+x = 3
+if x > 2:
+    y = dobro(x)
+print(y)
+```
+
+#### Bloco 1: Definição da Função `dobro(n)` (Linhas 1 e 2)
+
+1. **Parâmetro Formal:**
+   - O lexer emite `DEF`, `ID("dobro")`, `LPAREN`, `ID("n")`.
+   - Token `ID("n")` reduz para a regra `parametros: ID`.
+   - **Ação:** Chama `criar_no_id("n", linha)` e encapsula em `criar_lista(...)`.
+   - Reduz para `parametros_opt: parametros`.
+   - Consome `RPAREN`, `COLON`, `NEWLINE`, `INDENT`.
+2. **Expressão do `return`:**
+   - O lexer emite `RETURN`, `ID("n")`.
+   - `ID("n")` reduz para `expressao: ID` $\rightarrow$ `criar_no_id("n", linha)`.
+   - O lexer emite `TIMES`, `NUM_INT(2)`.
+   - `NUM_INT(2)` reduz para `expressao: NUM_INT` $\rightarrow$ `criar_no_int(2, linha)`.
+   - Pela regra de precedência, `expressao TIMES expressao` reduz para `expressao`.
+   - **Ação:** Dispara `criar_no_binop(OP_MULT, no_id_n, no_num_2, linha)`.
+3. **Comando `return` e Bloco da Função:**
+   - A regra `comando_simples: RETURN expressao` dispara `criar_no_return(no_binop, linha)`.
+   - Consome `NEWLINE`, reduzindo `comando: comando_simples NEWLINE`.
+   - Reduz para `comandos: comando` $\rightarrow$ `criar_lista(no_return)`.
+   - O lexer detecta o fim da indentação e emite `DEDENT`.
+   - A regra `bloco: NEWLINE INDENT comandos DEDENT` repassa a lista com o corpo da função.
+4. **Fechamento do `def`:**
+   - A regra `comando_composto: DEF ID LPAREN parametros_opt RPAREN COLON bloco` é reduzida.
+   - **Ação:** Dispara `criar_no_funcdef("dobro", params, 1, bloco, linha)`.
+   - Reduz para `comando: comando_composto`, e em seguida para `comandos: comando` (iniciando a lista do escopo global).
+
+#### Bloco 2: Atribuição `x = 3` (Linha 3)
+
+1. O lexer emite `ID("x")`, que reduz para `expressao: ID` $\rightarrow$ `criar_no_id("x", linha)`.
+2. O lexer emite `ASSIGN`, `NUM_INT(3)`.
+3. `NUM_INT(3)` reduz para `expressao: NUM_INT` $\rightarrow$ `criar_no_int(3, linha)`.
+4. A regra `expressao: expressao ASSIGN expressao` é reduzida.
+   - O parser extrai o nome `"x"` do nó à esquerda e dispara `criar_no_assign("x", no_num_3, linha)`.
+5. Reduz para `comando_simples: expressao`.
+6. Consome `NEWLINE`, reduz para `comando: comando_simples NEWLINE`.
+7. A regra recursiva `comandos: comandos comando` aciona `adicionar_lista(lista_global, no_assign_x)`.
+
+#### Bloco 3: Condicional `if x > 2:` e Chamada `y = dobro(x)` (Linhas 4 e 5)
+
+1. **Condição do `if`:**
+   - O lexer emite `IF`, `ID("x")`. `ID("x")` reduz para `expressao: ID` $\rightarrow$ `criar_no_id("x", linha)`.
+   - O lexer emite `GT`, `NUM_INT(2)`. `NUM_INT(2)` reduz para `expressao: NUM_INT` $\rightarrow$ `criar_no_int(2, linha)`.
+   - A regra `expressao: expressao GT expressao` reduz disparando `criar_no_binop(OP_GT, no_x, no_2, linha)`.
+   - Consome `COLON`, `NEWLINE`, `INDENT`.
+2. **Corpo do `if` (`y = dobro(x)`):**
+   - O lexer emite `ID("y")` $\rightarrow$ reduz para `expressao: ID` (`criar_no_id("y", linha)`).
+   - O lexer emite `ASSIGN`, `ID("dobro")`, `LPAREN`, `ID("x")`.
+   - `ID("x")` reduz para `expressao: ID` $\rightarrow$ `criar_no_id("x", linha)`, e em seguida para `argumentos_opt`.
+   - A regra `expressao: ID LPAREN argumentos_opt RPAREN` reconhece a chamada de função e dispara:
+     `criar_no_funccall("dobro", args, 1, linha)`.
+   - A regra `expressao: expressao ASSIGN expressao` dispara:
+     `criar_no_assign("y", no_funccall, linha)`.
+   - Consome `NEWLINE`, reduz para `comando_simples`, depois `comando`, `comandos: comando` e finalmente `bloco` ao receber `DEDENT`.
+3. **Fechamento do `if`:**
+   - Não há cláusulas `elif` nem `else`, logo `lista_elif` e `senao_opt` reduzem pela regra `%empty` (retornando `NULL`).
+   - A regra `comando_composto: IF expressao COLON bloco lista_elif senao_opt` dispara:
+     `criar_no_if(no_cond, bloco_then, NULL, 0, NULL, linha)`.
+   - Reduz para `comando`, e `comandos: comandos comando` anexa o nó `NO_IF` à lista global.
+
+#### Bloco 4: Comando `print(y)` (Linha 6)
+
+1. O lexer emite `PRINT`, `LPAREN`, `ID("y")`.
+2. `ID("y")` reduz para `expressao: ID` $\rightarrow$ `criar_no_id("y", linha)`, e depois para `argumentos_opt`.
+3. Consome `RPAREN`. A regra `comando_simples: PRINT LPAREN argumentos_opt RPAREN` dispara:
+   `criar_no_print(args, 1, linha)`.
+4. Consome `NEWLINE` (ou EOF), reduz para `comando`, e `comandos: comandos comando` anexa o nó `NO_PRINT` como o 4º comando global.
+
+#### Finalização da Gramática
+
+1. O lexer alcança o final do arquivo (`EOF`).
+2. A regra inicial `programa: comandos` é acionada:
+   - Extrai o vetor de 4 comandos contido no bloco temporário.
+   - Dispara `criar_no_programa($1->argumentos, 4)`.
+   - Atribui o nó resultante à variável global `raiz_ast`.
+   - Executa `free($1)` liberando o invólucro do bloco temporário.
+3. `yyparse()` retorna `0` com sucesso, repassando `raiz_ast` para as etapas subsequentes.
+
+---
+
+### Tabela Resumo das Reduções e Construtores
+
+| Etapa | Token / Lookahead | Regra do `parser.y` Disparada | Construtor em `src/ast.c` Invocado | Tipo de Nó Resultante |
+|---|---|---|---|---|
+| **1** | `ID("n")` | `parametros: ID` | `criar_no_id("n", linha)` | `NO_ID` (parâmetro) |
+| **2** | `ID("n")` | `expressao: ID` | `criar_no_id("n", linha)` | `NO_ID` |
+| **3** | `NUM_INT(2)` | `expressao: NUM_INT` | `criar_no_int(2, linha)` | `NO_NUM_INT` |
+| **4** | `TIMES` | `expressao: expressao TIMES expressao` | `criar_no_binop(OP_MULT, esq, dir, linha)` | `NO_BINOP (*)` |
+| **5** | `RETURN` | `comando_simples: RETURN expressao` | `criar_no_return(expr, linha)` | `NO_RETURN` |
+| **6** | `NEWLINE` / `DEDENT` | `bloco: NEWLINE INDENT comandos DEDENT` | *(repassa lista de comandos)* | `NO_BLOCO` (corpo) |
+| **7** | `DEF` ... `bloco` | `comando_composto: DEF ID (...) COLON bloco` | `criar_no_funcdef("dobro", params, 1, bloco, linha)` | `NO_FUNCDEF` |
+| **8** | `ID("x")` | `expressao: ID` | `criar_no_id("x", linha)` | `NO_ID` |
+| **9** | `NUM_INT(3)` | `expressao: NUM_INT` | `criar_no_int(3, linha)` | `NO_NUM_INT` |
+| **10** | `ASSIGN` | `expressao: expressao ASSIGN expressao` | `criar_no_assign("x", expr, linha)` | `NO_ASSIGN` |
+| **11** | `ID("x")` | `expressao: ID` | `criar_no_id("x", linha)` | `NO_ID` |
+| **12** | `NUM_INT(2)` | `expressao: NUM_INT` | `criar_no_int(2, linha)` | `NO_NUM_INT` |
+| **13** | `GT` | `expressao: expressao GT expressao` | `criar_no_binop(OP_GT, esq, dir, linha)` | `NO_BINOP (>)` |
+| **14** | `ID("x")` | `expressao: ID` | `criar_no_id("x", linha)` | `NO_ID` |
+| **15** | `ID("dobro")` | `expressao: ID LPAREN args RPAREN` | `criar_no_funccall("dobro", args, 1, linha)` | `NO_FUNCCALL` |
+| **16** | `ASSIGN` | `expressao: expressao ASSIGN expressao` | `criar_no_assign("y", expr, linha)` | `NO_ASSIGN` |
+| **17** | `IF` ... `bloco` | `comando_composto: IF expr COLON bloco ...` | `criar_no_if(cond, bloco, NULL, 0, NULL, linha)` | `NO_IF` |
+| **18** | `PRINT` | `comando_simples: PRINT LPAREN args RPAREN` | `criar_no_print(args, 1, linha)` | `NO_PRINT` |
+| **19** | `EOF` | `programa: comandos` | `criar_no_programa(cmds, 4)` | `NO_PROGRAMA` (Raiz) |
+
 
 ---
 
