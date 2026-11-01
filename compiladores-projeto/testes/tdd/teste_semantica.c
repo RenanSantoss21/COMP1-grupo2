@@ -215,6 +215,92 @@ static int test_funcoes_e_contexto(void) {
     return 1;
 }
 
+static int contar_erros(NoAST *no) {
+    TabelaSimbolos *tab = tabela_criar();
+    int erros = analisar_semantica(no, tab);
+    liberar_ast(no);
+    tabela_liberar(tab);
+    return erros;
+}
+
+static NoAST *bloco_vazio(void) {
+    return criar_no_bloco(NULL, 0);
+}
+
+static NoAST *comparacao_nao_declarada(char *nome, int linha) {
+    return criar_no_binop(OP_GT, criar_no_id(nome, linha), criar_no_int(0, linha), linha);
+}
+
+static int test_contagem_nao_declarada(void) {
+    printf("Running test_contagem_nao_declarada...\n");
+
+    // y = z + 1
+    NoAST *soma = criar_no_binop(OP_SOMA, criar_no_id("z", 1), criar_no_int(1, 1), 1);
+    ASSERT(contar_erros(criar_no_assign("y", soma, 1)) == 1, "Should report undeclared variable once in assignment");
+
+    // if w > 0:
+    NoAST *se = criar_no_if(comparacao_nao_declarada("w", 1), bloco_vazio(), NULL, 0, NULL, 1);
+    ASSERT(contar_erros(se) == 1, "Should report undeclared variable once in if condition");
+
+    // while w > 0:
+    NoAST *enquanto = criar_no_while(comparacao_nao_declarada("w", 1), bloco_vazio(), 1);
+    ASSERT(contar_erros(enquanto) == 1, "Should report undeclared variable once in while condition");
+
+    // if True: ... elif w > 0:
+    NoAST **elifs = malloc(sizeof(NoAST *));
+    elifs[0] = criar_no_elif(comparacao_nao_declarada("w", 2), bloco_vazio(), 2);
+    NoAST *se_elif = criar_no_if(criar_no_bool(1, 1), bloco_vazio(), elifs, 1, NULL, 1);
+    ASSERT(contar_erros(se_elif) == 1, "Should report undeclared variable once in elif condition");
+
+    // def f(): return k
+    NoAST **corpo = malloc(sizeof(NoAST *));
+    corpo[0] = criar_no_return(criar_no_id("k", 2), 2);
+    NoAST *funcao = criar_no_funcdef("f", NULL, 0, criar_no_bloco(corpo, 1), 1);
+    ASSERT(contar_erros(funcao) == 1, "Should report undeclared variable once in return");
+
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_contagem_argumentos_de_chamada(void) {
+    printf("Running test_contagem_argumentos_de_chamada...\n");
+
+    // y = g(z), com g não declarada: erro na chamada e no argumento
+    NoAST **args = malloc(sizeof(NoAST *));
+    args[0] = criar_no_id("z", 1);
+    NoAST *chamada = criar_no_funccall("g", args, 1, 1);
+    ASSERT(contar_erros(criar_no_assign("y", chamada, 1)) == 2, "Should report undeclared function and its undeclared argument");
+
+    // x = 1; y = x(z): erro na chamada e no argumento
+    NoAST **args2 = malloc(sizeof(NoAST *));
+    args2[0] = criar_no_id("z", 2);
+    NoAST **cmds2 = malloc(2 * sizeof(NoAST *));
+    cmds2[0] = criar_no_assign("x", criar_no_int(1, 1), 1);
+    cmds2[1] = criar_no_assign("y", criar_no_funccall("x", args2, 1, 2), 2);
+    ASSERT(contar_erros(criar_no_programa(cmds2, 2)) == 2, "Should report non-function call and its undeclared argument");
+
+    // def f(): ...; y = f(z): erro de aridade e no argumento
+    NoAST **args3 = malloc(sizeof(NoAST *));
+    args3[0] = criar_no_id("z", 2);
+    NoAST **cmds3 = malloc(2 * sizeof(NoAST *));
+    cmds3[0] = criar_no_funcdef("f", NULL, 0, bloco_vazio(), 1);
+    cmds3[1] = criar_no_assign("y", criar_no_funccall("f", args3, 1, 2), 2);
+    ASSERT(contar_erros(criar_no_programa(cmds3, 2)) == 2, "Should report wrong arity and its undeclared argument");
+
+    // def f(a): ...; y = f(z): somente o argumento
+    NoAST **params4 = malloc(sizeof(NoAST *));
+    params4[0] = criar_no_id("a", 1);
+    NoAST **args4 = malloc(sizeof(NoAST *));
+    args4[0] = criar_no_id("z", 2);
+    NoAST **cmds4 = malloc(2 * sizeof(NoAST *));
+    cmds4[0] = criar_no_funcdef("f", params4, 1, bloco_vazio(), 1);
+    cmds4[1] = criar_no_assign("y", criar_no_funccall("f", args4, 1, 2), 2);
+    ASSERT(contar_erros(criar_no_programa(cmds4, 2)) == 1, "Should report undeclared argument once in a valid call");
+
+    printf("  PASSED\n");
+    return 1;
+}
+
 int main(void) {
     printf("=======================================\n");
     printf(" TESTES DA ANÁLISE SEMÂNTICA\n");
@@ -226,7 +312,9 @@ int main(void) {
         test_escopos_aninhados(),
         test_inferencia_e_operacoes(),
         test_divisao_resulta_float(),
-        test_funcoes_e_contexto()
+        test_funcoes_e_contexto(),
+        test_contagem_nao_declarada(),
+        test_contagem_argumentos_de_chamada()
     };
 
     int n_tests = sizeof(test_results) / sizeof(test_results[0]);

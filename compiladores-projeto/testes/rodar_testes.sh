@@ -143,12 +143,12 @@ echo ""
 echo "--- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---"
 rodar_teste "testes/teste_semantico.py" "sim"
 rodar_teste "testes/TestesSemanticoErro1.py" "sim"
-rodar_teste "testes/TestesSemanticoErro2.py" "sim"
 
 echo ""
 echo "--- Contagem de erros SEMANTICOS (todos os erros devem ser reportados) ---"
 rodar_teste_semantico "testes/teste_semantico.py" 4
 rodar_teste_semantico "testes/TestesSemanticoErro1.py" 5
+rodar_teste_semantico "testes/TestesSemanticoErro2.py" 2
 rodar_teste_semantico "testes/TestesSemanticaErros4.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros5.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros6.py" 3
