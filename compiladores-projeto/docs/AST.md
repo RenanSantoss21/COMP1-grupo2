@@ -12,31 +12,259 @@ Os arquivos ficam em `src/ast.h` e `src/ast.c`, seguindo o padrão de modulariza
 
 ---
 
-## Tipos de Nós (`TipoNo`)
+## Tipos de Nós (`TipoNo`) e Matriz Completa de Campos
 
-Cada nó da AST tem um tipo que identifica a construção sintática que ele representa. Os tipos são definidos pelo enum `TipoNo`:
+Cada nó da AST tem um tipo definido pelo enum `TipoNo` que identifica a construção sintática que ele representa. A struct `NoAST` (`src/ast.h`) adota uma estrutura genérica compartilhada para todos os nós da árvore. A tabela a seguir documenta a **matriz bidimensional completa `TipoNo × campo`**, conferida com as implementações dos construtores em [`src/ast.c`](../src/ast.c) e utilizada nas fases de Análise Semântica e Geração de Código:
 
-| Valor do Enum       | Construção Representada             | Campos Relevantes                                      |
-|----------------------|--------------------------------------|--------------------------------------------------------|
-| `NO_NUM_INT`         | Literal inteiro (`42`)              | `valor_int`, `tipo_resolvido`                          |
-| `NO_NUM_FLOAT`       | Literal float (`3.14`)              | `valor_float`, `tipo_resolvido`                        |
-| `NO_STRING`          | Literal string (`"olá"`)            | `valor_string`, `tipo_resolvido`                       |
-| `NO_BOOL`            | Literal booleano (`True` / `False`) | `valor_int` (1 = True, 0 = False), `tipo_resolvido`    |
-| `NO_ID`              | Identificador (`x`, `soma`)         | `nome`, `tipo_resolvido`                               |
-| `NO_BINOP`           | Operação binária (`a + b`)          | `operador`, `esquerda`, `direita`, `tipo_resolvido`    |
-| `NO_UNARYOP`         | Operação unária (`not x`, `-x`)     | `operador`, `esquerda`, `tipo_resolvido`               |
-| `NO_ASSIGN`          | Atribuição (`x = 10`)              | `nome`, `esquerda` (expressão do valor)                |
-| `NO_PRINT`           | `print(expr, ...)`                  | `argumentos` (lista de expressões), `num_argumentos`   |
-| `NO_INPUT`           | `input()`                           | `esquerda` (prompt opcional), `tipo_resolvido`         |
-| `NO_IF`              | `if/elif/else`                      | `condicao`, `bloco_if`, `argumentos` (elifs), `num_argumentos`, `bloco_else` |
-| `NO_ELIF`            | Cláusula `elif`                     | `condicao`, `bloco_if` (corpo do elif)                 |
-| `NO_WHILE`           | `while cond:`                       | `condicao`, `bloco_if` (corpo do while)                |
-| `NO_FOR`             | `for x in range(...):`              | `nome`, `esquerda` (argumentos do range), `bloco_if` (corpo) |
-| `NO_FUNCDEF`         | `def nome(params):`                 | `nome`, `argumentos` (parâmetros), `num_argumentos`, `bloco_if` (corpo) |
-| `NO_RETURN`          | `return expr`                       | `esquerda` (expressão, pode ser `NULL`)                |
-| `NO_FUNCCALL`        | `func(args)`                        | `nome`, `argumentos` (lista de argumentos), `num_argumentos`, `tipo_resolvido` |
-| `NO_BLOCO`           | Bloco de comandos / lista de elementos | `argumentos` (lista de nós), `num_argumentos`       |
-| `NO_PROGRAMA`        | Raiz do programa                     | `argumentos` (lista de comandos top-level), `num_argumentos` |
+| Tipo de Nó (`TipoNo`) | `nome` | `valor_*` | `operador` | `esquerda` | `direita` | `condicao` | `bloco_if` | `bloco_else` | `argumentos` / `num_argumentos` | `tipo_resolvido` | `linha` |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `NO_NUM_INT` | — | `valor_int` | — | — | — | — | — | — | — | `TIPO_INT` | Linha literal |
+| `NO_NUM_FLOAT` | — | `valor_float` | — | — | — | — | — | — | — | `TIPO_FLOAT` | Linha literal |
+| `NO_STRING` | — | `valor_string` | — | — | — | — | — | — | — | `TIPO_STRING` | Linha literal |
+| `NO_BOOL` | — | `valor_int` (1/0) | — | — | — | — | — | — | — | `TIPO_BOOL` | Linha literal |
+| `NO_ID` | `nome` | — | — | — | — | — | — | — | — | Tipo do símbolo | Linha identificador |
+| `NO_BINOP` | — | — | `operador` | Filho esquerdo | Filho direito | — | — | — | — | Tipo da operação | Linha operação |
+| `NO_UNARYOP` | — | — | `operador` | Operando único | — | — | — | — | — | Tipo da operação | Linha operador |
+| `NO_ASSIGN` | `nome` (alvo) | — | — | Expr atribuída | — | — | — | — | — | — | Linha atribuição |
+| `NO_PRINT` | — | — | — | — | — | — | — | — | Lista de expressões | — | Linha do print |
+| `NO_INPUT` | — | — | — | Prompt (opc.) | — | — | — | — | — | `TIPO_STRING` | Linha do input |
+| `NO_IF` | — | — | — | — | — | Condição if | Bloco then | Bloco else | Lista nós `NO_ELIF` | — | Linha do if |
+| `NO_ELIF` | — | — | — | — | — | Condição elif | Bloco do elif | — | — | — | Linha do elif |
+| `NO_WHILE` | — | — | — | — | — | Condição while | Corpo do laço | — | — | — | Linha do while |
+| `NO_FOR` | `nome` (var) | — | — | Args do range | — | — | Corpo do laço | — | — | — | Linha do for |
+| `NO_FUNCDEF` | `nome` (func) | — | — | — | — | — | Corpo da função | — | Lista parâmetros (`NO_ID`) | Tipo retorno | Linha do def |
+| `NO_RETURN` | — | — | — | Expr retorno | — | — | — | — | — | Tipo retorno | Linha do return |
+| `NO_FUNCCALL` | `nome` (func) | — | — | — | — | — | — | — | Lista argumentos | Tipo retorno | Linha chamada |
+| `NO_BLOCO` | — | — | — | — | — | — | — | — | Lista de comandos | — | — |
+| `NO_PROGRAMA` | — | — | — | — | — | — | — | — | Comandos top-level | — | — |
+
+---
+
+## Catálogo Estrutural dos 19 Tipos de Nó
+
+Abaixo, cada nó da AST é ilustrado com um trecho de código Python de exemplo e a respectiva estrutura gerada em memória:
+
+### 1. Literais e Identificadores
+
+#### `NO_NUM_INT`
+- **Exemplo:** `42`
+- **Campos:** `tipo = NO_NUM_INT`, `valor_int = 42`, `tipo_resolvido = TIPO_INT`.
+- **Estrutura:** `[NO_NUM_INT: 42]`
+
+#### `NO_NUM_FLOAT`
+- **Exemplo:** `3.14`
+- **Campos:** `tipo = NO_NUM_FLOAT`, `valor_float = 3.14`, `tipo_resolvido = TIPO_FLOAT`.
+- **Estrutura:** `[NO_NUM_FLOAT: 3.14]`
+
+#### `NO_STRING`
+- **Exemplo:** `"ola mundo"`
+- **Campos:** `tipo = NO_STRING`, `valor_string = "ola mundo"`, `tipo_resolvido = TIPO_STRING`.
+- **Estrutura:** `[NO_STRING: "ola mundo"]`
+
+#### `NO_BOOL`
+- **Exemplo:** `True`
+- **Campos:** `tipo = NO_BOOL`, `valor_int = 1`, `tipo_resolvido = TIPO_BOOL`.
+- **Estrutura:** `[NO_BOOL: True]`
+
+#### `NO_ID`
+- **Exemplo:** `x`
+- **Campos:** `tipo = NO_ID`, `nome = "x"`, `tipo_resolvido = (definido na semântica)`.
+- **Estrutura:** `[NO_ID: x]`
+
+---
+
+### 2. Operações e Expressões
+
+#### `NO_BINOP`
+- **Exemplo:** `a + 10`
+- **Construtor:** `criar_no_binop(OP_SOMA, no_a, no_10, linha)`
+```mermaid
+graph TD
+    B["NO_BINOP (+)"] --> E["esquerda: NO_ID (a)"]
+    B --> D["direita: NO_NUM_INT (10)"]
+```
+
+#### `NO_UNARYOP`
+- **Exemplo:** `-x` ou `not flag`
+- **Construtor:** `criar_no_unaryop(OP_NEG, no_x, linha)`
+```mermaid
+graph TD
+    U["NO_UNARYOP (-)"] --> E["esquerda: NO_ID (x)"]
+```
+
+#### `NO_INPUT`
+- **Exemplo:** `input("Digite seu nome: ")`
+- **Construtor:** `criar_no_input(no_prompt, linha)`
+```mermaid
+graph TD
+    IN["NO_INPUT"] --> P["esquerda: NO_STRING ('Digite seu nome: ')"]
+```
+
+---
+
+### 3. Atribuição e Comandos Básicos
+
+#### `NO_ASSIGN`
+- **Exemplo:** `x = y + 1`
+- **Construtor:** `criar_no_assign("x", no_expr, linha)`
+```mermaid
+graph TD
+    A["NO_ASSIGN (nome = 'x')"] --> E["esquerda: NO_BINOP (+)"]
+```
+
+#### `NO_PRINT`
+- **Exemplo:** `print(a, b)`
+- **Construtor:** `criar_no_print(args, 2, linha)`
+```mermaid
+graph TD
+    P["NO_PRINT (num_argumentos = 2)"] --> A0["argumentos[0]: NO_ID (a)"]
+    P --> A1["argumentos[1]: NO_ID (b)"]
+```
+
+---
+
+### 4. Estruturas de Controle de Fluxo
+
+#### `NO_IF` e `NO_ELIF`
+- **Exemplo:**
+  ```python
+  if x > 0:
+      print(1)
+  elif x < 0:
+      print(-1)
+  else:
+      print(0)
+  ```
+- **Construtor:** `criar_no_if(cond, bloco_if, elifs, 1, bloco_else, linha)`
+```mermaid
+graph TD
+    IF["NO_IF"] --> C["condicao: NO_BINOP (>)"]
+    IF --> BIF["bloco_if: NO_BLOCO (then)"]
+    IF --> EL["argumentos[0]: NO_ELIF"]
+    IF --> BEL["bloco_else: NO_BLOCO (else)"]
+    EL --> CEL["condicao: NO_BINOP (<)"]
+    EL --> BELIF["bloco_if: NO_BLOCO (elif body)"]
+```
+
+#### `NO_WHILE`
+- **Exemplo:**
+  ```python
+  while count > 0:
+      count = count - 1
+  ```
+- **Construtor:** `criar_no_while(cond, bloco, linha)`
+```mermaid
+graph TD
+    W["NO_WHILE"] --> C["condicao: NO_BINOP (>)"]
+    W --> B["bloco_if: NO_BLOCO (corpo do laço)"]
+```
+
+#### `NO_FOR`
+- **Exemplo:**
+  ```python
+  for i in range(10):
+      print(i)
+  ```
+- **Construtor:** `criar_no_for("i", no_range, bloco, linha)`
+```mermaid
+graph TD
+    F["NO_FOR (nome = 'i')"] --> R["esquerda: NO_BLOCO (range args)"]
+    F --> B["bloco_if: NO_BLOCO (corpo do laço)"]
+```
+
+---
+
+### 5. Funções e Agrupamentos
+
+#### `NO_FUNCDEF`
+- **Exemplo:**
+  ```python
+  def soma(a, b):
+      return a + b
+  ```
+- **Construtor:** `criar_no_funcdef("soma", params, 2, bloco, linha)`
+```mermaid
+graph TD
+    FD["NO_FUNCDEF (nome = 'soma')"] --> P0["argumentos[0]: NO_ID (a)"]
+    FD --> P1["argumentos[1]: NO_ID (b)"]
+    FD --> C["bloco_if: NO_BLOCO (corpo da função)"]
+```
+
+#### `NO_RETURN`
+- **Exemplo:** `return x * 2`
+- **Construtor:** `criar_no_return(expr, linha)`
+```mermaid
+graph TD
+    R["NO_RETURN"] --> E["esquerda: NO_BINOP (*)"]
+```
+
+#### `NO_FUNCCALL`
+- **Exemplo:** `soma(3, 4)`
+- **Construtor:** `criar_no_funccall("soma", args, 2, linha)`
+```mermaid
+graph TD
+    FC["NO_FUNCCALL (nome = 'soma')"] --> A0["argumentos[0]: NO_NUM_INT (3)"]
+    FC --> A1["argumentos[1]: NO_NUM_INT (4)"]
+```
+
+#### `NO_BLOCO` e `NO_PROGRAMA`
+- **Exemplo:** O programa raiz reúne os comandos top-level em `argumentos`, e blocos indentados agrupam comandos subordinados.
+```mermaid
+graph TD
+    PR["NO_PROGRAMA (num_argumentos = N)"] --> C0["argumentos[0]"]
+    PR --> C1["argumentos[1]"]
+    PR --> CN["argumentos[N-1]"]
+```
+
+---
+
+## Macros de Acesso Semântico e Proposta de Refatoração (Issue #42)
+
+### 1. Macros Semânticas de Conveniência
+
+Para tornar as fases de **Análise Semântica** e **Geração de Código** mais legíveis e evitar erros conceituais ao navegar pelos campos reaproveitados da struct `NoAST`, propõem-se as seguintes macros de acesso padronizadas:
+
+```c
+/* ── Funções ─────────────────────────────────────────────────────── */
+#define CORPO_FUNCAO(n)       ((n)->bloco_if)
+#define PARAMS_FUNCAO(n)      ((n)->argumentos)
+#define NUM_PARAMS_FUNCAO(n)  ((n)->num_argumentos)
+
+/* ── Atribuição e Variáveis ──────────────────────────────────────── */
+#define VAR_ASSIGN(n)         ((n)->nome)
+#define EXPR_ASSIGN(n)        ((n)->esquerda)
+
+/* ── Laços de Repetição ──────────────────────────────────────────── */
+#define VAR_FOR(n)            ((n)->nome)
+#define RANGE_FOR(n)          ((n)->esquerda)
+#define CORPO_FOR(n)          ((n)->bloco_if)
+#define COND_WHILE(n)         ((n)->condicao)
+#define CORPO_WHILE(n)        ((n)->bloco_if)
+
+/* ── Condicionais (if / elif / else) ─────────────────────────────── */
+#define COND_IF(n)            ((n)->condicao)
+#define BLOCO_THEN(n)         ((n)->bloco_if)
+#define BLOCO_ELSE(n)         ((n)->bloco_else)
+#define ELIFS_IF(n)           ((n)->argumentos)
+#define NUM_ELIFS_IF(n)       ((n)->num_argumentos)
+
+/* ── Chamadas, Retorno e Entrada ─────────────────────────────────── */
+#define EXPR_RETURN(n)        ((n)->esquerda)
+#define PROMPT_INPUT(n)       ((n)->esquerda)
+#define ARGS_FUNCCALL(n)      ((n)->argumentos)
+#define NUM_ARGS_CALL(n)      ((n)->num_argumentos)
+```
+
+### 2. Avaliação Arquitetural: Macros vs. `union`
+
+| Aspecto | Abordagem com Macros (Proposta) | Abordagem com `tagged union` |
+|---|---|---|
+| **Compatibilidade** | 100% retrocompatível com código e testes existentes. | Quebra todos os arquivos que acessam campos diretamente (`.esquerda`, etc.). |
+| **Consumo de Memória** | Struct plana (64 bytes por nó). | Economia potencial de 20–30 bytes por nó. |
+| **Clareza de Código** | Nomes semânticos claros (`CORPO_FUNCAO(n)`). | Nomes aninhados explícitos (`n->dado.funcdef.corpo`). |
+| **Impacto no Projeto** | Risco zero de regressão em branches ativas. | Alto esforço de refatoração em `parser.y`, `ast.c`, `semantica.c`, `codegen`. |
+
+**Conclusão e Decisão:** Mantém-se a estrutura `NoAST` existente em `src/ast.h` intacta sem alterações estruturais no código-fonte, documentando a matriz 2D completa e apresentando as macros acima como proposta de abstração semântica para discussão com o grupo.
 
 ---
 
