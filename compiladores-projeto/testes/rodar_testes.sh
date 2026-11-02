@@ -81,6 +81,25 @@ rodar_teste_semantico() {
     fi
 }
 
+# Verifica se a mensagem de erro contem exatamente o trecho esperado (ex: linha correta).
+rodar_teste_linha_erro() {
+    arquivo=$1
+    padrao=$2
+    descricao=$3
+    nome=$(basename "$arquivo")
+
+    saida=$(./compilador < "$arquivo" 2>&1)
+
+    if echo "$saida" | grep -Fq "$padrao"; then
+        echo "[OK]    $nome ($descricao) - '$padrao'"
+        PASSOU=$((PASSOU + 1))
+    else
+        echo "[FALHA] $nome ($descricao) - esperava encontrar '$padrao' em:"
+        echo "        $saida"
+        FALHOU=$((FALHOU + 1))
+    fi
+}
+
 echo "========================================="
 echo "   Rodando testes do compilador"
 echo "========================================="
@@ -155,6 +174,18 @@ rodar_teste_semantico "testes/TestesSemanticaErros5.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros6.py" 3
 rodar_teste_semantico "testes/TestesSemanticaErros7.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros8.py" 1
+rodar_teste_semantico "testes/TestesSemanticaErros10.py" 5
+
+echo ""
+echo "--- Numero de linha nos erros de estruturas compostas (Issue #46) ---"
+rodar_teste_linha_erro "testes/TestesSemanticaErros5.py" "Erro semântico na linha 3: A condição deve ser estritamente booleana." "linha do if"
+rodar_teste_linha_erro "testes/TestesSemanticaErros8.py" "Erro semântico na linha 3: Função 'f' já declarada na linha 1." "linhas do def"
+rodar_teste_linha_erro "testes/teste_semantico.py" "Erro semântico na linha 19: A condição deve ser estritamente booleana." "linha do while"
+rodar_teste_linha_erro "testes/TestesSemanticaErros10.py" "Erro semântico na linha 2: A condição deve ser estritamente booleana." "if na linha 2"
+rodar_teste_linha_erro "testes/TestesSemanticaErros10.py" "Erro semântico na linha 5: A condição deve ser estritamente booleana." "elif na linha 5"
+rodar_teste_linha_erro "testes/TestesSemanticaErros10.py" "Erro semântico na linha 9: A condição deve ser estritamente booleana." "while na linha 9"
+rodar_teste_linha_erro "testes/TestesSemanticaErros10.py" "Erro semântico na linha 17: Identificador 'f' já declarado como função na linha 13." "for na linha 17 e def na linha 13"
+rodar_teste_linha_erro "testes/TestesSemanticaErros10.py" "Erro semântico na linha 21: Função 'f' já declarada na linha 13." "def redeclarado na linha 21"
 
 echo ""
 echo "========================================="

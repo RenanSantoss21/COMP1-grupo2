@@ -484,7 +484,7 @@ if idade:
 
 **Saída do compilador:**
 ```
-Erro semântico na linha 3: A condição deve ser estritamente booleana.
+Erro semântico na linha 2: A condição deve ser estritamente booleana.
 
 ```
 

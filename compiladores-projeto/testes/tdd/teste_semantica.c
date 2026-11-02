@@ -453,6 +453,79 @@ static int test_inferencia_parametros_e_void(void) {
     return 1;
 }
 
+static int test_linhas_erros_estruturas_compostas(void) {
+    printf("Running test_linhas_erros_estruturas_compostas...\n");
+
+    TabelaSimbolos *tab = tabela_criar();
+
+    NoAST *assign_x = criar_no_assign("x", criar_no_int(5, 1), 1);
+
+    NoAST **elifs = malloc(sizeof(NoAST *));
+    elifs[0] = criar_no_elif(criar_no_id("x", 5), bloco_vazio(), 5);
+    NoAST *no_if = criar_no_if(criar_no_id("x", 2), bloco_vazio(), elifs, 1, NULL, 2);
+
+    NoAST *no_while = criar_no_while(criar_no_id("x", 9), bloco_vazio(), 9);
+
+    NoAST *def_f1 = criar_no_funcdef("f", NULL, 0, bloco_vazio(), 13);
+    NoAST *no_for = criar_no_for("f", criar_no_int(3, 17), bloco_vazio(), 17);
+
+    NoAST **params_f2 = malloc(sizeof(NoAST *));
+    params_f2[0] = criar_no_id("p", 21);
+    NoAST *def_f2 = criar_no_funcdef("f", params_f2, 1, bloco_vazio(), 21);
+
+    NoAST **cmds = malloc(6 * sizeof(NoAST *));
+    cmds[0] = assign_x;
+    cmds[1] = no_if;
+    cmds[2] = no_while;
+    cmds[3] = def_f1;
+    cmds[4] = no_for;
+    cmds[5] = def_f2;
+    NoAST *prog = criar_no_programa(cmds, 6);
+
+    const char *tmppath = "testes/tdd/_semantica_linhas.tmp";
+    fflush(stderr);
+    if (freopen(tmppath, "w", stderr) == NULL) {
+        liberar_ast(prog);
+        tabela_liberar(tab);
+        return 1;
+    }
+
+    int erros = analisar_semantica(prog, tab);
+    fflush(stderr);
+
+#ifdef _WIN32
+    freopen("CON", "w", stderr);
+#else
+    freopen("/dev/tty", "w", stderr);
+#endif
+
+    char buffer[2048];
+    FILE *f = fopen(tmppath, "r");
+    ASSERT(f != NULL, "cannot read captured stderr file");
+    size_t n = fread(buffer, 1, sizeof(buffer) - 1, f);
+    buffer[n] = '\0';
+    fclose(f);
+    remove(tmppath);
+
+    ASSERT(erros == 5, "Should report 5 errors across if, elif, while, for, def");
+    ASSERT(strstr(buffer, "Erro semântico na linha 2: A condição deve ser estritamente booleana.") != NULL,
+           "if error should point to line 2");
+    ASSERT(strstr(buffer, "Erro semântico na linha 5: A condição deve ser estritamente booleana.") != NULL,
+           "elif error should point to line 5");
+    ASSERT(strstr(buffer, "Erro semântico na linha 9: A condição deve ser estritamente booleana.") != NULL,
+           "while error should point to line 9");
+    ASSERT(strstr(buffer, "Erro semântico na linha 17: Identificador 'f' já declarado como função na linha 13.") != NULL,
+           "for error should point to line 17 and reference def at line 13");
+    ASSERT(strstr(buffer, "Erro semântico na linha 21: Função 'f' já declarada na linha 13.") != NULL,
+           "def redeclaration error should point to line 21 and reference def at line 13");
+
+    liberar_ast(prog);
+    tabela_liberar(tab);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
 int main(void) {
     printf("=======================================\n");
     printf(" TESTES DA ANÁLISE SEMÂNTICA\n");
@@ -468,7 +541,8 @@ int main(void) {
         test_contagem_nao_declarada(),
         test_contagem_argumentos_de_chamada(),
         test_redefinicao_funcao_e_conflito(),
-        test_inferencia_parametros_e_void()
+        test_inferencia_parametros_e_void(),
+        test_linhas_erros_estruturas_compostas()
     };
 
     int n_tests = sizeof(test_results) / sizeof(test_results[0]);

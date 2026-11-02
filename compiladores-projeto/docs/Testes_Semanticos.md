@@ -104,6 +104,16 @@ Valida a detecção de redefinição de funções no mesmo escopo, conflito de n
 
 ---
 
+### test_linhas_erros_estruturas_compostas — Número de linha em estruturas compostas (Issue #46)
+
+Valida que as mensagens de erro semântico em `NO_IF`, `NO_ELIF`, `NO_WHILE`, `NO_FOR` e `NO_FUNCDEF` apontam exatamente para a linha do cabeçalho de cada construção (e não para o fim do bloco).
+
+| Cenário | AST construída | Erros esperados | Linha validada |
+|---|---|---|---|
+| Condição não-booleana em `if`, `elif` e `while`, e colisão/redefinição em `for` e `def` | `[NO_ASSIGN(x, 5), NO_IF(x), NO_WHILE(x), NO_FUNCDEF(f), NO_FOR(f), NO_FUNCDEF(f)]` | 5 | Linhas 2 (`if`), 5 (`elif`), 9 (`while`), 13/17 (`for`/`def`) e 13/21 (`def`) |
+
+---
+
 ## Parte 2 — Testes de Integração
 
 Os testes de integração passam código Python pelo compilador completo. Estão na pasta `testes/`
@@ -256,7 +266,8 @@ Além de verificar a falha, o script `rodar_testes.sh` valida a **contagem exata
 | `TestesSemanticaErros5.py` | `x = -5; if x:` — unário `-` preserva `int`, que é inválido como condição booleana | 1 |
 | `TestesSemanticaErros6.py` | Operadores unários com operandos inválidos (`-"abc"`, `-True`, `not 3`) | 3 |
 | `TestesSemanticaErros7.py` | Reatribuição de `x` para `string` dentro de `while` seguida de `x + 1` fora do laço | 1 |
-| `TestesSemanticaErros8.py` | Redefinição de função `f` no mesmo escopo e conflito de nome variável/função (`f = 10`) | 2 |
+| `TestesSemanticaErros8.py` | Redefinição de função `f` no mesmo escopo (`def f()` na linha 1 e `def f(a)` na linha 3) | 1 |
+| `TestesSemanticaErros10.py` | Erros em `if` (linha 2), `elif` (linha 5), `while` (linha 9), `for` (linha 17) e `def` (linhas 13 e 21) validando o número exato da linha | 5 |
 | `teste_semantico.py` | Soma `string + int`, comparação `int == string`, `while ("texto")` e chamada a função inexistente | 4 |
 | `TestesSemanticoErro1.py` | `int and bool`, `bool == int`, número errado de argumentos, chamada de variável como função (`x()`) e `return` global | 5 |
 | `TestesSemanticoErro2.py` | Uso de variável nunca declarada e tentativa de acessar variável local de função fora do escopo | Erro detectado |
