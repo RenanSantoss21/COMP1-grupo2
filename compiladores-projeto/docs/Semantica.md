@@ -34,10 +34,19 @@ O motor conta com a função `inferir_tipo`, que percorre a árvore de baixo par
 - **Divisão (`/`):** Em Python, `/` é sempre divisão real (`5 / 2 == 2.5`), então a divisão entre dois inteiros é inferida como `TIPO_FLOAT`. **Observação para a geração de código:** em C#, `5 / 2` resulta em `2` (divisão inteira), por isso o codegen deve emitir `(double)a / b` quando os dois operandos forem inteiros.
 - **Operações Relacionais e Lógicas (`==`, `<`, `and`, etc.):** Comparações verificam a compatibilidade dos operandos (barrando comparação de string com número, por exemplo) e garantem que o nó da AST resultante sempre receba o `TIPO_BOOL`.
 - **Condicionais Estritos (`if` e `while`):** O analisador obriga que a expressão dentro de um laço ou condição seja puramente booleana. Ao contrário de linguagens permissivas (que aceitariam `if "texto"`), nosso compilador exige `TIPO_BOOL` e lança um erro semântico direto se isso for violado.
-- **Funções (Assinatura e Compatibilidade):** Chamadas de função (`NO_FUNCCALL`) não são apenas inferidas, mas passam por uma checagem rigorosa de contrato. O analisador valida se:
+- **Funções (Assinatura, Inferência de Parâmetros e Compatibilidade):** Chamadas de função (`NO_FUNCCALL`) não são apenas inferidas, mas passam por uma checagem rigorosa de contrato. O analisador valida se:
   1. O identificador corresponde a uma função existente.
   2. A quantidade de argumentos da chamada é idêntica à quantidade de parâmetros cadastrados na Tabela de Símbolos.
-  3. Os tipos de todos os argumentos correspondem às especificações (caso conhecidas).
+  3. Os tipos de todos os argumentos correspondem aos tipos esperados dos parâmetros (`tipos_parametros`), emitindo `"Tipos dos argumentos são incompatíveis."` em caso de divergência.
+
+### Inferência de Tipos dos Parâmetros e Retorno `VOID` (Issue #52)
+
+Como Python não exige anotação explícita de tipos nos parâmetros de funções, mas o alvo C# exige assinaturas estaticamente tipadas, o compilador adota uma **estratégia híbrida (corpo + primeira chamada)** para inferir `tipos_parametros`:
+
+1. **Inferência pelo uso dentro do corpo da função:** Durante a análise do corpo de `NO_FUNCDEF`, os parâmetros entram no escopo local como `TIPO_DESCONHECIDO`. Ao serem utilizados em operações aritméticas (`a + 1`), relacionais (`a > 0`), lógicas (`a and True`), unárias (`-a`, `not a`) ou condições (`if a:`), a função auxiliar `inferir_parametro_se_desconhecido` infere e fixa o tipo do parâmetro na Tabela de Símbolos. Antes de encerrar o escopo da função, os tipos inferidos são copiados para o vetor `tipos_parametros` do símbolo da função e anotados em `tipo_resolvido` na AST.
+2. **Inferência pelos argumentos da primeira chamada (*fallback*):** Caso um parâmetro não sofra nenhuma operação restritiva dentro do corpo (ex.: `def id(x): return x`), ele permanece como `TIPO_DESCONHECIDO` após o `def`. Na primeira chamada válida (`id(10)`), o tipo do argumento fornecido fixa `tipos_parametros[i]`, e todas as chamadas subsequentes são validadas contra esse tipo.
+3. **Retorno `TIPO_VOID`:** Funções que não possuem comando `return` com valor (ou que possuem apenas `return` vazio) recebem automaticamente o tipo de retorno `TIPO_VOID`.
+4. **Inspeção via `--tabela`:** A flag `--tabela` exibe a lista de tipos dos parâmetros de cada função no formato `Parametros: (tipo1, tipo2, ...)`.
   
 ## Validação de Contexto de Execução
 
@@ -118,6 +127,7 @@ Além dos testes unitários, a suíte conta com **16 arquivos de testes de integ
 | `TestesSemanticaErros6.py` | Operadores unários com operandos inválidos: `-"abc"`, `-True`, `not 3` (3 erros) |
 | `TestesSemanticaErros7.py` | Reatribuição de variável para `string` em laço seguida de soma com `int` (1 erro) |
 | `TestesSemanticaErros8.py` | Redefinição de função no mesmo escopo com assinaturas diferentes (1 erro) |
+| `TestesSemanticaErros9.py` | Chamada de função com argumento incompatível com o tipo inferido do parâmetro (`def f(a): return a + 1` seguida de `f("oi")`) (1 erro) |
 | `teste_semantico.py` | Tipos incompatíveis, condição não booleana e função não declarada (4 erros) |
 | `TestesSemanticoErro1.py` | Erros combinados de lógica, comparação, aridade, chamada inválida e `return` global (5 erros) |
 | `TestesSemanticoErro2.py` | Variável não declarada e tentativa de uso de variável local fora da função |

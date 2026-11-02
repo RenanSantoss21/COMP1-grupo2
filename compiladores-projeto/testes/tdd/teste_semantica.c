@@ -378,6 +378,81 @@ static int test_redefinicao_funcao_e_conflito(void) {
     return 1;
 }
 
+static int test_inferencia_parametros_e_void(void) {
+    printf("Running test_inferencia_parametros_e_void...\n");
+
+    // Caso 1: Função sem return deve ter tipo TIPO_VOID
+    TabelaSimbolos *tab1 = tabela_criar();
+    NoAST *func_void = criar_no_funcdef("procedimento", NULL, 0, bloco_vazio(), 1);
+    NoAST **cmds1 = malloc(sizeof(NoAST *));
+    cmds1[0] = func_void;
+    NoAST *prog1 = criar_no_programa(cmds1, 1);
+
+    int erros1 = analisar_semantica(prog1, tab1);
+    Simbolo *s_void = tabela_buscar(tab1, "procedimento");
+    ASSERT(erros1 == 0, "Should report 0 errors for function without return");
+    ASSERT(s_void != NULL && s_void->tipo == TIPO_VOID, "Function without return should have TIPO_VOID");
+    liberar_ast(prog1);
+    tabela_liberar(tab1);
+
+    // Caso 2: Inferência pelo uso no corpo (def f(a): return a + 1; f("oi") -> 1 erro)
+    TabelaSimbolos *tab2 = tabela_criar();
+    NoAST **params_f = malloc(sizeof(NoAST *));
+    params_f[0] = criar_no_id("a", 1);
+    NoAST **corpo_f = malloc(sizeof(NoAST *));
+    corpo_f[0] = criar_no_return(
+        criar_no_binop(OP_SOMA, criar_no_id("a", 2), criar_no_int(1, 2), 2), 2);
+    NoAST *def_f = criar_no_funcdef("f", params_f, 1, criar_no_bloco(corpo_f, 1), 1);
+
+    NoAST **args_oi = malloc(sizeof(NoAST *));
+    args_oi[0] = criar_no_string("oi", 3);
+    NoAST *call_f_invalida = criar_no_funccall("f", args_oi, 1, 3);
+
+    NoAST **cmds2 = malloc(2 * sizeof(NoAST *));
+    cmds2[0] = def_f;
+    cmds2[1] = call_f_invalida;
+    NoAST *prog2 = criar_no_programa(cmds2, 2);
+
+    int erros2 = analisar_semantica(prog2, tab2);
+    Simbolo *s_f = tabela_buscar(tab2, "f");
+    ASSERT(erros2 == 1, "Should report 1 error when calling f(int) with string");
+    ASSERT(s_f != NULL && s_f->tipo == TIPO_INT, "Should infer return type of f as TIPO_INT");
+    ASSERT(s_f->tipos_parametros != NULL && s_f->tipos_parametros[0] == TIPO_INT,
+           "Should infer parameter 'a' of f as TIPO_INT");
+    liberar_ast(prog2);
+    tabela_liberar(tab2);
+
+    // Caso 3: Inferência pela 1ª chamada quando o corpo não restringe (def id(x): return x; id(10); id("oi") -> 1 erro)
+    TabelaSimbolos *tab3 = tabela_criar();
+    NoAST **params_id = malloc(sizeof(NoAST *));
+    params_id[0] = criar_no_id("x", 1);
+    NoAST **corpo_id = malloc(sizeof(NoAST *));
+    corpo_id[0] = criar_no_return(criar_no_id("x", 2), 2);
+    NoAST *def_id = criar_no_funcdef("id", params_id, 1, criar_no_bloco(corpo_id, 1), 1);
+
+    NoAST **args_10 = malloc(sizeof(NoAST *));
+    args_10[0] = criar_no_int(10, 3);
+    NoAST *call_id_1 = criar_no_funccall("id", args_10, 1, 3);
+
+    NoAST **args_str = malloc(sizeof(NoAST *));
+    args_str[0] = criar_no_string("oi", 4);
+    NoAST *call_id_2 = criar_no_funccall("id", args_str, 1, 4);
+
+    NoAST **cmds3 = malloc(3 * sizeof(NoAST *));
+    cmds3[0] = def_id;
+    cmds3[1] = call_id_1;
+    cmds3[2] = call_id_2;
+    NoAST *prog3 = criar_no_programa(cmds3, 3);
+
+    int erros3 = analisar_semantica(prog3, tab3);
+    ASSERT(erros3 == 1, "Should report 1 error when 2nd call contradicts parameter type fixed on 1st call");
+    liberar_ast(prog3);
+    tabela_liberar(tab3);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
 int main(void) {
     printf("=======================================\n");
     printf(" TESTES DA ANÁLISE SEMÂNTICA\n");
@@ -392,7 +467,8 @@ int main(void) {
         test_funcoes_e_contexto(),
         test_contagem_nao_declarada(),
         test_contagem_argumentos_de_chamada(),
-        test_redefinicao_funcao_e_conflito()
+        test_redefinicao_funcao_e_conflito(),
+        test_inferencia_parametros_e_void()
     };
 
     int n_tests = sizeof(test_results) / sizeof(test_results[0]);

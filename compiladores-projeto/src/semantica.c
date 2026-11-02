@@ -2,7 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include "semantica.h"
-
+static void inferir_parametro_se_desconhecido(NoAST *no, TabelaSimbolos *tabela, TipoDado novo_tipo, TipoDado *tipo_atual){
+    if(*tipo_atual==TIPO_DESCONHECIDO && novo_tipo != TIPO_DESCONHECIDO && no!=NULL && no->tipo == NO_ID){
+        Simbolo *sim = tabela_buscar(tabela,no->nome);
+        if( sim != NULL && !sim->e_funcao && sim->tipo == TIPO_DESCONHECIDO){
+            sim->tipo = novo_tipo;
+            no->tipo_resolvido = novo_tipo;
+            *tipo_atual = novo_tipo;
+        }
+    }
+}
 TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
     if (raiz == NULL) return TIPO_DESCONHECIDO;
 
@@ -37,7 +46,13 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
             
             if (raiz->operador == OP_SOMA || raiz->operador == OP_SUB || 
                 raiz->operador == OP_MULT || raiz->operador == OP_DIV) {
-                
+                if(tipo_dir == TIPO_INT || tipo_dir == TIPO_FLOAT || (raiz->operador == OP_SOMA && tipo_dir==TIPO_STRING)){
+                    inferir_parametro_se_desconhecido(raiz->esquerda,tabela,tipo_dir,&tipo_esq);
+                }
+                if (tipo_esq == TIPO_INT || tipo_esq == TIPO_FLOAT || (raiz->operador == OP_SOMA && tipo_esq == TIPO_STRING)) {
+                     inferir_parametro_se_desconhecido(raiz->direita, tabela, tipo_esq, &tipo_dir);
+                 }
+
                 if (tipo_esq == TIPO_STRING || tipo_dir == TIPO_STRING) {
                     if (raiz->operador == OP_SOMA &&
                         tipo_esq == TIPO_STRING && tipo_dir == TIPO_STRING) {
@@ -58,11 +73,13 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
                 } else {
                     tipo_inferido = TIPO_DESCONHECIDO;
                 }
-                
+            
             } else if (raiz->operador == OP_EQ || raiz->operador == OP_NEQ ||
                        raiz->operador == OP_GT || raiz->operador == OP_LT ||
                        raiz->operador == OP_GTE || raiz->operador == OP_LTE) {
-                
+                inferir_parametro_se_desconhecido(raiz->esquerda, tabela, tipo_dir, &tipo_esq);
+                inferir_parametro_se_desconhecido(raiz->direita, tabela, tipo_esq, &tipo_dir);
+
                 if (tipo_esq == TIPO_STRING || tipo_dir == TIPO_STRING) {
                     if (tipo_esq != tipo_dir) {
                         fprintf(stderr, "Erro semântico na linha %d: Comparação inválida envolvendo string.\n", raiz->linha);
@@ -77,6 +94,9 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
                 tipo_inferido = TIPO_BOOL;
                 
             } else if (raiz->operador == OP_AND || raiz->operador == OP_OR) {
+                inferir_parametro_se_desconhecido(raiz->esquerda, tabela, TIPO_BOOL, &tipo_esq);
+                inferir_parametro_se_desconhecido(raiz->direita, tabela, TIPO_BOOL, &tipo_dir);
+
                 if (tipo_esq != TIPO_BOOL || tipo_dir != TIPO_BOOL) {
                     fprintf(stderr, "Erro semântico na linha %d: Operador lógico exige booleanos.\n", raiz->linha);
                     if (erros) *erros += 1;
@@ -91,6 +111,8 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
             TipoDado tipo_op = inferir_tipo(raiz->esquerda, tabela, erros);
 
             if (raiz->operador == OP_NEG) {
+                inferir_parametro_se_desconhecido(raiz->esquerda, tabela, TIPO_INT, &tipo_op);
+
                 if (tipo_op == TIPO_INT || tipo_op == TIPO_FLOAT) {
                     tipo_inferido = tipo_op;
                 } else if (tipo_op == TIPO_STRING || tipo_op == TIPO_BOOL) {
@@ -98,6 +120,8 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
                     if (erros) *erros += 1;
                 }
             } else if (raiz->operador == OP_NOT) {
+                  inferir_parametro_se_desconhecido(raiz->esquerda, tabela, TIPO_BOOL, &tipo_op);
+
                 if (tipo_op != TIPO_BOOL && tipo_op != TIPO_DESCONHECIDO) {
                     fprintf(stderr, "Erro semântico na linha %d: Operador 'not' exige booleano.\n", raiz->linha);
                     if (erros) *erros += 1;
@@ -117,9 +141,14 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
             // Os argumentos são sempre verificados, mesmo quando a chamada é inválida
             for (int i = 0; i < raiz->num_argumentos; i++) {
                 TipoDado tipo_arg = inferir_tipo(raiz->argumentos[i], tabela, erros);
-                if (chamada_valida && sim->tipos_parametros != NULL && sim->tipos_parametros[i] != TIPO_DESCONHECIDO && sim->tipos_parametros[i] != tipo_arg) {
+                if(chamada_valida && sim->tipos_parametros != NULL ){
+                    if(sim->tipos_parametros[i]==TIPO_DESCONHECIDO ){
+                        sim->tipos_parametros[i]=tipo_arg;
+                        if (sim->tipo == TIPO_DESCONHECIDO) sim->tipo = tipo_arg;
+                    }else if(tipo_arg != TIPO_DESCONHECIDO && sim->tipos_parametros[i]!=tipo_arg){
                     fprintf(stderr, "Erro semântico na linha %d: Tipos dos argumentos são incompatíveis.\n", raiz->linha);
-                    if (erros) *erros += 1;
+                    if (erros) *erros += 1; 
+                    }
                 }
             }
 
@@ -253,6 +282,7 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
     if (raiz->tipo == NO_IF || raiz->tipo == NO_WHILE || raiz->tipo == NO_ELIF) {
         if (raiz->condicao) {
             TipoDado tipo_cond = inferir_tipo(raiz->condicao, tabela, &erros);
+            inferir_parametro_se_desconhecido(raiz->condicao,tabela,TIPO_BOOL,&tipo_cond);
             if (tipo_cond != TIPO_BOOL && tipo_cond != TIPO_DESCONHECIDO) {
                 fprintf(stderr, "Erro semântico na linha %d: A condição deve ser estritamente booleana.\n", raiz->linha);
                 erros += 1;
@@ -301,7 +331,7 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
         bool escopo_func_anterior = tabela->dentro_de_funcao;
         TipoDado tipo_ret_anterior = tabela->tipo_retorno_atual;
         tabela->dentro_de_funcao = true;
-        tabela->tipo_retorno_atual = TIPO_DESCONHECIDO;
+        tabela->tipo_retorno_atual = TIPO_VOID;
         
         tabela_entrar_escopo(tabela);
         if (raiz->argumentos) {
@@ -312,10 +342,20 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
 
         erros += pre_registrar_funcoes(raiz->bloco_if, tabela);
         erros += analisar_semantica(raiz->bloco_if, tabela);
+        if (atualizar_simbolo && s != NULL && s->tipos_parametros != NULL) {
+            for (int i = 0; i < raiz->num_argumentos; i++) {
+                Simbolo *param = tabela_buscar_escopo_atual(tabela, raiz->argumentos[i]->nome);
+                if (param != NULL) {
+                    s->tipos_parametros[i] = param->tipo;             
+                    raiz->argumentos[i]->tipo_resolvido = param->tipo;
+                    }
+                }
+            } 
+    
         tabela_sair_escopo(tabela);
         
         if (atualizar_simbolo && s != NULL) {
-            s->tipo = tabela->tipo_retorno_atual;
+            s->tipo =tabela->tipo_retorno_atual;
         }
         
         tabela->dentro_de_funcao = escopo_func_anterior;
@@ -330,13 +370,13 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
             erros += 1;
         }
         
-        TipoDado tipo_ret = TIPO_DESCONHECIDO;
+        TipoDado tipo_ret = TIPO_VOID;
         if (raiz->esquerda) {
             tipo_ret = inferir_tipo(raiz->esquerda, tabela, &erros);
         }
         
         if (tabela->dentro_de_funcao) {
-            if (tabela->tipo_retorno_atual == TIPO_DESCONHECIDO) {
+            if (tabela->tipo_retorno_atual == TIPO_DESCONHECIDO || tabela->tipo_retorno_atual == TIPO_VOID) {
                 tabela->tipo_retorno_atual = tipo_ret;
             } else if (tipo_ret != TIPO_DESCONHECIDO && tabela->tipo_retorno_atual != tipo_ret) {
                 fprintf(stderr, "Erro semântico na linha %d: Tipo do retorno é inconsistente.\n", raiz->linha);
@@ -371,7 +411,10 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
         
         return erros;
     }
-    
+    if (raiz->tipo == NO_FUNCCALL){
+        inferir_tipo(raiz,tabela,&erros);
+        return erros;
+    }
     // Percurso recursivo básico da AST para os outros nós
     if (raiz->esquerda) erros += analisar_semantica(raiz->esquerda, tabela);
     if (raiz->direita) erros += analisar_semantica(raiz->direita, tabela);

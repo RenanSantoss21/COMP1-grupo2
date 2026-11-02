@@ -79,8 +79,17 @@ void tabela_imprimir(TabelaSimbolos* tab) {
     printf("--- Tabela de Simbolos (Escopo Atual: %d) ---\n", tab->escopo_atual);
     for (int i = 0; i < tab->tamanho; i++) {
         Simbolo* s = &tab->array_simbolos[i];
-        printf("Nome: %s, Tipo: %s, Escopo: %d, Linha: %d\n",
+        printf("Nome: %s, Tipo: %s, Escopo: %d, Linha: %d",
                s->nome, tipo_para_string(s->tipo), s->escopo, s->linha_declaracao);
+        if(s->e_funcao){
+            printf(", Parametros: (");
+            for(int j=0;j<s->num_parametros;j++){
+                if(j>0) printf(", ");
+                printf("%s",tipo_para_string(s->tipos_parametros[j]));
+            }
+            printf(")");
+        }
+        printf("\n");
     }
     printf("---------------------------------------------\n");
 }
