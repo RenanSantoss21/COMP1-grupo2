@@ -20,7 +20,7 @@ int linha_atual = 1;
 int linha_token = 1;
 
 /* Executado antes da ação de toda regra: registra a linha onde o token começa. */
-#define YY_USER_ACTION linha_token = linha_atual;
+#define YY_USER_ACTION linha_token = linha_atual; yylloc.first_line = yylloc.last_line = linha_token;
 
 static int indent_stack[MAX_NIVEIS] = {0};
 static int nivel_atual = 0;
@@ -210,12 +210,17 @@ static int tratar_fim_de_arquivo(void) {
 int yylex(void) {
     int token;
 
-    if (!fila_vazia()) return token_da_fila();
+    if (!fila_vazia()) {
+        token = token_da_fila();
+        yylloc.first_line = yylloc.last_line = linha_token;
+        return token;
+    }
 
     token = scanner();
 
     if (token != 0 && token != NEWLINE && token != INDENT && token != DEDENT)
         linha_tem_token = 1;
 
+    yylloc.first_line = yylloc.last_line = linha_token;
     return token;
 }

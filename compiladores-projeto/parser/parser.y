@@ -45,6 +45,7 @@ NoAST* adicionar_lista(NoAST* lista, NoAST* novo) {
     O LAC garante que a lista de tokens esperados esteja correta. */
 %define parse.error verbose
 %define parse.lac full
+%locations
 
 %union {
     int ival;
@@ -139,8 +140,8 @@ bloco:
 
 comando_simples:
       expressao { $$ = $1; }
-    | RETURN { $$ = criar_no_return(NULL, linha_token); }
-    | RETURN expressao { $$ = criar_no_return($2, linha_token); }
+    | RETURN { $$ = criar_no_return(NULL, @1.first_line); }
+    | RETURN expressao { $$ = criar_no_return($2, @1.first_line); }
     | PRINT LPAREN argumentos_opt RPAREN {
         int n_args = 0;
           NoAST **args = NULL;
@@ -154,7 +155,7 @@ comando_simples:
                   args[0] = $3;
               }
           }
-          $$ = criar_no_print(args, n_args, linha_token);
+          $$ = criar_no_print(args, n_args, @1.first_line);
     }
     ;
 
@@ -166,12 +167,12 @@ comando_composto:
               n_elifs = $5->num_argumentos;
               elifs = $5->argumentos;
           }
-          $$ = criar_no_if($2, $4, elifs, n_elifs, $6, linha_token);
+          $$ = criar_no_if($2, $4, elifs, n_elifs, $6, @1.first_line);
           if ($5) free($5); /* Libera a casca do wrapper NO_BLOCO */
 
       }
-    | WHILE expressao COLON bloco { $$ = criar_no_while($2, $4, linha_token); }
-    | FOR ID IN RANGE LPAREN argumentos_opt RPAREN COLON bloco { $$ = criar_no_for($2, $6, $9, linha_token); }
+    | WHILE expressao COLON bloco { $$ = criar_no_while($2, $4, @1.first_line); }
+    | FOR ID IN RANGE LPAREN argumentos_opt RPAREN COLON bloco { $$ = criar_no_for($2, $6, $9, @1.first_line); }
     | DEF ID LPAREN parametros_opt RPAREN COLON bloco {
         int n_params = 0;
         NoAST **params = NULL;
@@ -179,14 +180,14 @@ comando_composto:
             n_params = $4->num_argumentos;
             params = $4->argumentos;
         }
-        $$ = criar_no_funcdef($2, params, n_params, $7, linha_token);
+        $$ = criar_no_funcdef($2, params, n_params, $7, @1.first_line);
         if ($4) free($4);
     }
     ;
 
 lista_elif:
       %empty { $$ = NULL; }
-    | lista_elif ELIF expressao COLON bloco { $$ = adicionar_lista($1, criar_no_elif($3, $5, linha_token)); }
+    | lista_elif ELIF expressao COLON bloco { $$ = adicionar_lista($1, criar_no_elif($3, $5, @2.first_line)); }
     ;
 
 senao_opt:
@@ -200,8 +201,8 @@ parametros_opt:
     ;
 
 parametros:
-      ID { $$ = criar_lista(criar_no_id($1, linha_token)); }
-    | parametros COMMA ID { $$ = adicionar_lista($1, criar_no_id($3, linha_token)); }
+      ID { $$ = criar_lista(criar_no_id($1, @1.first_line)); }
+    | parametros COMMA ID { $$ = adicionar_lista($1, criar_no_id($3, @3.first_line)); }
     ;
 
  /* Uma expressão já cobre listas separadas por vírgula (regra expressao COMMA
@@ -212,19 +213,19 @@ argumentos_opt:
     ;
 
 expressao:
-      expressao PLUS expressao   { $$ = criar_no_binop(OP_SOMA, $1, $3, linha_token); }
-    | expressao MINUS expressao  { $$ = criar_no_binop(OP_SUB, $1, $3, linha_token); }
+      expressao PLUS expressao   { $$ = criar_no_binop(OP_SOMA, $1, $3, @2.first_line); }
+    | expressao MINUS expressao  { $$ = criar_no_binop(OP_SUB, $1, $3, @2.first_line); }
     | expressao ASSIGN expressao {
           /* Verifica se o lado esquerdo é um ID válido */
           char *nome = ($1 && $1->tipo == NO_ID) ? $1->nome : "invalido";
-          $$ = criar_no_assign(nome, $3, linha_token);
+          $$ = criar_no_assign(nome, $3, @2.first_line);
       }
-    | expressao EQ expressao     { $$ = criar_no_binop(OP_EQ, $1, $3, linha_token); }
-    | expressao NEQ expressao    { $$ = criar_no_binop(OP_NEQ, $1, $3, linha_token); }
-    | expressao GTE expressao    { $$ = criar_no_binop(OP_GTE, $1, $3, linha_token); }
-    | expressao LTE expressao    { $$ = criar_no_binop(OP_LTE, $1, $3, linha_token); }
-    | expressao GT expressao     { $$ = criar_no_binop(OP_GT, $1, $3, linha_token); }
-    | expressao LT expressao     { $$ = criar_no_binop(OP_LT, $1, $3, linha_token); }
+    | expressao EQ expressao     { $$ = criar_no_binop(OP_EQ, $1, $3, @2.first_line); }
+    | expressao NEQ expressao    { $$ = criar_no_binop(OP_NEQ, $1, $3, @2.first_line); }
+    | expressao GTE expressao    { $$ = criar_no_binop(OP_GTE, $1, $3, @2.first_line); }
+    | expressao LTE expressao    { $$ = criar_no_binop(OP_LTE, $1, $3, @2.first_line); }
+    | expressao GT expressao     { $$ = criar_no_binop(OP_GT, $1, $3, @2.first_line); }
+    | expressao LT expressao     { $$ = criar_no_binop(OP_LT, $1, $3, @2.first_line); }
     | expressao COMMA expressao  {
           /* Converte expressões divididas por vírgulas em uma lista/tupla (NO_BLOCO) */
           if ($1 && $1->tipo == NO_BLOCO) {
@@ -233,19 +234,19 @@ expressao:
               $$ = adicionar_lista(criar_lista($1), $3);
           }
       }
-    | expressao TIMES expressao  { $$ = criar_no_binop(OP_MULT, $1, $3, linha_token); }
-    | expressao DIVIDE expressao { $$ = criar_no_binop(OP_DIV, $1, $3, linha_token); }
-    | expressao AND expressao    { $$ = criar_no_binop(OP_AND, $1, $3, linha_token); }
-    | expressao OR expressao     { $$ = criar_no_binop(OP_OR, $1, $3, linha_token); }
-    | NOT expressao              { $$ = criar_no_unaryop(OP_NOT, $2, linha_token); }
-    | expressao IN expressao     { $$ = criar_no_binop(OP_IN, $1, $3, linha_token); }
-    | MINUS expressao %prec NOT  { $$ = criar_no_unaryop(OP_NEG, $2, linha_token); }
+    | expressao TIMES expressao  { $$ = criar_no_binop(OP_MULT, $1, $3, @2.first_line); }
+    | expressao DIVIDE expressao { $$ = criar_no_binop(OP_DIV, $1, $3, @2.first_line); }
+    | expressao AND expressao    { $$ = criar_no_binop(OP_AND, $1, $3, @2.first_line); }
+    | expressao OR expressao     { $$ = criar_no_binop(OP_OR, $1, $3, @2.first_line); }
+    | NOT expressao              { $$ = criar_no_unaryop(OP_NOT, $2, @1.first_line); }
+    | expressao IN expressao     { $$ = criar_no_binop(OP_IN, $1, $3, @2.first_line); }
+    | MINUS expressao %prec NOT  { $$ = criar_no_unaryop(OP_NEG, $2, @1.first_line); }
     | LPAREN expressao RPAREN    { $$ = $2; }
     | LCOLCH RCOLCH              { $$ = criar_no_bloco(NULL, 0); }
     | LCOLCH expressao RCOLCH    { $$ = ($2 && $2->tipo == NO_BLOCO) ? $2 : criar_lista($2); }
     | INPUT LPAREN argumentos_opt RPAREN {
           /* Para `input()`, enviamos a expressão passada como prompt, se houver */
-          $$ = criar_no_input($3, linha_token);
+          $$ = criar_no_input($3, @1.first_line);
       }
     | ID LPAREN argumentos_opt RPAREN {
           int n_args = 0;
@@ -260,14 +261,14 @@ expressao:
                   args[0] = $3;
               }
           }
-          $$ = criar_no_funccall($1, args, n_args, linha_token);
+          $$ = criar_no_funccall($1, args, n_args, @1.first_line);
       }
-    | FALSE                      { $$ = criar_no_bool(0, linha_token); }
-    | TRUE                       { $$ = criar_no_bool(1, linha_token); }
-    | NUM_INT                    { $$ = criar_no_int($1, linha_token); }
-    | NUM_FLOAT                  { $$ = criar_no_float($1, linha_token); }
-    | STRING_LITERAL             { $$ = criar_no_string($1, linha_token); }
-    | ID                         { $$ = criar_no_id($1, linha_token); }
+    | FALSE                      { $$ = criar_no_bool(0, @1.first_line); }
+    | TRUE                       { $$ = criar_no_bool(1, @1.first_line); }
+    | NUM_INT                    { $$ = criar_no_int($1, @1.first_line); }
+    | NUM_FLOAT                  { $$ = criar_no_float($1, @1.first_line); }
+    | STRING_LITERAL             { $$ = criar_no_string($1, @1.first_line); }
+    | ID                         { $$ = criar_no_id($1, @1.first_line); }
     ;
 
 %%
