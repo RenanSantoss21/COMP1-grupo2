@@ -23,7 +23,7 @@ Entretanto, emitir código para C# exigiria que tais variáveis fossem mapeadas 
 
 ## 2. Decisão
 
-Optou-se por adotar uma **Política de Tipagem Estática por Primeira Inferência (Declaração Implícita Monomórfica)**:
+Optou-se por adotar uma **Política de Tipagem Estática**:
 
 1. **Declaração Implícita:**
    A primeira atribuição a uma variável (`x = expr`) infere e fixa o seu tipo primitivo na Tabela de Símbolos (`int`, `float`, `string` ou `bool`).
@@ -46,7 +46,7 @@ Optou-se por adotar uma **Política de Tipagem Estática por Primeira Inferênci
 ## 3. Consequências
 
 - **Positivas:**
-  - Facilita diretamente a geração de código intermediário (TAC) e a emissão de código C#, mapeando tipos estáticos nativos (`int`, `double`, `string`, `bool`).
+  - Facilita diretamente a geração de código intermediário (TAC) e a emissão de código C#, mapeando tipos estáticos nativos (`int`, `float`, `string`, `bool`).
   - Previne comportamentos ambíguos de tipagem durante otimizações de código (como *constant propagation* e *constant folding*).
   - Garante robustez semântica em tempo de compilação sem necessidade de runtime dinâmico.
 
