@@ -238,9 +238,16 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
             return erros + 1;
         }
 
-        // Verifica se a variável já existe no escopo atual. Se sim, atualiza o tipo (reatribuição dinâmica).
+        // Verifica se a variável já existe no escopo atual. Valida política estática (ADR-001).
         if (sim != NULL) {
-            sim->tipo = tipo_dir;
+            int compativel = (sim->tipo == tipo_dir) || (sim->tipo == TIPO_FLOAT && tipo_dir == TIPO_INT);
+            if (sim->tipo != TIPO_DESCONHECIDO && tipo_dir != TIPO_DESCONHECIDO && !compativel) {
+                fprintf(stderr, "Erro semântico na linha %d: Tipos incompatíveis na reatribuição da variável '%s'.\n",
+                        raiz->linha, raiz->nome);
+                erros += 1;
+            } else if (sim->tipo == TIPO_DESCONHECIDO) {
+                sim->tipo = tipo_dir;
+            }
         } else {
             tabela_inserir(tabela, raiz->nome, tipo_dir, raiz->linha);
         }

@@ -656,3 +656,40 @@ Erro semântico na linha 3: Identificador 'dobro' já declarado como função na
 Ao encontrar uma atribuição (`NO_ASSIGN`), laço (`NO_FOR`) ou definição de função (`NO_FUNCDEF`), o analisador consulta a tabela no escopo corrente (`tabela_buscar_escopo_atual`). Se o identificador já existir no mesmo escopo com categoria conflitante (variável vs. função), emite a mensagem de erro correspondente, incrementa o contador de erros e preserva o símbolo original.
 
 --- 
+## SEM-17 - Tipos incompatíveis na reatribuição da variável
+
+**Mensagem:**
+```
+Erro semântico na linha <N>: Tipos incompatíveis na reatribuição da variável '<nome>'.
+```
+
+**Onde é gerado:**
+[`src/semantica.c`](../src/semantica.c), função `analisar_semantica` (caso `NO_ASSIGN`).
+
+**Descrição:**
+Ocorre quando uma variável já declarada recebe um valor de tipo incompatível. A política estática permite o mesmo tipo e a promoção de `int` para `float`, mas preserva o tipo original da variável.
+
+**Código que dispara o erro:**
+```python
+x = 10
+x = "texto"
+```
+
+**Saída do compilador:**
+```
+Erro semântico na linha 2: Tipos incompatíveis na reatribuição da variável 'x'.
+```
+
+**Código válido:**
+```python
+x = 10
+x = 20
+
+taxa = 3.14
+taxa = 2
+```
+
+**Comportamento do compilador:**
+Ao analisar uma atribuição (`NO_ASSIGN`), o compilador consulta a variável no escopo atual. Se ela ainda não existir, registra o tipo inferido da expressão na tabela de símbolos. Se já existir, compara o tipo registrado com o tipo da nova expressão: reatribuições do mesmo tipo e a promoção de `int` para `float` são aceitas, enquanto tipos incompatíveis geram a mensagem de erro, incrementam o contador de erros e preservam o tipo original da variável. A análise continua normalmente para identificar outros erros no mesmo programa.
+
+---

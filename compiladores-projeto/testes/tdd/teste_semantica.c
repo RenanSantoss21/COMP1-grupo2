@@ -526,6 +526,40 @@ static int test_linhas_erros_estruturas_compostas(void) {
     return 1;
 }
 
+static int test_politica_reatribuicao_tipos(void) {
+    printf("Running test_politica_reatribuicao_tipos...\n");
+
+    TabelaSimbolos *tab = tabela_criar();
+    NoAST **comandos = malloc(4 * sizeof(NoAST *));
+    comandos[0] = criar_no_assign("mesmo_tipo", criar_no_int(10, 1), 1);
+    comandos[1] = criar_no_assign("mesmo_tipo", criar_no_int(20, 2), 2);
+    comandos[2] = criar_no_assign("float_com_int", criar_no_float(3.14, 3), 3);
+    comandos[3] = criar_no_assign("float_com_int", criar_no_int(2, 4), 4);
+    NoAST *programa_valido = criar_no_programa(comandos, 4);
+    int erros_validos = analisar_semantica(programa_valido, tab);
+    Simbolo *float_simbolo = tabela_buscar(tab, "float_com_int");
+
+    ASSERT(erros_validos == 0, "Same-type assignment and float promotion should be accepted");
+    ASSERT(float_simbolo != NULL && float_simbolo->tipo == TIPO_FLOAT,
+           "Float variable should preserve its type after receiving an int");
+    liberar_ast(programa_valido);
+    tabela_liberar(tab);
+
+    TabelaSimbolos *tab_invalido = tabela_criar();
+    NoAST **incompativeis = malloc(2 * sizeof(NoAST *));
+    incompativeis[0] = criar_no_assign("x", criar_no_int(10, 1), 1);
+    incompativeis[1] = criar_no_assign("x", criar_no_string("texto", 2), 2);
+    NoAST *programa_invalido = criar_no_programa(incompativeis, 2);
+    int erros_invalidos = analisar_semantica(programa_invalido, tab_invalido);
+
+    ASSERT(erros_invalidos == 1, "Incompatible reassignments should report one semantic error");
+    liberar_ast(programa_invalido);
+    tabela_liberar(tab_invalido);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
 int main(void) {
     printf("=======================================\n");
     printf(" TESTES DA ANÁLISE SEMÂNTICA\n");
@@ -541,6 +575,7 @@ int main(void) {
         test_contagem_nao_declarada(),
         test_contagem_argumentos_de_chamada(),
         test_redefinicao_funcao_e_conflito(),
+        test_politica_reatribuicao_tipos(),
         test_inferencia_parametros_e_void(),
         test_linhas_erros_estruturas_compostas()
     };

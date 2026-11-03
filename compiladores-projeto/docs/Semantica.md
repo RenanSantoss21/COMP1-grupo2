@@ -8,7 +8,7 @@ Atualmente, o foco principal da nossa análise semântica engloba a **Verificaç
 
 O nosso analisador percorre a Árvore Sintática Abstrata (AST) procurando por operações envolvendo variáveis:
 
-- **Atribuição (`NO_ASSIGN`):** Quando uma atribuição é encontrada (ex: `x = 10`), o analisador semântico infere o tipo do valor e insere a variável "x" na [Tabela de Símbolos](TabelaSimbolos.md) utilizando a função `tabela_inserir`. Se a variável já existir no escopo atual, seu tipo é dinamicamente atualizado, permitindo que mude de tipo conforme a execução (ex: de int para string).
+- **Atribuição (`NO_ASSIGN`):** Quando uma atribuição é encontrada (ex: `x = 10`), o analisador semântico infere o tipo do valor e insere a variável "x" na [Tabela de Símbolos](TabelaSimbolos.md) utilizando a função `tabela_inserir`. Conforme a política de tipagem estática ([ADR-001](ADR/001-reatribuicao-de-tipo.md)), se a variável já existir no escopo atual, o analisador valida se o novo valor possui tipo compatível (mesmo tipo ou promoção de `int` para `float`). Reatribuições com tipos incompatíveis (ex: de `int` para `string`) geram o erro semântico `SEM-17`.
 - **Uso de Variável (`NO_ID`):** Quando uma variável é lida (por exemplo, dentro de uma expressão ou em um `print(x)`), o analisador verifica se ela já foi declarada consultando a tabela de símbolos através de `tabela_buscar`. Se a variável não existir na tabela (nem no escopo atual, nem nos escopos pais), o compilador emite um erro semântico indicando a linha em que o uso irregular ocorreu:
   
   ```text
@@ -112,7 +112,7 @@ Além dos testes unitários, a suíte conta com **16 arquivos de testes de integ
 | `TestesSemanticaValidos5.py` | Vazamento de escopo em bloco `if` (regra de escopo do Python) |
 | `TestesSemanticaValidos6.py` | *Forward reference* entre funções (duas passadas) |
 | `TestesSemanticaValidos7.py` | Função com chamada recursiva direta |
-| `TestesSemantico1.py` | Tipos, promoção numérica, condições booleanas e reatribuição dinâmica |
+| `TestesSemantico1.py` | Tipos, promoção numérica, condições booleanas e reatribuição compatível |
 | `TestesSemantico2.py` | Múltiplas funções, escopos isolados e laços `for`/`while` aninhados |
 
 **Casos de erro (devem detectar e contabilizar os erros semânticos):**

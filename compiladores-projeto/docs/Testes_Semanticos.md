@@ -155,7 +155,7 @@ mensagem = "ola" + " mundo"
 |---|---|
 | Promoção automática int→float | `inteiro(int) + fracao(float)` → resultado promovido para `TIPO_FLOAT` |
 | Concatenação de strings com `+` | `"ola"(string) + " mundo"(string)` → resultado é `TIPO_STRING` |
-| Atualização dinâmica de tipo na tabela | `soma` recebe `TIPO_FLOAT`, `mensagem` recebe `TIPO_STRING` |
+| Inferência e preservação de tipo na tabela | `soma` recebe `TIPO_FLOAT`, `mensagem` recebe `TIPO_STRING` |
 
 **Resultado esperado:** aceito sem erros.
 
@@ -197,7 +197,7 @@ resultado = identidade(10)
 
 | Arquivo | Cenário Testado | Resultado esperado |
 |---|---|---|
-| `TestesSemantico1.py` | Aritmética e promoção numérica, comparações compatíveis, operadores lógicos, condições estritamente booleanas e reatribuição mudando tipo | Aceito sem erros |
+| `TestesSemantico1.py` | Aritmética e promoção numérica, comparações compatíveis, operadores lógicos, condições estritamente booleanas e reatribuição compatível | Aceito sem erros |
 | `TestesSemantico2.py` | Múltiplas funções, retorno condicional, visibilidade de variável global em laços `for` e `while` aninhados | Aceito sem erros |
 
 ---
@@ -256,7 +256,7 @@ return 1
 
 ---
 
-### TestesSemanticaErros4.py a TestesSemanticaErros8.py e Suites de Múltiplos Erros
+### TestesSemanticaErros4.py a TestesSemanticaErros11.py e Suites de Múltiplos Erros
 
 Além de verificar a falha, o script `rodar_testes.sh` valida a **contagem exata de erros semânticos** emitidos por arquivo:
 
@@ -268,6 +268,7 @@ Além de verificar a falha, o script `rodar_testes.sh` valida a **contagem exata
 | `TestesSemanticaErros7.py` | Reatribuição de `x` para `string` dentro de `while` seguida de `x + 1` fora do laço | 1 |
 | `TestesSemanticaErros8.py` | Redefinição de função `f` no mesmo escopo (`def f()` na linha 1 e `def f(a)` na linha 3) | 1 |
 | `TestesSemanticaErros10.py` | Erros em `if` (linha 2), `elif` (linha 5), `while` (linha 9), `for` (linha 17) e `def` (linhas 13 e 21) validando o número exato da linha | 5 |
+| `TestesSemanticaErros11.py` | Reatribuição de variável com tipo incompatível (`int` para `string`) | 1 |
 | `teste_semantico.py` | Soma `string + int`, comparação `int == string`, `while ("texto")` e chamada a função inexistente | 4 |
 | `TestesSemanticoErro1.py` | `int and bool`, `bool == int`, número errado de argumentos, chamada de variável como função (`x()`) e `return` global | 5 |
 | `TestesSemanticoErro2.py` | Uso de variável nunca declarada e tentativa de acessar variável local de função fora do escopo | Erro detectado |

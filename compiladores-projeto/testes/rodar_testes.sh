@@ -175,6 +175,7 @@ rodar_teste_semantico "testes/TestesSemanticaErros6.py" 3
 rodar_teste_semantico "testes/TestesSemanticaErros7.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros8.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros10.py" 5
+rodar_teste_semantico "testes/TestesSemanticaErros11.py" 1
 
 echo ""
 echo "--- Numero de linha nos erros de estruturas compostas (Issue #46) ---"

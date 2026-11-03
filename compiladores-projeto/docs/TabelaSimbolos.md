@@ -131,8 +131,8 @@ flowchart LR
 
 1. **No `main()` (`parser/parser.y`):**
    Após a conclusão bem-sucedida de `yyparse()`, a tabela é criada via `tabela_criar()` e repassada para `analisar_semantica(raiz_ast, tabela)`.
-2. **Declaração e Reatribuição Dinâmica:**
-   Ao visitar `NO_ASSIGN`, se a variável já existe no escopo atual, seu tipo é atualizado dinamicamente; caso contrário, uma nova entrada é criada com `tabela_inserir`.
+2. **Declaração e Reatribuição Estática:**
+   Ao visitar `NO_ASSIGN`, se a variável já existe no escopo atual, o compilador valida a compatibilidade de tipos conforme a política de tipagem estática ([ADR-001](ADR/001-reatribuicao-de-tipo.md)). Se a reatribuição for incompatível (ex: de `int` para `string`), um erro semântico (`SEM-17`) é disparado; caso contrário, a atribuição é aceita preservando o tipo da variável. Se a variável ainda não existir, uma nova entrada é criada com `tabela_inserir`.
 3. **Validação de Variáveis e Funções:**
    Ao encontrar `NO_ID` ou `NO_FUNCCALL`, a função `tabela_buscar` verifica a existência do identificador e valida número e compatibilidade de tipos dos argumentos.
 4. **Controle de Escopos em Blocos e Funções:**
