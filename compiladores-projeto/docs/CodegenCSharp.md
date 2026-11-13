@@ -84,6 +84,8 @@ Identificadores que são palavras reservadas do C# recebem `@` (`string = 1` →
 | `not a` | `!a` | |
 | `not a == b` | `!(a == b)` | Em Python `not` tem precedência menor que `==`; em C# `!` tem maior. |
 | `- -a` | `-(-a)` | Evita gerar `--a` (decremento em C#). |
+| `s < t` (strings) | `string.CompareOrdinal(s, t) < 0` | C# não tem `<`, `>`, `<=`, `>=` para `string`; a comparação ordinal segue a ordem de código, como no Python. |
+| `b > c` (booleanos) | `(b ? 1 : 0) > (c ? 1 : 0)` | C# não ordena `bool`; no Python, `True` vale 1 e `False` vale 0. |
 
 Os parênteses são emitidos apenas quando a precedência do C# exige (`(a + b) * 2`, `a - (b - c)`), e não em volta de toda subexpressão.
 

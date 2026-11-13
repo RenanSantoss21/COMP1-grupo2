@@ -228,6 +228,8 @@ rodar_teste_csharp "$CS" "bool ou_logico = ativo || inativo;" "or -> ||"
 rodar_teste_csharp "$CS" "bool negacao = !ativo;" "not -> !"
 rodar_teste_csharp "$CS" "bool comparacao = !(x == 10);" "precedencia do not"
 rodar_teste_csharp "$CS" "int negativo = -(-x);" "negacao dupla"
+rodar_teste_csharp "$CS" "bool ordem_texto = string.CompareOrdinal(nome, apelido) < 0;" "comparacao de strings"
+rodar_teste_csharp "$CS" "bool ordem_bool = (ativo ? 1 : 0) > (inativo ? 1 : 0);" "comparacao de booleanos"
 rodar_teste_csharp "$CS" "            x = 20;" "reatribuicao sem redeclarar"
 
 echo ""

@@ -259,6 +259,17 @@ static void anexar_nao_suportado(Buffer *b, NoAST *no, int *nao_suportados) {
     if (nao_suportados) (*nao_suportados)++;
 }
 
+static bool e_tipo(NoAST *no, TipoDado tipo) {
+    return no != NULL && no->tipo_resolvido == tipo;
+}
+
+/* Operando bool como inteiro (True = 1, False = 0), como o Python compara. */
+static void anexar_bool_como_int(Buffer *b, NoAST *no, int *nao_suportados) {
+    buffer_anexar_char(b, '(');
+    anexar_expressao(b, no, nao_suportados);
+    buffer_anexar(b, " ? 1 : 0)");
+}
+
 static void anexar_binop(Buffer *b, NoAST *no, int *nao_suportados) {
     if (no->operador == OP_IN) {
         anexar_nao_suportado(b, no, nao_suportados);
@@ -266,6 +277,30 @@ static void anexar_binop(Buffer *b, NoAST *no, int *nao_suportados) {
     }
 
     int prec = precedencia_operador(no->operador);
+
+    /*
+     * Python ordena strings e booleanos com <, >, <= e >=; em C# esses
+     * operadores não existem para string nem bool (erro CS0019).
+     *   "a" < "b"   -> string.CompareOrdinal("a", "b") < 0   (ordem de código, como no Python)
+     *   True > False -> (true ? 1 : 0) > (false ? 1 : 0)
+     * == e != funcionam nos dois tipos e seguem o caminho normal.
+     */
+    if (prec == PREC_RELACIONAL &&
+        (e_tipo(no->esquerda, TIPO_STRING) || e_tipo(no->direita, TIPO_STRING))) {
+        buffer_anexar(b, "string.CompareOrdinal(");
+        anexar_expressao(b, no->esquerda, nao_suportados);
+        buffer_anexar(b, ", ");
+        anexar_expressao(b, no->direita, nao_suportados);
+        buffer_anexarf(b, ") %s 0", simbolo_operador(no->operador));
+        return;
+    }
+    if (prec == PREC_RELACIONAL &&
+        e_tipo(no->esquerda, TIPO_BOOL) && e_tipo(no->direita, TIPO_BOOL)) {
+        anexar_bool_como_int(b, no->esquerda, nao_suportados);
+        buffer_anexarf(b, " %s ", simbolo_operador(no->operador));
+        anexar_bool_como_int(b, no->direita, nao_suportados);
+        return;
+    }
 
     /*
      * Em Python, '/' sempre produz float; em C#, int / int trunca.

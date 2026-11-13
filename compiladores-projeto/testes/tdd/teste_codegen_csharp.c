@@ -169,6 +169,31 @@ static int test_operadores_logicos(void) {
     return 1;
 }
 
+static int test_comparacoes_string_e_bool(void) {
+    printf("Running test_comparacoes_string_e_bool...\n");
+
+    /* C# não tem <, >, <=, >= para string nem bool (CS0019). */
+    ASSERT(confere_expr(criar_no_binop(OP_LT, criar_no_id("s", 7), criar_no_string("'abd'", 7), 7),
+                        "string.CompareOrdinal(s, \"abd\") < 0"), "string < string");
+    ASSERT(confere_expr(criar_no_binop(OP_GTE, criar_no_id("s", 7), criar_no_id("s", 7), 7),
+                        "string.CompareOrdinal(s, s) >= 0"), "string >= string");
+    ASSERT(confere_expr(criar_no_binop(OP_GT, criar_no_id("p", 7), criar_no_id("q", 7), 7),
+                        "(p ? 1 : 0) > (q ? 1 : 0)"), "bool > bool (True = 1, False = 0)");
+    /* == e != já funcionam em C# para string e bool. */
+    ASSERT(confere_expr(criar_no_binop(OP_EQ, criar_no_id("s", 7), criar_no_string("'oi'", 7), 7),
+                        "s == \"oi\""), "string == string sem conversão");
+    ASSERT(confere_expr(criar_no_binop(OP_NEQ, criar_no_id("p", 7), criar_no_id("q", 7), 7),
+                        "p != q"), "bool != bool sem conversão");
+    /* Dentro de expressão lógica, sem parênteses extras. */
+    ASSERT(confere_expr(criar_no_binop(OP_AND,
+                            criar_no_binop(OP_LT, criar_no_id("s", 7), criar_no_string("'z'", 7), 7),
+                            criar_no_id("p", 7), 7),
+                        "string.CompareOrdinal(s, \"z\") < 0 && p"), "comparação de string dentro de and");
+
+    printf("  PASSED\n");
+    return 1;
+}
+
 static int test_precedencia_e_parenteses(void) {
     printf("Running test_precedencia_e_parenteses...\n");
 
@@ -356,6 +381,7 @@ int main(void) {
         test_operadores_aritmeticos(),
         test_divisao_python(),
         test_operadores_logicos(),
+        test_comparacoes_string_e_bool(),
         test_precedencia_e_parenteses(),
         test_negacao(),
         test_palavra_reservada(),

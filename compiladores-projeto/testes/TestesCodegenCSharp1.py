@@ -17,5 +17,7 @@ ou_logico = ativo or inativo
 negacao = not ativo
 comparacao = not x == 10
 negativo = - -x
+ordem_texto = nome < apelido
+ordem_bool = ativo > inativo
 
 x = 20
