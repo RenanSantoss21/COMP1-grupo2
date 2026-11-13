@@ -4,7 +4,7 @@ Levantamento das divergências entre a documentação do projeto e o comportamen
 
 **Como foi feito:** leitura integral dos 22 arquivos de documentação (`docs/`, READMEs, `CONTEXT.md`, `CODING_STANDARDS.md` e material de apresentação). Cada afirmação verificável foi testada rodando o `./compilador`; os 17 exemplos do [Catálogo de Erros Semânticos](ErrosSemanticos.md) foram executados um a um e comparados com a saída real.
 
-**Estado de referência do código:** 68 testes unitários (6 suítes) e 70 testes de integração, todos passando.
+**Estado de referência do código:** 69 testes unitários (6 suítes) e 72 testes de integração, todos passando.
 
 | Categoria | Itens |
 |---|---|
@@ -137,13 +137,13 @@ O código evoluiu depois que o texto foi escrito. Nenhum destes casos muda o com
 ### D9 — Testes unitários e resultado da suíte semântica
 - **Onde:** `docs/Testes_Semanticos.md`
 - **O doc diz:** 8 testes unitários de semântica; resultado "41 passaram".
-- **Na prática:** são 12 testes. Faltam `test_contagem_nao_declarada`, `test_contagem_argumentos_de_chamada`, `test_inferencia_parametros_e_void` e `test_politica_reatribuicao_tipos`. A integração passa 70.
+- **Na prática:** são 12 testes. Faltam `test_contagem_nao_declarada`, `test_contagem_argumentos_de_chamada`, `test_inferencia_parametros_e_void` e `test_politica_reatribuicao_tipos`. A integração passa 72.
 - **Correção sugerida:** completar a Parte 1 e atualizar a saída do runner.
 
 ### D10 — Resultado obtido antigo nos relatórios léxico e sintático
 - **Onde:** `docs/Testes_Lexicos.md:190`, `docs/Testes_Sintaticos.md:190`
 - **O doc diz:** "Resultado: 39 passaram, 0 falharam".
-- **Na prática:** 70 passam. As mensagens de erro léxico e sintático citadas foram conferidas e continuam corretas.
+- **Na prática:** 72 passam. As mensagens de erro léxico e sintático citadas foram conferidas e continuam corretas.
 - **Correção sugerida:** atualizar o bloco, ou mostrar só o trecho da categoria de cada relatório, para não envelhecer a cada teste novo.
 
 ### D11 — Contagem e lista dos testes de integração semântica
@@ -155,13 +155,13 @@ O código evoluiu depois que o texto foi escrito. Nenhum destes casos muda o com
 ### D12 — Números e issues da Sprint 4
 - **Onde:** `docs/Sprints.md:32`, `34` e `35`
 - **O doc diz:** "39 cenários" de integração; catálogo "`SEM-01` a `SEM-14`"; *forward references* nas "Issues #49, #51".
-- **Na prática:** são 70 cenários e o catálogo vai até `SEM-17`. A Issue #51 é a política de reatribuição (ADR-001), não *forward references*.
+- **Na prática:** são 72 cenários e o catálogo vai até `SEM-17`. A Issue #51 é a política de reatribuição (ADR-001), não *forward references*.
 - **Correção sugerida:** ajustar os números e mover a #51 para o item de reatribuição.
 
 ### D13 — Material de apresentação com números antigos
 - **Onde:** `apresentacao_p1.md`, `roteiro_topico5_testes_infra.md`
 - **O doc diz:** 59 testes (P1) e 66 testes, "conferidos em 27/09/2026" (roteiro).
-- **Na prática:** são 68 testes unitários e 70 de integração. Os dois documentos são registros de apresentações já feitas.
+- **Na prática:** são 69 testes unitários e 72 de integração. Os dois documentos são registros de apresentações já feitas.
 - **Correção sugerida:** não precisa reescrever; no máximo, uma linha no topo indicando que são registros datados.
 
 ---
