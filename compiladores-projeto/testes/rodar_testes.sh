@@ -100,6 +100,25 @@ rodar_teste_linha_erro() {
     fi
 }
 
+# Verifica a geracao de C# (--cs): a saida deve conter o trecho esperado.
+rodar_teste_csharp() {
+    arquivo=$1
+    padrao=$2
+    descricao=$3
+    nome=$(basename "$arquivo")
+
+    saida=$(./compilador --cs < "$arquivo" 2>&1)
+
+    if echo "$saida" | grep -Fq -- "$padrao"; then
+        echo "[OK]    $nome ($descricao) - '$padrao'"
+        PASSOU=$((PASSOU + 1))
+    else
+        echo "[FALHA] $nome ($descricao) - esperava encontrar '$padrao' em:"
+        echo "$saida" | sed 's/^/        /'
+        FALHOU=$((FALHOU + 1))
+    fi
+}
+
 echo "========================================="
 echo "   Rodando testes do compilador"
 echo "========================================="
@@ -187,6 +206,29 @@ rodar_teste_linha_erro "testes/TestesSemanticaErros10.py" "Erro semântico na li
 rodar_teste_linha_erro "testes/TestesSemanticaErros10.py" "Erro semântico na linha 9: A condição deve ser estritamente booleana." "while na linha 9"
 rodar_teste_linha_erro "testes/TestesSemanticaErros10.py" "Erro semântico na linha 17: Identificador 'f' já declarado como função na linha 13." "for na linha 17 e def na linha 13"
 rodar_teste_linha_erro "testes/TestesSemanticaErros10.py" "Erro semântico na linha 21: Função 'f' já declarada na linha 13." "def redeclarado na linha 21"
+
+echo ""
+echo "--- Geracao de codigo C# (--cs) ---"
+CS="testes/TestesCodegenCSharp1.py"
+rodar_teste "$CS" "nao"
+rodar_teste_csharp "$CS" "using System;" "cabecalho"
+rodar_teste_csharp "$CS" "namespace CompiladorPython {" "namespace"
+rodar_teste_csharp "$CS" "    static class Program {" "classe estatica"
+rodar_teste_csharp "$CS" "static void Main(string[] args) {" "metodo Main"
+rodar_teste_csharp "$CS" "int x = 10;" "int inferido"
+rodar_teste_csharp "$CS" "double y = 3.14;" "float -> double"
+rodar_teste_csharp "$CS" 'string nome = "oi";' "string"
+rodar_teste_csharp "$CS" 'string apelido = "bia";' "aspas simples -> duplas"
+rodar_teste_csharp "$CS" "bool ativo = true;" "True -> true"
+rodar_teste_csharp "$CS" "bool inativo = false;" "False -> false"
+rodar_teste_csharp "$CS" "int produto = (x + 2) * 3;" "parenteses preservados"
+rodar_teste_csharp "$CS" "double media = (double)x / 4;" "divisao int/int"
+rodar_teste_csharp "$CS" "bool e_logico = ativo && inativo;" "and -> &&"
+rodar_teste_csharp "$CS" "bool ou_logico = ativo || inativo;" "or -> ||"
+rodar_teste_csharp "$CS" "bool negacao = !ativo;" "not -> !"
+rodar_teste_csharp "$CS" "bool comparacao = !(x == 10);" "precedencia do not"
+rodar_teste_csharp "$CS" "int negativo = -(-x);" "negacao dupla"
+rodar_teste_csharp "$CS" "            x = 20;" "reatribuicao sem redeclarar"
 
 echo ""
 echo "========================================="

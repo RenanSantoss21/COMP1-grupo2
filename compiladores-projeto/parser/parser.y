@@ -8,6 +8,7 @@
 #include "src/semantica.h"
 #include "src/codegen_intermediario.h"
 #include "src/otimizador.h"
+#include "src/codegen_csharp.h"
 
 /* Linha do token que o parser está examinando (mantida pelo lexer). */
 extern int linha_token;
@@ -289,6 +290,8 @@ int main(int argc, char *argv[]) {
     bool mostrar_dot = false;
     bool mostrar_tac = false;
     bool otimizar = false;
+    bool gerar_csharp = false;
+    const char *arquivo_csharp = NULL;
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--ast") == 0) {
             mostrar_ast = true;
@@ -304,6 +307,13 @@ int main(int argc, char *argv[]) {
         }
         if (strcmp(argv[i], "--opt") == 0) {
             otimizar = true;
+        }
+        if (strcmp(argv[i], "--cs") == 0) {
+            gerar_csharp = true;
+            /* Caminho opcional: --cs saida.cs (sem caminho, imprime no stdout). */
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                arquivo_csharp = argv[++i];
+            }
         }
     }
 
@@ -359,6 +369,28 @@ int main(int argc, char *argv[]) {
             tabela_liberar(tabela);
             liberar_ast(raiz_ast);
             return 1;
+        }
+
+        if (gerar_csharp) {
+            FILE *saida_cs = stdout;
+            if (arquivo_csharp != NULL) {
+                saida_cs = fopen(arquivo_csharp, "w");
+                if (saida_cs == NULL) {
+                    fprintf(stderr, "Erro: não foi possível criar o arquivo '%s'.\n", arquivo_csharp);
+                    tabela_liberar(tabela);
+                    liberar_ast(raiz_ast);
+                    return 1;
+                }
+            }
+
+            int nao_traduzidos = codegen_csharp_gerar(raiz_ast, saida_cs);
+            if (saida_cs != stdout) {
+                fclose(saida_cs);
+            }
+            if (nao_traduzidos > 0) {
+                fprintf(stderr, "Aviso: %d construção(ões) ainda não traduzida(s) para C# (marcadas com comentário no código gerado).\n",
+                        nao_traduzidos);
+            }
         }
 
         tabela_liberar(tabela);

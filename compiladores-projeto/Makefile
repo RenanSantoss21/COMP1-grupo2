@@ -1,5 +1,5 @@
-SRC = src/ast.c src/tabela.c src/semantica.c src/codegen_intermediario.c src/otimizador.c
-HEADERS = src/ast.h src/tabela.h src/tipos.h src/semantica.h src/codegen_intermediario.h src/otimizador.h
+SRC = src/ast.c src/tabela.c src/semantica.c src/codegen_intermediario.c src/otimizador.c src/codegen_csharp.c
+HEADERS = src/ast.h src/tabela.h src/tipos.h src/semantica.h src/codegen_intermediario.h src/otimizador.h src/codegen_csharp.h
 CFLAGS = -Wall
 ifdef CI
 CFLAGS += -Werror
@@ -13,9 +13,9 @@ compilador: lexer/lexer.l parser/parser.y $(SRC) $(HEADERS)
 	gcc $(CFLAGS) -o compilador lex.yy.c parser.tab.c $(SRC) -lfl
 
 clean:
-	rm -f compilador lex.yy.c parser.tab.c parser.tab.h ast.dot ast.png ./--tabela testes/tdd/teste_tabela testes/tdd/teste_ast testes/tdd/teste_semantica testes/tdd/_ast_test_output.tmp testes/tdd/_ast_test_dot.tmp testes/tdd/teste_tac testes/tdd/teste_otimizador
+	rm -f compilador lex.yy.c parser.tab.c parser.tab.h ast.dot ast.png ./--tabela testes/tdd/teste_tabela testes/tdd/teste_ast testes/tdd/teste_semantica testes/tdd/_ast_test_output.tmp testes/tdd/_ast_test_dot.tmp testes/tdd/teste_tac testes/tdd/teste_otimizador testes/tdd/teste_codegen_csharp
 
-test: test_ast test_tabela test_semantica test_tac test_otimizador test_integracao
+test: test_ast test_tabela test_semantica test_tac test_otimizador test_codegen_csharp test_integracao
 
 test_integracao: compilador
 	./testes/rodar_testes.sh
@@ -39,3 +39,7 @@ test_tac: testes/tdd/teste_tac.c src/codegen_intermediario.c src/ast.c
 test_otimizador: testes/tdd/teste_otimizador.c src/otimizador.c src/codegen_intermediario.c src/ast.c
 	gcc $(CFLAGS) -o testes/tdd/teste_otimizador testes/tdd/teste_otimizador.c src/otimizador.c src/codegen_intermediario.c src/ast.c
 	./testes/tdd/teste_otimizador
+
+test_codegen_csharp: testes/tdd/teste_codegen_csharp.c src/codegen_csharp.c src/semantica.c src/ast.c src/tabela.c
+	gcc $(CFLAGS) -o testes/tdd/teste_codegen_csharp testes/tdd/teste_codegen_csharp.c src/codegen_csharp.c src/semantica.c src/ast.c src/tabela.c
+	./testes/tdd/teste_codegen_csharp
