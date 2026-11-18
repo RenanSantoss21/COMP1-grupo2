@@ -280,12 +280,12 @@ Obtemos a árvore indentada com os tipos resolvidos anotados entre colchetes (`[
 
 ```text
 Programa
-  FuncDef: dobro
+  FuncDef: dobro [int]
     Params:
       Id: n [int]
     Corpo:
       Bloco
-        Return
+        Return [int]
           BinOp: * [int]
             Id: n [int]
             NumInt: 2 [int]
@@ -325,11 +325,11 @@ digraph AST {
     node [shape=box, style="rounded,filled", fillcolor="#f8f9fa", fontname="monospace"];
     edge [fontname="monospace", fontsize=10];
     n0 [label="Programa"];
-    n1 [label="FuncDef: dobro"];
+    n1 [label="FuncDef: dobro [int]"];
     n2 [label="Id: n [int]"];
     n1 -> n2 [label="param"];
     n3 [label="Bloco"];
-    n4 [label="Return"];
+    n4 [label="Return [int]"];
     n5 [label="BinOp: * [int]"];
     n6 [label="Id: n [int]"];
     n7 [label="NumInt: 2 [int]"];

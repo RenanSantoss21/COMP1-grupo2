@@ -30,6 +30,7 @@ typedef struct {
     int escopo;
     int linha_declaracao;
     bool e_funcao;
+    bool pre_registrada;
     int num_parametros;
     TipoDado* tipos_parametros;
 } Simbolo;
@@ -40,6 +41,7 @@ typedef struct {
 * **`escopo`:** Nível de aninhamento em que o identificador foi declarado (0 = global).
 * **`linha_declaracao`:** Linha do arquivo-fonte onde o identificador foi registrado (para mensagens de erro).
 * **`e_funcao`:** Booleano que indica se o símbolo representa uma função (`true`) ou variável (`false`).
+* **`pre_registrada`:** Booleano que indica se a função foi inserida na 1ª passada (`pre_registrar_funcoes`) e seu `def` ainda não foi visitado na 2ª passada.
 * **`num_parametros`:** Quantidade de parâmetros formais esperados pela função.
 * **`tipos_parametros`:** Vetor dinâmico com os tipos esperados para cada parâmetro formal.
 
@@ -60,7 +62,7 @@ typedef struct {
 
 * **`array_simbolos`:** Array dinâmico contíguo contendo todos os símbolos ativos.
 * **`tamanho` / `capacidade`:** Controle de capacidade com redimensionamento automático (`realloc`).
-* **`escopo_atual`:** Profundidade do bloco atual (incrementado em blocos e funções, decrementado ao sair).
+* **`escopo_atual`:** Profundidade do escopo atual (0 no nível global; incrementado ao entrar no corpo de uma função `def` e decrementado ao sair).
 * **`dentro_de_funcao`:** Flag que rastreia se a análise está dentro do corpo de uma função (usada para proibir `return` fora de funções).
 * **`tipo_retorno_atual`:** Tipo de retorno inferido da função em análise, assegurando consistência entre múltiplos `return`.
 
@@ -101,7 +103,8 @@ Ao sair de um bloco (`tabela_sair_escopo`), todos os símbolos pertencentes ao e
 |---|---|
 | `tabela_criar()` | Aloca e inicializa uma nova tabela com capacidade inicial de 10 símbolos e `escopo_atual = 0`. |
 | `tabela_inserir(tab, nome, tipo, linha)` | Insere um novo identificador no escopo corrente, duplicando o nome com `strdup` e redimensionando a capacidade se necessário. |
-| `tabela_buscar(tab, nome)` | Busca linear reversa pelo identificador. Retorna o ponteiro `Simbolo*` mais recente ou `NULL`. |
+| `tabela_buscar(tab, nome)` | Busca linear reversa pelo identificador em todos os escopos ativos. Retorna o ponteiro `Simbolo*` mais recente ou `NULL`. |
+| `tabela_buscar_escopo_atual(tab, nome)` | Busca linear reversa restrita ao `escopo_atual`. Retorna o `Simbolo*` se já existir no escopo corrente ou `NULL`. |
 | `tabela_entrar_escopo(tab)` | Incrementa `escopo_atual` em 1. |
 | `tabela_sair_escopo(tab)` | Remove todos os símbolos do escopo corrente, desaloca suas memórias e decrementa `escopo_atual`. |
 | `tabela_imprimir(tab)` | Imprime o conteúdo da tabela e o escopo corrente com tipos legíveis via `tipo_para_string` (ativado pela flag `--tabela`). |
@@ -157,8 +160,8 @@ total = calcular(x)
 Durante a análise semântica:
 
 1. **Escopo 0 (Global):**
-   - Registrado `x` (`TIPO_INT`, escopo 0).
-   - Registrado `calcular` (`e_funcao = true`, 1 parâmetro `val`, escopo 0).
+   - Na 1ª passada (`pre_registrar_funcoes`), registrado `calcular` (`e_funcao = true`, `pre_registrada = true`, 1 parâmetro `val`, escopo 0).
+   - Na 2ª passada, registrado `x` (`TIPO_INT`, escopo 0) e confirmado o `def` de `calcular` (`pre_registrada = false`).
 2. **Escopo 1 (Corpo da função `calcular`):**
    - Entra no escopo 1 (`tabela_entrar_escopo`).
    - Parâmetro `val` inserido no escopo 1.

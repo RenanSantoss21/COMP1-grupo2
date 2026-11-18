@@ -560,6 +560,56 @@ static int test_politica_reatribuicao_tipos(void) {
     return 1;
 }
 
+static int test_chamada_antes_def_e_tipo_resolvido_funcdef(void) {
+    printf("Running test_chamada_antes_def_e_tipo_resolvido_funcdef...\n");
+
+    // 1. Chamada no nível do módulo antes do def (C4) -> deve reportar 1 erro
+    TabelaSimbolos *tab1 = tabela_criar();
+    NoAST *call_g_antes = criar_no_assign("x", criar_no_funccall("g", NULL, 0, 1), 1);
+    NoAST **corpo_g = malloc(sizeof(NoAST *));
+    NoAST *ret_g = criar_no_return(criar_no_int(42, 3), 3);
+    corpo_g[0] = ret_g;
+    NoAST *def_g = criar_no_funcdef("g", NULL, 0, criar_no_bloco(corpo_g, 1), 2);
+
+    NoAST **cmds1 = malloc(2 * sizeof(NoAST *));
+    cmds1[0] = call_g_antes;
+    cmds1[1] = def_g;
+    NoAST *prog1 = criar_no_programa(cmds1, 2);
+
+    int erros1 = analisar_semantica(prog1, tab1);
+    ASSERT(erros1 == 1, "Calling a function at module level before its def must report 1 error");
+    ASSERT(def_g->tipo_resolvido == TIPO_INT, "NO_FUNCDEF tipo_resolvido should be TIPO_INT (C9)");
+    ASSERT(ret_g->tipo_resolvido == TIPO_INT, "NO_RETURN tipo_resolvido should be TIPO_INT (C9)");
+    liberar_ast(prog1);
+    tabela_liberar(tab1);
+
+    // 2. Chamada dentro de função antes do def (forward reference válida) + função void (C9)
+    TabelaSimbolos *tab2 = tabela_criar();
+    NoAST **corpo_f = malloc(sizeof(NoAST *));
+    corpo_f[0] = criar_no_return(criar_no_funccall("h", NULL, 0, 2), 2);
+    NoAST *def_f = criar_no_funcdef("f", NULL, 0, criar_no_bloco(corpo_f, 1), 1);
+
+    NoAST **corpo_h = malloc(sizeof(NoAST *));
+    NoAST *ret_h = criar_no_return(NULL, 4);
+    corpo_h[0] = ret_h;
+    NoAST *def_h = criar_no_funcdef("h", NULL, 0, criar_no_bloco(corpo_h, 1), 3);
+
+    NoAST **cmds2 = malloc(2 * sizeof(NoAST *));
+    cmds2[0] = def_f;
+    cmds2[1] = def_h;
+    NoAST *prog2 = criar_no_programa(cmds2, 2);
+
+    int erros2 = analisar_semantica(prog2, tab2);
+    ASSERT(erros2 == 0, "Forward reference inside function body must remain valid");
+    ASSERT(def_h->tipo_resolvido == TIPO_VOID, "Void NO_FUNCDEF tipo_resolvido should be TIPO_VOID");
+    ASSERT(ret_h->tipo_resolvido == TIPO_VOID, "Empty NO_RETURN tipo_resolvido should be TIPO_VOID");
+    liberar_ast(prog2);
+    tabela_liberar(tab2);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
 int main(void) {
     printf("=======================================\n");
     printf(" TESTES DA ANÁLISE SEMÂNTICA\n");
@@ -577,7 +627,8 @@ int main(void) {
         test_redefinicao_funcao_e_conflito(),
         test_politica_reatribuicao_tipos(),
         test_inferencia_parametros_e_void(),
-        test_linhas_erros_estruturas_compostas()
+        test_linhas_erros_estruturas_compostas(),
+        test_chamada_antes_def_e_tipo_resolvido_funcdef()
     };
 
     int n_tests = sizeof(test_results) / sizeof(test_results[0]);

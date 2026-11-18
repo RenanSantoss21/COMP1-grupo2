@@ -8,11 +8,11 @@ Levantamento das divergências entre a documentação do projeto e o comportamen
 
 | Categoria | Itens |
 |---|---|
-| [1. Comportamento documentado que não acontece](#1-comportamento-documentado-que-nao-acontece) | 10 |
-| [2. Documentação desatualizada](#2-documentacao-desatualizada) | 13 |
+| [1. Comportamento documentado que não acontece](#1-comportamento-documentado-que-nao-acontece) | 8 |
+| [2. Documentação desatualizada](#2-documentacao-desatualizada) | 11 |
 | [3. Links e navegação](#3-links-e-navegacao) | 3 |
 | [4. Documentos que se contradizem](#4-documentos-que-se-contradizem) | 2 |
-| [5. Já corrigido](#5-ja-corrigido) | 3 |
+| [5. Já corrigido](#5-ja-corrigido) | 7 |
 
 ---
 
@@ -38,12 +38,6 @@ São os casos mais graves: ou o documento está errado, ou o código tem um bug.
 - **Na prática:** `range()` e `range(1, 2, 3, 4)` também são aceitos, sem erro.
 - **Correção sugerida:** validar a quantidade de argumentos do `range` na semântica (novo código SEM).
 
-### C4 — Chamada antes do `def` no nível do módulo
-- **Onde:** `docs/Semantica.md:69`
-- **O doc diz:** chamar uma função antes do seu `def` no nível do módulo "continua sendo erro", como o `NameError` do Python.
-- **Na prática:** `x = g()` seguido de `def g(): return 1` é aceito, porque `pre_registrar_funcoes` registra todas as funções do programa antes de analisar qualquer comando.
-- **Correção sugerida:** decidir o comportamento. Se for erro, a chamada no nível do módulo precisa checar se o `def` já foi visitado (a flag `pre_registrada` já indica isso).
-
 ### C5 — Listas fazem parte da linguagem
 - **Onde:** `docs/Especificacao_Linguagem.md:13`, `docs/Parser.md:105`, `CODING_STANDARDS.md`
 - **O doc diz:** listas como `[]` e `[1, 2, 3]` são tipos suportados, traduzidos para `List<T>`.
@@ -67,12 +61,6 @@ São os casos mais graves: ou o documento está errado, ou o código tem um bug.
 - **O doc diz:** "Erro semântico na linha 3: Número errado de argumentos."
 - **Na prática:** o exemplo tem uma linha em branco antes da chamada, então o erro sai na linha 4.
 - **Correção sugerida:** mudar a saída esperada para a linha 4.
-
-### C9 — `tipo_resolvido` de `def` e `return`
-- **Onde:** `docs/AST.md:35-36`
-- **O doc diz:** na matriz de campos, `NO_FUNCDEF` e `NO_RETURN` guardam o tipo de retorno em `tipo_resolvido`.
-- **Na prática:** a semântica nunca preenche esse campo nesses nós; no `--ast` eles aparecem sem anotação. O tipo de retorno existe só na tabela de símbolos.
-- **Correção sugerida:** preencher o campo na semântica (útil para a geração de funções em C#, Issue #31) ou trocar a célula da matriz por "—".
 
 ### C10 — Teste documentado que nunca roda
 - **Onde:** `docs/Semantica.md:130`, `testes/rodar_testes.sh`
@@ -121,18 +109,6 @@ O código evoluiu depois que o texto foi escrito. Nenhum destes casos muda o com
 - **O doc diz:** `linha_token` é repassada a todos os `criar_no_*`; o `YY_USER_ACTION` só atualiza `linha_token`.
 - **Na prática:** desde a Issue #46 o parser usa `@N.first_line`, e o `YY_USER_ACTION` também preenche `yylloc`.
 - **Correção sugerida:** descrever o uso de *locations* do Bison nos dois documentos.
-
-### D7 — Imagens da AST sem os tipos atuais
-- **Onde:** `docs/img/ast_def_chamada.png`, `docs/img/ast_vida_programa.png`
-- **O doc diz:** as imagens mostram `Id: n`, `BinOp: *` e `FuncCall: dobro` sem anotação de tipo.
-- **Na prática:** desde a Issue #52 esses nós saem como `[int]`. O texto do `VidaDeUmPrograma.md` já foi atualizado; as imagens não.
-- **Correção sugerida:** regenerar com `./compilador --dot` e `dot -Tpng` (requer Graphviz).
-
-### D8 — Struct, API e exemplo da tabela de símbolos
-- **Onde:** `docs/TabelaSimbolos.md:27-35`, `63`, `100-108` e `159-161`
-- **O doc diz:** `Simbolo` sem o campo `pre_registrada`; `escopo_atual` "incrementado em blocos e funções"; API sem `tabela_buscar_escopo_atual`; no exemplo, `x` é registrado antes de `calcular`.
-- **Na prática:** o campo e a função existem; só funções abrem escopo (Issue #45); `calcular` entra primeiro, no pré-registro (Issue #49).
-- **Correção sugerida:** atualizar a struct, a tabela da API, a frase sobre escopo e a ordem do exemplo.
 
 ### D9 — Testes unitários e resultado da suíte semântica
 - **Onde:** `docs/Testes_Semanticos.md`
@@ -221,3 +197,19 @@ Precisam de uma decisão do grupo antes de mexer no texto.
 ### R3 — Escopo de variáveis em blocos no C# gerado
 - **Estava:** a página do gerador dizia que variáveis de bloco deixam de existir no `}`, contrariando a Issue #45.
 - **Ficou:** segue a Issue #45: variáveis atribuídas dentro de blocos serão declaradas no início do método, com `default(...)` (ver [Geração de Código C#](CodegenCSharp.md)).
+
+### R4 — Chamada antes do `def` no nível do módulo (C4 / Issue #57)
+- **Estava:** `x = g()` no nível global antes de `def g(): return 1` era aceito por causa do pré-registro em duas passadas.
+- **Ficou:** quando `!tabela->dentro_de_funcao` e `sim->pre_registrada`, `NO_FUNCCALL` reporta `"Chamada a função não declarada"` (mantendo *forward references* válidas dentro do corpo de funções).
+
+### R5 — `tipo_resolvido` em `NO_FUNCDEF` e `NO_RETURN` (C9 / Issue #57)
+- **Estava:** o tipo de retorno só era salvo na tabela de símbolos; `NO_FUNCDEF` e `NO_RETURN` ficavam com `TIPO_DESCONHECIDO` na AST.
+- **Ficou:** `semantica.c` preenche `raiz->tipo_resolvido` tanto em `NO_FUNCDEF` quanto em `NO_RETURN`, e `ast.c` exibe o tipo em `--ast` e `--dot`.
+
+### R6 — Imagens da AST atualizadas com os tipos inferidos (D7 / Issue #57)
+- **Estava:** `docs/img/ast_def_chamada.png` e `docs/img/ast_vida_programa.png` não exibiam os tipos inferidos nos parâmetros, retorno e chamadas de função.
+- **Ficou:** imagens regeneradas a partir da saída atual de `./compilador --dot`.
+
+### R7 — Struct, API e exemplo em `docs/TabelaSimbolos.md` (D8 / Issue #57)
+- **Estava:** faltavam `pre_registrada` na struct `Simbolo` e `tabela_buscar_escopo_atual` na tabela da API; o texto dizia que blocos abrem escopo e o exemplo registrava `x` antes do pré-registro de `calcular`.
+- **Ficou:** documentação de `TabelaSimbolos.md` alinhada com a implementação atual.

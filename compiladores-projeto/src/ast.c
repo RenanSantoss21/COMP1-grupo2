@@ -310,7 +310,9 @@ void imprimir_ast(NoAST *raiz, int nivel) {
             imprimir_ast(raiz->bloco_if, nivel + 2);
             break;
         case NO_FUNCDEF:
-            printf("%s: %s\n", nome_tipo_no(raiz->tipo), raiz->nome);
+            printf("%s: %s", nome_tipo_no(raiz->tipo), raiz->nome);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             if (raiz->num_argumentos > 0) {
                 indentar(nivel + 1); printf("Params:\n");
                 for (int i = 0; i < raiz->num_argumentos; i++)
@@ -320,7 +322,9 @@ void imprimir_ast(NoAST *raiz, int nivel) {
             imprimir_ast(raiz->bloco_if, nivel + 2);
             break;
         case NO_RETURN:
-            printf("%s\n", nome_tipo_no(raiz->tipo));
+            printf("%s", nome_tipo_no(raiz->tipo));
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             if (raiz->esquerda)
                 imprimir_ast(raiz->esquerda, nivel + 1);
             break;
@@ -399,13 +403,17 @@ static int ast_para_dot_rec(NoAST *raiz, FILE *saida, int *contador) {
             break;
         case NO_ASSIGN:
         case NO_FOR:
-        case NO_FUNCDEF:
             fprintf(saida, "%s: ", nome_tipo_no(raiz->tipo));
             escapar_string_dot(raiz->nome, saida);
             break;
+        case NO_FUNCDEF:
         case NO_FUNCCALL:
             fprintf(saida, "%s: ", nome_tipo_no(raiz->tipo));
             escapar_string_dot(raiz->nome, saida);
+            imprimir_tipo_dot(raiz->tipo_resolvido, saida);
+            break;
+        case NO_RETURN:
+            fprintf(saida, "%s", nome_tipo_no(raiz->tipo));
             imprimir_tipo_dot(raiz->tipo_resolvido, saida);
             break;
         default:

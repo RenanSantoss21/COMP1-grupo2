@@ -136,6 +136,9 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
             break;
         case NO_FUNCCALL: {
             Simbolo *sim = tabela_buscar(tabela, raiz->nome);
+            if (!tabela->dentro_de_funcao && sim != NULL && sim->pre_registrada) {
+                    sim = NULL;
+                }
             bool chamada_valida = sim != NULL && sim->e_funcao && raiz->num_argumentos == sim->num_parametros;
 
             // Os argumentos são sempre verificados, mesmo quando a chamada é inválida
@@ -363,8 +366,8 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
         
         if (atualizar_simbolo && s != NULL) {
             s->tipo =tabela->tipo_retorno_atual;
+            raiz->tipo_resolvido = tabela->tipo_retorno_atual;
         }
-        
         tabela->dentro_de_funcao = escopo_func_anterior;
         tabela->tipo_retorno_atual = tipo_ret_anterior;
         
@@ -381,7 +384,7 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
         if (raiz->esquerda) {
             tipo_ret = inferir_tipo(raiz->esquerda, tabela, &erros);
         }
-        
+        raiz->tipo_resolvido = tipo_ret;
         if (tabela->dentro_de_funcao) {
             if (tabela->tipo_retorno_atual == TIPO_DESCONHECIDO || tabela->tipo_retorno_atual == TIPO_VOID) {
                 tabela->tipo_retorno_atual = tipo_ret;
