@@ -153,6 +153,8 @@ static const char* operador_tac_string(int op) {
     }
 }
 
+static char* codegen_gerar_funcall(NoAST *no);
+
 char* codegen_gerar_expressao(NoAST *no) {
     if (!no) return NULL;
 
@@ -199,7 +201,8 @@ char* codegen_gerar_expressao(NoAST *no) {
             free(operando);
             return temp;
         }
-
+        case NO_FUNCCALL:
+            return codegen_gerar_funcall(no);
         default:
             return NULL;
     }
@@ -311,7 +314,57 @@ static void codegen_gerar_for(NoAST *no) {
     free(cond);
     free(proximo);
 }
+static void codegen_gerar_print(NoAST *no){
+ if (!no || no->tipo != NO_PRINT) return;
+ if(no->num_argumentos>0){
+    for (int i = 0; i < no->num_argumentos; i++)
+    {
+    char *valor = codegen_gerar_expressao(no->argumentos[i]);
+    if (valor) {
+        emitir(cria_instrucao(TAC_PRINT,NULL, valor, NULL, NULL));
+        free(valor);
+    }
+    }
+    
+ }
+}
 
+static void codegen_gerar_return(NoAST *no){
+     if (!no || no->tipo != NO_RETURN) return;
+
+     char *valor = codegen_gerar_expressao(no->esquerda);
+     if(valor){
+        emitir(cria_instrucao(TAC_RETURN,NULL,valor,NULL,NULL));
+        free(valor);
+     }else{
+        emitir(cria_instrucao(TAC_RETURN,NULL,NULL,NULL,NULL));
+        free(valor);
+     }
+}
+
+static void codegen_gerar_funcdef(NoAST *no){
+      if (!no || no->tipo != NO_FUNCDEF) return;
+        emitir(cria_instrucao(TAC_FUNC_BEGIN,no->nome,NULL,NULL,NULL));
+        codegen_gerar_tac(no->bloco_if);
+        emitir(cria_instrucao(TAC_FUNC_END,no->nome,NULL,NULL,NULL));
+}
+
+static char* codegen_gerar_funcall(NoAST *no){
+     if (!no || no->tipo != NO_FUNCCALL) return NULL;
+     for (int i =0;i<no->num_argumentos;i++){
+        char *valor = codegen_gerar_expressao(no->argumentos[i]);
+        if(valor){
+            emitir(cria_instrucao(TAC_PARAM,NULL,valor,NULL,NULL));
+            free(valor);
+        }
+     }
+        char num_args[16];
+        snprintf(num_args, sizeof(num_args), "%d", no->num_argumentos);
+        char *temp = novo_temporario();
+        emitir(cria_instrucao(TAC_CALL, temp, no->nome, num_args, NULL));
+        return temp;
+
+}
 void codegen_gerar_tac(NoAST *no) {
     if (!no) return;
 
@@ -338,7 +391,15 @@ void codegen_gerar_tac(NoAST *no) {
         case NO_FOR:
             codegen_gerar_for(no);
             break;
-
+        case NO_PRINT:
+            codegen_gerar_print(no);
+            break;
+        case NO_RETURN:
+            codegen_gerar_return(no);
+            break;
+        case NO_FUNCDEF:
+        codegen_gerar_funcdef(no);
+        break;
         default:
             /* Expressões soltas (ex: chamadas de função ou expressões isoladas) */
             {

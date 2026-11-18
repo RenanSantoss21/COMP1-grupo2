@@ -191,6 +191,34 @@ static void formatar_instrucao(Instrucao inst, char *saida, size_t tamanho) {
         case TAC_IF_FALSE:
             snprintf(saida, tamanho, "IF_FALSE %s GOTO %s", inst.operando1, inst.resultado);
             break;
+        case TAC_PARAM:
+            snprintf(saida, tamanho, "PARAM %s", inst.operando1 ? inst.operando1 : inst.resultado);
+            break;
+        case TAC_CALL:
+            if (inst.resultado != NULL) {
+                snprintf(saida, tamanho, "%s = CALL %s, %s", inst.resultado, inst.operando1, inst.operando2);
+            } else {
+                snprintf(saida, tamanho, "CALL %s, %s", inst.operando1, inst.operando2);
+            }
+            break;
+        case TAC_RETURN:
+            if (inst.operando1 != NULL) {
+                snprintf(saida, tamanho, "RETURN %s", inst.operando1);
+            } else if (inst.resultado != NULL) {
+                snprintf(saida, tamanho, "RETURN %s", inst.resultado);
+            } else {
+                snprintf(saida, tamanho, "RETURN");
+            }
+            break;
+        case TAC_PRINT:
+            snprintf(saida, tamanho, "PRINT %s", inst.operando1 ? inst.operando1 : inst.resultado);
+            break;
+        case TAC_FUNC_BEGIN:
+            snprintf(saida, tamanho, "FUNC_BEGIN %s", inst.resultado);
+            break;
+        case TAC_FUNC_END:
+            snprintf(saida, tamanho, "FUNC_END %s", inst.resultado);
+            break;
         default:
             snprintf(saida, tamanho, "?");
             break;
@@ -395,6 +423,90 @@ int test_rotulos_aninhados(void) {
     return 1;
 }
 
+int test_funcdef_e_return(void) {
+    printf("Running test_funcdef_e_return...\n");
+
+    /* def soma(a, b):
+     *     return a + b
+     */
+    NoAST **params = malloc(2 * sizeof(NoAST *));
+    params[0] = criar_no_id("a", 1);
+    params[1] = criar_no_id("b", 1);
+
+    NoAST **cmds = malloc(sizeof(NoAST *));
+    cmds[0] = criar_no_return(criar_no_binop(OP_SOMA, criar_no_id("a", 2), criar_no_id("b", 2), 2), 2);
+    NoAST *func = criar_no_funcdef("soma", params, 2, criar_no_bloco(cmds, 1), 1);
+
+    const char *esperado1[] = {
+        "FUNC_BEGIN soma",
+        "t0 = a + b",
+        "RETURN t0",
+        "FUNC_END soma"
+    };
+    if (!confere_tac(func, esperado1, 4)) return 0;
+
+    /* def vazio():
+     *     return
+     */
+    NoAST **cmds_vazio = malloc(sizeof(NoAST *));
+    cmds_vazio[0] = criar_no_return(NULL, 2);
+    NoAST *func_vazio = criar_no_funcdef("vazio", NULL, 0, criar_no_bloco(cmds_vazio, 1), 1);
+
+    const char *esperado2[] = {
+        "FUNC_BEGIN vazio",
+        "RETURN",
+        "FUNC_END vazio"
+    };
+    if (!confere_tac(func_vazio, esperado2, 3)) return 0;
+
+    printf("PASSED\n");
+    return 1;
+}
+
+int test_funccall_e_param(void) {
+    printf("Running test_funccall_e_param...\n");
+
+    /* x = soma(a + 1, 20) */
+    NoAST **args = malloc(2 * sizeof(NoAST *));
+    args[0] = criar_no_binop(OP_SOMA, criar_no_id("a", 1), criar_no_int(1, 1), 1);
+    args[1] = criar_no_int(20, 1);
+
+    NoAST *call = criar_no_funccall("soma", args, 2, 1);
+    NoAST *assign = criar_no_assign("x", call, 1);
+
+    const char *esperado[] = {
+        "t0 = a + 1",
+        "PARAM t0",
+        "PARAM 20",
+        "t1 = CALL soma, 2",
+        "x = t1"
+    };
+    if (!confere_tac(assign, esperado, 5)) return 0;
+
+    printf("PASSED\n");
+    return 1;
+}
+
+int test_print(void) {
+    printf("Running test_print...\n");
+
+    /* print(x, a + 2) */
+    NoAST **args = malloc(2 * sizeof(NoAST *));
+    args[0] = criar_no_id("x", 1);
+    args[1] = criar_no_binop(OP_SOMA, criar_no_id("a", 1), criar_no_int(2, 1), 1);
+    NoAST *no_print = criar_no_print(args, 2, 1);
+
+    const char *esperado[] = {
+        "PRINT x",
+        "t0 = a + 2",
+        "PRINT t0"
+    };
+    if (!confere_tac(no_print, esperado, 3)) return 0;
+
+    printf("PASSED\n");
+    return 1;
+}
+
 int main(void) {
     int passed = 0;
     int failed = 0;
@@ -408,6 +520,9 @@ int main(void) {
     if (test_while()) passed++; else failed++;
     if (test_for_range()) passed++; else failed++;
     if (test_rotulos_aninhados()) passed++; else failed++;
+    if (test_funcdef_e_return()) passed++; else failed++;
+    if (test_funccall_e_param()) passed++; else failed++;
+    if (test_print()) passed++; else failed++;
     printf("Tests run: %d, Passed: %d, Failed: %d\n", passed + failed, passed, failed);
     return failed == 0 ? 0 : 1;
 }
