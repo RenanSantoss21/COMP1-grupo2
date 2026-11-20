@@ -119,6 +119,46 @@ rodar_teste_csharp() {
     fi
 }
 
+# Compila e executa o C# gerado e compara a saida com a do Python.
+# Pulado quando o .NET SDK nao esta instalado.
+rodar_teste_csharp_execucao() {
+    arquivo=$1
+    nome=$(basename "$arquivo")
+
+    if ! command -v dotnet >/dev/null 2>&1 || [ -z "$(dotnet --list-sdks 2>/dev/null)" ] ||
+       ! command -v python3 >/dev/null 2>&1; then
+        echo "[PULADO] $nome (execucao) - .NET SDK ou python3 nao encontrado"
+        return
+    fi
+
+    projeto=$(mktemp -d)
+    versao_net=$(dotnet --version | cut -d. -f1)
+    cat > "$projeto/Teste.csproj" <<CSPROJ
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net$versao_net.0</TargetFramework>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+</Project>
+CSPROJ
+    ./compilador --cs < "$arquivo" > "$projeto/Program.cs" 2>/dev/null
+
+    esperado=$(python3 "$arquivo" 2>&1)
+    obtido=$(LANG=pt_BR.UTF-8 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 \
+             dotnet run --project "$projeto" 2>&1)
+
+    if [ "$obtido" = "$esperado" ]; then
+        echo "[OK]    $nome (execucao) - saida do C# identica a do Python"
+        PASSOU=$((PASSOU + 1))
+    else
+        echo "[FALHA] $nome (execucao) - saida do C# difere da do Python"
+        diff <(echo "$esperado") <(echo "$obtido") | sed 's/^/        /'
+        FALHOU=$((FALHOU + 1))
+    fi
+    rm -rf "$projeto"
+}
+
 echo "========================================="
 echo "   Rodando testes do compilador"
 echo "========================================="
@@ -195,6 +235,7 @@ rodar_teste_semantico "testes/TestesSemanticaErros7.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros8.py" 1
 rodar_teste_semantico "testes/TestesSemanticaErros10.py" 5
 rodar_teste_semantico "testes/TestesSemanticaErros11.py" 1
+rodar_teste_semantico "testes/TestesSemanticaErros12.py" 1
 
 echo ""
 echo "--- Numero de linha nos erros de estruturas compostas (Issue #46) ---"
@@ -231,6 +272,15 @@ rodar_teste_csharp "$CS" "int negativo = -(-x);" "negacao dupla"
 rodar_teste_csharp "$CS" "bool ordem_texto = string.CompareOrdinal(nome, apelido) < 0;" "comparacao de strings"
 rodar_teste_csharp "$CS" "bool ordem_bool = (ativo ? 1 : 0) > (inativo ? 1 : 0);" "comparacao de booleanos"
 rodar_teste_csharp "$CS" "            x = 20;" "reatribuicao sem redeclarar"
+
+CS2="testes/TestesCodegenCSharp2.py"
+rodar_teste "$CS2" "nao"
+rodar_teste_csharp "$CS2" "System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;" "cultura invariante"
+rodar_teste_csharp "$CS2" 'Console.WriteLine("hello, world");' "print com 1 argumento"
+rodar_teste_csharp "$CS2" 'Console.WriteLine(string.Join(" ", "x =", x));' "print com varios argumentos"
+rodar_teste_csharp "$CS2" "Console.WriteLine();" "print sem argumentos"
+rodar_teste_csharp "$CS2" "Console.WriteLine((double)x / 4);" "divisao no print"
+rodar_teste_csharp_execucao "$CS2"
 
 echo ""
 echo "========================================="

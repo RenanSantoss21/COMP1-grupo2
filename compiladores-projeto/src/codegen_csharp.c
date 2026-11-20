@@ -444,12 +444,51 @@ static void emitir_atribuicao(Contexto *ctx, NoAST *no, int nivel) {
     free(linha.dados);
 }
 
+/*
+ * print(...) -> Console.WriteLine(...);
+ * Com vários argumentos, string.Join(" ", ...) separa por espaço, como o
+ * Python. bool já sai como True/False no C#.
+ */
+static void emitir_print(Contexto *ctx, NoAST *no, int nivel) {
+    Buffer linha;
+    buffer_iniciar(&linha);
+
+    buffer_anexar(&linha, "Console.WriteLine(");
+    if (no->num_argumentos > 1) buffer_anexar(&linha, "string.Join(\" \", ");
+    for (int i = 0; i < no->num_argumentos; i++) {
+        if (i > 0) buffer_anexar(&linha, ", ");
+        anexar_expressao(&linha, no->argumentos[i], &ctx->nao_suportados);
+    }
+    if (no->num_argumentos > 1) buffer_anexar_char(&linha, ')');
+    buffer_anexar(&linha, ");");
+
+    emitir_indentacao(ctx, nivel);
+    fprintf(ctx->saida, "%s\n", linha.dados);
+    free(linha.dados);
+}
+
+static bool contem_print(NoAST *no) {
+    if (no == NULL) return false;
+    if (no->tipo == NO_PRINT) return true;
+    if (contem_print(no->esquerda) || contem_print(no->direita) ||
+        contem_print(no->condicao) || contem_print(no->bloco_if) ||
+        contem_print(no->bloco_else)) return true;
+    for (int i = 0; i < no->num_argumentos; i++) {
+        if (contem_print(no->argumentos[i])) return true;
+    }
+    return false;
+}
+
 static void emitir_comando(Contexto *ctx, NoAST *no, int nivel) {
     if (no == NULL) return;
 
     switch (no->tipo) {
         case NO_ASSIGN:
             emitir_atribuicao(ctx, no, nivel);
+            break;
+
+        case NO_PRINT:
+            emitir_print(ctx, no, nivel);
             break;
 
         case NO_BLOCO:
@@ -492,6 +531,12 @@ int codegen_csharp_gerar(NoAST *raiz, FILE *saida) {
 
     /* Código do nível global: vai para o Main. */
     fprintf(saida, INDENTACAO INDENTACAO "static void Main(string[] args) {\n");
+    /* Ponto decimal em qualquer cultura (pt-BR imprimiria 3,14). */
+    if (contem_print(raiz)) {
+        fprintf(saida, INDENTACAO INDENTACAO INDENTACAO
+                "System.Globalization.CultureInfo.CurrentCulture = "
+                "System.Globalization.CultureInfo.InvariantCulture;\n");
+    }
     for (int i = 0; i < num_comandos; i++) {
         if (comandos[i] != NULL && comandos[i]->tipo != NO_FUNCDEF) {
             emitir_comando(&ctx, comandos[i], 3);

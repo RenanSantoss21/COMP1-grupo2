@@ -425,6 +425,13 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
         inferir_tipo(raiz,tabela,&erros);
         return erros;
     }
+    if (raiz->tipo == NO_PRINT) {
+        // Cada argumento tem o tipo inferido (o gerador C# usa o tipo_resolvido)
+        for (int i = 0; i < raiz->num_argumentos; i++) {
+            inferir_tipo(raiz->argumentos[i], tabela, &erros);
+        }
+        return erros;
+    }
     // Percurso recursivo básico da AST para os outros nós
     if (raiz->esquerda) erros += analisar_semantica(raiz->esquerda, tabela);
     if (raiz->direita) erros += analisar_semantica(raiz->direita, tabela);

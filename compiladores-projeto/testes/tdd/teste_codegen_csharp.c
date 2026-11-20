@@ -370,6 +370,69 @@ static int test_construcoes_pendentes(void) {
     return 1;
 }
 
+static int test_print(void) {
+    printf("Running test_print...\n");
+
+    /* print("hello, world"), x = 10, print("x =", x), print(), print(x / 2), print("a" + 1) */
+    NoAST **arg_um = malloc(sizeof(NoAST *));
+    arg_um[0] = criar_no_string("\"hello, world\"", 1);
+    NoAST **arg_varios = malloc(sizeof(NoAST *) * 2);
+    arg_varios[0] = criar_no_string("\"x =\"", 3);
+    arg_varios[1] = criar_no_id("x", 3);
+    NoAST **arg_div = malloc(sizeof(NoAST *));
+    arg_div[0] = criar_no_binop(OP_DIV, criar_no_id("x", 5), criar_no_int(2, 5), 5);
+
+    NoAST *cmds[] = {
+        criar_no_print(arg_um, 1, 1),
+        criar_no_assign("x", criar_no_int(10, 2), 2),
+        criar_no_print(arg_varios, 2, 3),
+        criar_no_print(NULL, 0, 4),
+        criar_no_print(arg_div, 1, 5),
+    };
+    NoAST *raiz = programa(5, cmds);
+
+    int erros = 0, nao_traduzidos = 0;
+    char *cs = gerar_csharp(raiz, &erros, &nao_traduzidos);
+
+    ASSERT(erros == 0, "programa semanticamente válido");
+    ASSERT(nao_traduzidos == 0, "print traduzido");
+    ASSERT(strstr(cs, "        static void Main(string[] args) {\n"
+                      "            System.Globalization.CultureInfo.CurrentCulture = "
+                      "System.Globalization.CultureInfo.InvariantCulture;\n") != NULL,
+           "Main começa com InvariantCulture quando há print");
+    ASSERT(strstr(cs, "            Console.WriteLine(\"hello, world\");\n") != NULL,
+           "print com 1 argumento");
+    ASSERT(strstr(cs, "            Console.WriteLine(string.Join(\" \", \"x =\", x));\n") != NULL,
+           "print com vários argumentos separados por espaço");
+    ASSERT(strstr(cs, "            Console.WriteLine();\n") != NULL, "print sem argumentos");
+    ASSERT(strstr(cs, "            Console.WriteLine((double)x / 2);\n") != NULL,
+           "tipo_resolvido dos argumentos é inferido");
+
+    free(cs);
+    liberar_ast(raiz);
+
+    /* Sem print, o Main não muda a cultura. */
+    NoAST *cmds_sem_print[] = { criar_no_assign("x", criar_no_int(1, 1), 1) };
+    raiz = programa(1, cmds_sem_print);
+    cs = gerar_csharp(raiz, &erros, &nao_traduzidos);
+    ASSERT(strstr(cs, "CultureInfo") == NULL, "sem print não há CultureInfo");
+    free(cs);
+    liberar_ast(raiz);
+
+    /* print("a" + 1) é erro semântico. */
+    NoAST **arg_erro = malloc(sizeof(NoAST *));
+    arg_erro[0] = criar_no_binop(OP_SOMA, criar_no_string("\"a\"", 1), criar_no_int(1, 1), 1);
+    NoAST *cmds_erro[] = { criar_no_print(arg_erro, 1, 1) };
+    raiz = programa(1, cmds_erro);
+    cs = gerar_csharp(raiz, &erros, &nao_traduzidos);
+    ASSERT(erros == 1, "print(\"a\" + 1) reporta erro semântico");
+    free(cs);
+    liberar_ast(raiz);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
 int main(void) {
     printf("=======================================\n");
     printf(" TESTES DO GERADOR DE CÓDIGO C#\n");
@@ -387,7 +450,8 @@ int main(void) {
         test_palavra_reservada(),
         test_estrutura_programa_vazio(),
         test_declaracao_e_reatribuicao(),
-        test_construcoes_pendentes()
+        test_construcoes_pendentes(),
+        test_print()
     };
 
     int n_tests = sizeof(test_results) / sizeof(test_results[0]);
