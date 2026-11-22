@@ -10,9 +10,9 @@ Levantamento das divergências entre a documentação do projeto e o comportamen
 |---|---|
 | [1. Comportamento documentado que não acontece](#1-comportamento-documentado-que-nao-acontece) | 8 |
 | [2. Documentação desatualizada](#2-documentacao-desatualizada) | 11 |
-| [3. Links e navegação](#3-links-e-navegacao) | 3 |
+| [3. Links e navegação](#3-links-e-navegacao) | 0 |
 | [4. Documentos que se contradizem](#4-documentos-que-se-contradizem) | 2 |
-| [5. Já corrigido](#5-ja-corrigido) | 7 |
+| [5. Já corrigido](#5-ja-corrigido) | 10 |
 
 ---
 
@@ -144,25 +144,7 @@ O código evoluiu depois que o texto foi escrito. Nenhum destes casos muda o com
 
 ## 3. Links e navegação
 
-Afetam o site publicado pelo MkDocs.
-
-### N1 — Páginas fora do menu
-- **Onde:** `mkdocs.yml`
-- **O doc diz:** a seção "Decisões de Design (ADRs)" do menu aponta só para a Especificação da Linguagem.
-- **Na prática:** `ErrosSemanticos.md` e `ADR/001-reatribuicao-de-tipo.md` existem, mas não estão no `nav` e não aparecem no site.
-- **Correção sugerida:** adicionar as duas ao `nav` (a ADR dentro da seção de ADRs).
-
-### N2 — Link quebrado para o `CODING_STANDARDS.md`
-- **Onde:** `docs/ADR/001-reatribuicao-de-tipo.md:12`
-- **O doc diz:** link para `../../CODING_STANDARDS.md`.
-- **Na prática:** o caminho resolve para `compiladores-projeto/CODING_STANDARDS.md`, que não existe. O arquivo está na raiz do repositório (`../../../`).
-- **Correção sugerida:** corrigir o caminho ou usar o link do GitHub.
-
-### N3 — Links para código fora de `docs/`
-- **Onde:** vários arquivos de `docs/`
-- **O doc diz:** links como `../src/ast.h`, `../parser/parser.y` e `../testes/tdd/...`.
-- **Na prática:** o MkDocs publica só o conteúdo de `docs/`, então esses links não abrem no site; funcionam apenas na navegação pelo GitHub. (Não verificado no site publicado.)
-- **Correção sugerida:** trocar por links absolutos para os arquivos no GitHub.
+Todos os 3 itens desta categoria (`N1`, `N2` e `N3`) foram resolvidos na Issue #59 (ver **R8**, **R9** e **R10** na [seção 5](#5-ja-corrigido)).
 
 ---
 
@@ -213,3 +195,15 @@ Precisam de uma decisão do grupo antes de mexer no texto.
 ### R7 — Struct, API e exemplo em `docs/TabelaSimbolos.md` (D8 / Issue #57)
 - **Estava:** faltavam `pre_registrada` na struct `Simbolo` e `tabela_buscar_escopo_atual` na tabela da API; o texto dizia que blocos abrem escopo e o exemplo registrava `x` antes do pré-registro de `calcular`.
 - **Ficou:** documentação de `TabelaSimbolos.md` alinhada com a implementação atual.
+
+### R8 — Páginas fora do menu do MkDocs (N1 / Issue #59)
+- **Estava:** `docs/ErrosSemanticos.md` e `docs/ADR/001-reatribuicao-de-tipo.md` existiam no repositório, mas não constavam no `nav` de `mkdocs.yml`.
+- **Ficou:** adicionados ao `nav` de `mkdocs.yml` (`"ADR-001: Tipagem Estática na Reatribuição": ADR/001-reatribuicao-de-tipo.md` em `Decisões de Design (ADRs)` e `Catálogo de Erros Semânticos: ErrosSemanticos.md` em `Implementação`).
+
+### R9 — Link quebrado para `CODING_STANDARDS.md` na ADR-001 (N2 / Issue #59)
+- **Estava:** `docs/ADR/001-reatribuicao-de-tipo.md:12` apontava para `../../CODING_STANDARDS.md`, resolvendo para o caminho inexistente `compiladores-projeto/CODING_STANDARDS.md`.
+- **Ficou:** link corrigido para a URL absoluta do arquivo na raiz do repositório no GitHub (`https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/CODING_STANDARDS.md`).
+
+### R10 — Links para código fora de `docs/` substituídos por URLs do GitHub (N3 / Issue #59)
+- **Estava:** 33 links relativos com `../` (como `../src/ast.h`, `../parser/parser.y` e `../testes/tdd/...`) em `AST.md`, `ErrosSemanticos.md`, `Especificacao_Linguagem.md`, `Parser.md`, `TabelaSimbolos.md` e `VidaDeUmPrograma.md` apontavam para fora da raiz publicada pelo MkDocs.
+- **Ficou:** todos os 33 links convertidos para URLs absolutas em `https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/...`, preservando as imagens relativas (`img/*.png`), os links internos entre páginas de `docs/` e as âncoras `#...`.

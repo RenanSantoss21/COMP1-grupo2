@@ -9,7 +9,7 @@
 
 ## 1. Contexto
 
-A linguagem fonte deste compilador é um subconjunto de Python (linguagem dinamicamente tipada), enquanto a linguagem alvo da compilação é **C#** (linguagem fortemente e estaticamente tipada, conforme definido em [`CODING_STANDARDS.md`](../../CODING_STANDARDS.md)).
+A linguagem fonte deste compilador é um subconjunto de Python (linguagem dinamicamente tipada), enquanto a linguagem alvo da compilação é **C#** (linguagem fortemente e estaticamente tipada, conforme definido em [`CODING_STANDARDS.md`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/CODING_STANDARDS.md)).
 
 Em Python padrão, variáveis podem mudar livremente de tipo em tempo de execução:
 ```python

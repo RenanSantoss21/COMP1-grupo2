@@ -184,7 +184,7 @@ Erro léxico: indentação inconsistente na linha <N>
 
 ## Construção da AST e Integração com a Análise Semântica
 
-Durante as reduções sintáticas, cada regra gramatical executa uma ação semântica que constrói os nós da **Árvore Sintática Abstrata (AST)** de baixo para cima (*bottom-up*), utilizando os construtores definidos em [`src/ast.h`](../src/ast.h):
+Durante as reduções sintáticas, cada regra gramatical executa uma ação semântica que constrói os nós da **Árvore Sintática Abstrata (AST)** de baixo para cima (*bottom-up*), utilizando os construtores definidos em [`src/ast.h`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/ast.h):
 
 - **Listas dinâmicas (`criar_lista` e `adicionar_lista`)**: Acumulam sequências de comandos, cláusulas `elif`, parâmetros e argumentos usando vetores realocados dinamicamente (`realloc`).
 - **Raiz do programa (`raiz_ast`)**: Ao reduzir a regra inicial `programa`, a árvore completa fica armazenada na variável global `raiz_ast` (`NO_PROGRAMA`).

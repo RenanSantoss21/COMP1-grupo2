@@ -14,7 +14,7 @@ Os arquivos ficam em `src/ast.h` e `src/ast.c`, seguindo o padrão de modulariza
 
 ## Tipos de Nós (`TipoNo`) e Matriz Completa de Campos
 
-Cada nó da AST tem um tipo definido pelo enum `TipoNo` que identifica a construção sintática que ele representa. A struct `NoAST` (`src/ast.h`) adota uma estrutura genérica compartilhada para todos os nós da árvore. A tabela a seguir documenta a **matriz bidimensional completa `TipoNo × campo`**, conferida com as implementações dos construtores em [`src/ast.c`](../src/ast.c) e utilizada nas fases de Análise Semântica e Geração de Código:
+Cada nó da AST tem um tipo definido pelo enum `TipoNo` que identifica a construção sintática que ele representa. A struct `NoAST` (`src/ast.h`) adota uma estrutura genérica compartilhada para todos os nós da árvore. A tabela a seguir documenta a **matriz bidimensional completa `TipoNo × campo`**, conferida com as implementações dos construtores em [`src/ast.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/ast.c) e utilizada nas fases de Análise Semântica e Geração de Código:
 
 | Tipo de Nó (`TipoNo`) | `nome` | `valor_*` | `operador` | `esquerda` | `direita` | `condicao` | `bloco_if` | `bloco_else` | `argumentos` / `num_argumentos` | `tipo_resolvido` | `linha` |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -491,7 +491,7 @@ print(res)
 
 ## Testes Unitários (TDD)
 
-O módulo AST conta com testes unitários em [`testes/tdd/teste_ast.c`](../testes/tdd/teste_ast.c), cobrindo a alocação e verificação de todos os nós, listas encadeadas/dinâmicas e desalocação recursiva de memória.
+O módulo AST conta com testes unitários em [`testes/tdd/teste_ast.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/testes/tdd/teste_ast.c), cobrindo a alocação e verificação de todos os nós, listas encadeadas/dinâmicas e desalocação recursiva de memória.
 
 Para compilar e executar os testes unitários da AST:
 ```bash
@@ -502,7 +502,7 @@ make test_ast
 
 ## Referências
 
-- Implementação: [`src/ast.h`](../src/ast.h) e [`src/ast.c`](../src/ast.c)
-- Suíte de Testes: [`testes/tdd/teste_ast.c`](../testes/tdd/teste_ast.c)
+- Implementação: [`src/ast.h`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/ast.h) e [`src/ast.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/ast.c)
+- Suíte de Testes: [`testes/tdd/teste_ast.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/testes/tdd/teste_ast.c)
 - Exemplo da disciplina: `Aulas/semana 06/src/ast.h` e `ast.c`
 - Issues relacionadas: #7 (AST) e #19 (Documentação AST e Tabela de Símbolos)
