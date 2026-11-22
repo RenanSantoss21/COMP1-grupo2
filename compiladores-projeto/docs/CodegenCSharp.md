@@ -53,7 +53,7 @@ else:
 print(situacao)   # válido
 ```
 
-Em C#, uma variável declarada dentro de `{ }` deixa de existir no `}`. Por isso, quando os blocos forem traduzidos (Issue #30), as variáveis atribuídas dentro deles devem ser **declaradas no início do método**, uma única vez, com o tipo fixado pela ADR-001:
+Em C#, uma variável declarada dentro de `{ }` deixa de existir no `}`. Por isso, o gerador realiza **hoisting** no início do método: antes de emitir os comandos de `Main`, percorre a AST do método (sem invadir definições `def`, que abrem outro **Escopo**) e declara no topo do método, uma única vez, todas as variáveis atribuídas inicialmente dentro de blocos de controle (`if`, `elif`, `else`, `while`, `for`) e os índices de `for` que ainda não tenham sido declarados no nível raiz do método:
 
 ```csharp
 string situacao = default(string);
@@ -65,13 +65,13 @@ if (nota >= 5) {
 Console.WriteLine(situacao);
 ```
 
-- O `= default(...)` é necessário porque o C# exige que a variável tenha valor garantido antes do uso (`CS0165`).
+- O `= default(<tipo>)` é necessário porque o C# exige que a variável tenha valor garantido antes do uso (`CS0165`) e garante compatibilidade desde C# 5 (`csc.exe`) até o .NET moderno. Para nós sem tipo definido (`TIPO_DESCONHECIDO` ou `TIPO_VOID`), o tipo explícito faz fallback para `object = default(object);`.
 - Declarar dentro do bloco também não serviria: `if (c) { int y = 1; }` seguido de `int y = 2;` não compila em C# (`CS0136`).
 - Como cada variável tem um único tipo por escopo (ADR-001), uma declaração por variável basta, sem renomear (`y_1`, `y_2`).
-- A variável do `for` também é declarada no início do método, porque em Python ela continua existindo depois do laço.
-- Diferença restante: se o programa lê uma variável que nunca recebeu valor, o Python dá `NameError` em tempo de execução e o C# lê o valor padrão (`0`, `null`).
+- A variável do `for` também sofre hoisting como `int` no início do método (caso não tenha sido declarada no nível raiz), porque em Python ela continua existindo depois do laço.
+- Diferença restante: se o programa lê uma variável que nunca recebeu valor (por exemplo, dentro de um ramo não executado), o Python dá `NameError` em tempo de execução e o C# lê o valor padrão (`0`, `false`, `null`).
 
-Identificadores que são palavras reservadas do C# recebem `@` (`string = 1` → `int @string = 1;`).
+Identificadores que são palavras reservadas do C# recebem `@` (`string = 1` → `int @string = 1;`, ou `int @string = default(int);` quando submetidos a hoisting).
 
 ## Expressões
 
@@ -89,13 +89,32 @@ Identificadores que são palavras reservadas do C# recebem `@` (`string = 1` →
 
 Os parênteses são emitidos apenas quando a precedência do C# exige (`(a + b) * 2`, `a - (b - c)`), e não em volta de toda subexpressão.
 
+## Estruturas de controle
+
+O gerador traduz `if`/`elif`/`else`, `while` e `for ... in range(...)`, mantendo indentação de 4 espaços por nível mesmo em blocos aninhados:
+
+| Python | C# | Observação |
+|--------|-----|------------|
+| `if c:` / `elif c2:` / `else:` | `if (c) { ... } else if (c2) { ... } else { ... }` | Cada `NO_ELIF` em `argumentos` vira `} else if (...) {`. |
+| `while cond:` | `while (cond) { ... }` | Corpo emitido em `nivel + 1`. |
+| `for i in range(n):` | `for (i = 0; i < n; i++) { ... }` | `n` emitido respeitando precedência relacional (`range(n + 1)` → `i < n + 1`). |
+| `for i in range(a, b):` | `for (i = a; i < b; i++) { ... }` | `i` já foi declarado no nível raiz ou via hoisting no topo do método. |
+| `for i in range(a, b, k):` (`k > 0`) | `for (i = a; i < b; i++)` ou `i += k` | Usa `i++` quando `k == 1`. |
+| `for i in range(a, b, k):` (`k < 0`) | `for (i = a; i > b; i--)` ou `i -= -k` | Inverte o comparador para `>` e usa `i--` quando `k == -1`. |
+| `for i in range(a, b, passo):` (`passo == 0` ou expressão dinâmica) | `int _passoN = passo;` + guarda `if (_passoN == 0) { throw new ArgumentException("range() arg 3 must not be zero"); }` + `for (i = a; _passoN > 0 ? i < b : i > b; i += _passoN)` | Avalia o passo uma única vez, impede laço infinito para passo zero (equivalente ao `ValueError` do Python) e gera `_passoN` sem colidir com variáveis do usuário. |
+
+### Diferença pós-laço no índice do `for`
+
+Em Python, após um laço `for i in range(n):` que executa ao menos uma vez, a variável `i` mantém o **último valor iterado** (`n - 1` para passo `1`), ou não chega a ser definida caso `range(0)` execute zero vezes (`NameError`). Em C#, o incremento executa ao final da última iteração antes da falha da condição: ao sair de `for (i = 0; i < n; i++)`, `i` passa a valer `n` (`fim`), ou mantém `default(int)` (`0`) se o laço não executar nenhuma vez.
+
 ## Construções ainda não traduzidas
 
-`print`, `input`, `if`/`elif`/`else`, `while`, `for`, `def`, `return`, chamadas de função e o operador `in` ficam para as próximas subtasks. Enquanto isso, o gerador as marca com comentário (`// [não traduzido] if (linha 5)`) ou, dentro de expressões, com um valor neutro do tipo inferido (`default(int)`), para que o arquivo continue compilando. O compilador avisa no `stderr` quantas construções ficaram pendentes.
+`input`, `def`, `return`, chamadas de função e o operador `in` ficam para as próximas subtasks. Enquanto isso, o gerador as marca com comentário (`// [não traduzido] def (linha 1)`) ou, dentro de expressões, com um valor neutro do tipo inferido (`default(int)` ou `default(object)`), para que o arquivo continue compilando. O compilador avisa no `stderr` quantas construções ficaram pendentes.
 
 Chamadas de função entram nessa lista porque, sem o `def` correspondente emitido, a chamada referenciaria um método inexistente.
 
 ## Testes
 
 - Unitários: `make test_codegen_csharp` (`testes/tdd/teste_codegen_csharp.c`).
-- Integração: seção "Geracao de codigo C#" de `testes/rodar_testes.sh`, com o programa `testes/TestesCodegenCSharp1.py`.
+- Integração: seção "Geracao de codigo C#" de `testes/rodar_testes.sh`, com os programas `testes/TestesCodegenCSharp1.py`, `testes/TestesCodegenCSharp2.py`, `testes/TestesCodegenCSharp3.py`, `testes/TestesCodegenCSharp4.py` e `testes/TestesCodegenCSharpErroPassoZero.py`.
+- E2E (pipeline completo `--ast`/`--tabela`/`--tac`/`--opt`/`--cs`, compilação C# real e comparação `stdout` com `python3`): `bash testes/rodar_e2e.sh`.
