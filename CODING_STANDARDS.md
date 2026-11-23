@@ -33,7 +33,7 @@ Estas regras governam o "formato" do código C# que será emitido pela etapa de 
   - Python `bool` -> C# `bool`
 
 - **Estruturação do Programa (Boilerplate)**:
-  - Todo o código gerado deve ser encapsulado dentro de um `namespace` e de uma classe `Program` estática.
+  - Todo o código gerado deve ser encapsulado dentro do namespace `CompiladorPython` (`namespace CompiladorPython`) e de uma classe `Program` estática (`static class Program`), alinhado à [Especificação da Linguagem](compiladores-projeto/docs/Especificacao_Linguagem.md) e ao gerador (`src/codegen_csharp.c`).
   - O código global do Python (nível 0 de indentação que não seja definição de função) deve ser colocado dentro do método `static void Main(string[] args)`.
 
 - **Mapeamento de Funções**:

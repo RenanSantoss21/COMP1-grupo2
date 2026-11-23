@@ -187,8 +187,8 @@ Durante as reduções sintáticas, cada regra gramatical executa uma ação sem�
 
 - **Listas dinâmicas (`criar_lista` e `adicionar_lista`)**: Acumulam sequências de comandos, cláusulas `elif`, parâmetros e argumentos usando vetores realocados dinamicamente (`realloc`).
 - **Raiz do programa (`raiz_ast`)**: Ao reduzir a regra inicial `programa`, a árvore completa fica armazenada na variável global `raiz_ast` (`NO_PROGRAMA`).
-- **Pipeline na `main()`**: Se não houver erros sintáticos (`erros_sintaticos == 0`) e `raiz_ast != NULL`, a função `main()` inicializa a Tabela de Símbolos (`tabela_criar()`) e invoca `analisar_semantica(raiz_ast, tabela)`.
-- **Flags de inspeção**: O executável aceita `--ast` (imprime a AST indentada com os tipos resolvidos), `--dot` (exporta a árvore para Graphviz DOT e gera `ast.png`) e `--tabela` (exibe a Tabela de Símbolos em cada mudança de escopo).
+- **Pipeline na `main()`**: Se não houver erros sintáticos (`erros_sintaticos == 0`) e `raiz_ast != NULL`, a função `main()` inicializa a Tabela de Símbolos (`tabela_criar()`), invoca `analisar_semantica(raiz_ast, tabela)` e, conforme as flags passadas, executa a inspeção (AST/DOT/Tabela), a geração/otimização do TAC e, na ausência de erros semânticos, a geração de código C#.
+- **Flags de linha de comando**: O executável aceita `--ast` (imprime a AST indentada com os tipos resolvidos), `--dot` (exporta a árvore para Graphviz DOT e gera `ast.png`), `--tabela` (exibe a Tabela de Símbolos em cada mudança de escopo), `--tac` (gera e imprime o Código Intermediário de Três Endereços), `--opt` (gera e imprime o TAC otimizado) e `--cs [arquivo]` (gera o código-alvo em C# no arquivo indicado ou em `stdout`).
 
 ## Escopo Sintático do Subconjunto
 

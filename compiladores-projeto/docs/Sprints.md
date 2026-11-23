@@ -29,10 +29,10 @@ Foco em conhecer profundamente o funcionamento interno do compilador, criar ferr
   - Ajuste das regras de escopo em blocos `if`/`while`/`for` para refletir o vazamento de escopo do Python, restringindo a criação de escopo a funções `def`. (Issue #45)
   - Inferência de tipos para operadores unários (`-`, `not`), `input()` (`TIPO_STRING`) e `in` (`TIPO_BOOL`). (Issue #47)
   - Ajuste da divisão (`/`) entre dois inteiros para resultar em `TIPO_FLOAT`, fiel à semântica do Python 3. (Issue #48)
-  - Suporte a *forward references* e recursão mútua entre funções por meio de pré-registro em duas passadas (`pre_registrar_funcoes`). (Issue #49, #51)
-  - Tratamento de reatribuição e redefinição no mesmo escopo, eliminação de erros duplicados de variáveis não declaradas e precisão de linhas na AST. (Issues #39, #46, #50, #52)
-- **Testes Unitários (TDD) e CI/CD**: Ampliação dos testes unitários (`teste_tabela.c`, `teste_ast.c`, `teste_semantica.c`), integração completa no `rodar_testes.sh` (39 cenários), workflow de CI com `-Werror` e badges de status. (Issues #33, #34, #35, #36, #44)
-- **Documentação Aprofundada**: Rastreio ponta a ponta em *Vida de um Programa no Compilador*, *Catálogo de Erros Semânticos* (`SEM-01` a `SEM-14`) e *Matriz de Campos da AST*. (Issues #19, #42, #43, #53)
+  - Suporte a *forward references* e recursão mútua entre funções por meio de pré-registro em duas passadas (`pre_registrar_funcoes`). (Issue #49)
+  - Tratamento de reatribuição e redefinição no mesmo escopo (ADR-001), eliminação de erros duplicados de variáveis não declaradas e precisão de linhas na AST. (Issues #39, #46, #50, #51, #52)
+- **Testes Unitários (TDD) e CI/CD**: Ampliação dos testes unitários (`teste_tabela.c`, `teste_ast.c`, `teste_semantica.c`), integração completa no `rodar_testes.sh` (léxicos, sintáticos, semânticos e recuperação de erros), workflow de CI com `-Werror` e badges de status. (Issues #33, #34, #35, #36, #44)
+- **Documentação Aprofundada**: Rastreio ponta a ponta em *Vida de um Programa no Compilador*, *Catálogo de Erros Semânticos* (`SEM-01` a `SEM-17`) e *Matriz de Campos da AST*. (Issues #19, #42, #43, #53)
 
 ## 🟡 Sprint 5: Geração de Código Intermediário, Otimização e Código Alvo C# (Em Andamento)
 Foco em traduzir a AST validada para Código de Três Endereços (TAC), aplicar otimizações e emitir o código C# final.

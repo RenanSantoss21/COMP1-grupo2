@@ -109,8 +109,6 @@ Testa que o compilador rejeita corretamente entradas com erros léxicos e sintá
 
 ---
 
----
-
 ## Como Executar
 
 ```bash
@@ -122,11 +120,9 @@ make clean && make
 
 ## Resultado Obtido
 
-```text
-=========================================
-   Rodando testes do compilador
-=========================================
+O script `./testes/rodar_testes.sh` executa toda a suíte de integração do compilador. Abaixo está o trecho referente aos **testes léxicos**:
 
+```text
 --- Testes LEXICOS que devem PASSAR (codigo valido) ---
 [OK]    Testes1.py - aceito com sucesso
 [OK]    Testes2.py - aceito com sucesso
@@ -135,58 +131,4 @@ make clean && make
 
 --- Testes LEXICOS que devem FALHAR (codigo invalido) ---
 [OK]    Testes5.py - erro detectado como esperado
-
---- Testes SINTATICOS que devem PASSAR (codigo valido) ---
-[OK]    TestesParser1.py - aceito com sucesso
-[OK]    TestesParser2.py - aceito com sucesso
-[OK]    TestesParser3.py - aceito com sucesso
-[OK]    TestesParser4.py - aceito com sucesso
-[OK]    TestesParser5.py - aceito com sucesso
-
---- Testes SINTATICOS que devem FALHAR (codigo invalido) ---
-[OK]    TestesParserErro1.py - erro detectado como esperado
-[OK]    TestesParserErro2.py - erro detectado como esperado
-[OK]    TestesParserErro3.py - erro detectado como esperado
-[OK]    TestesParserErro4.py - erro detectado como esperado
-[OK]    TestesParserErro5.py - erro detectado como esperado
-
---- Testes SEMANTICOS que devem PASSAR (codigo valido) ---
-[OK]    TestesSemanticaValidos1.py - aceito com sucesso
-[OK]    TestesSemanticaValidos2.py - aceito com sucesso
-[OK]    TestesSemanticaValidos3.py - aceito com sucesso
-[OK]    TestesSemanticaValidos4.py - aceito com sucesso
-[OK]    TestesSemanticaValidos5.py - aceito com sucesso
-[OK]    TestesSemanticaValidos6.py - aceito com sucesso
-[OK]    TestesSemanticaValidos7.py - aceito com sucesso
-
---- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---
-[OK]    TestesSemanticaErros1.py - erro detectado como esperado
-[OK]    TestesSemanticaErros2.py - erro detectado como esperado
-[OK]    TestesSemanticaErros3.py - erro detectado como esperado
-[OK]    TestesSemanticaErros7.py - erro detectado como esperado
-
---- RECUPERACAO de erros (todos os erros devem ser reportados) ---
-[OK]    TestesParserErro1.py - 5 erros sintaticos reportados
-[OK]    Testes5.py - 9 erros sintaticos reportados
-
---- Testes SEMANTICOS que devem PASSAR (codigo valido) ---
-[OK]    TestesSemantico1.py - aceito com sucesso
-[OK]    TestesSemantico2.py - aceito com sucesso
-
---- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---
-[OK]    teste_semantico.py - erro detectado como esperado
-[OK]    TestesSemanticoErro1.py - erro detectado como esperado
-[OK]    TestesSemanticoErro2.py - erro detectado como esperado
-
---- Contagem de erros SEMANTICOS (todos os erros devem ser reportados) ---
-[OK]    teste_semantico.py - 4 erros semanticos reportados
-[OK]    TestesSemanticoErro1.py - 5 erros semanticos reportados
-[OK]    TestesSemanticaErros4.py - 1 erros semanticos reportados
-[OK]    TestesSemanticaErros5.py - 1 erros semanticos reportados
-[OK]    TestesSemanticaErros6.py - 3 erros semanticos reportados
-[OK]    TestesSemanticaErros7.py - 1 erros semanticos reportados
-
-=========================================
-   Resultado: 39 passaram, 0 falharam
-=========================================
 ```

@@ -40,6 +40,27 @@ if x > 5:
 
 Use `Ctrl+D` (Linux/Mac) ou `Ctrl+Z` (Windows) para finalizar a entrada.
 
+### Flags de Linha de Comando
+
+O executável `compilador` aceita as seguintes flags (que podem ser combinadas):
+
+| Flag | Descrição |
+|---|---|
+| `--ast` | Imprime a Árvore Sintática Abstrata (AST) indentada com os tipos resolvidos (`tipo_resolvido`). |
+| `--dot` | Exporta a AST no formato Graphviz DOT para `stdout` e `ast.dot` (gera `ast.png` se `dot` estiver disponível). |
+| `--tabela` | Exibe a Tabela de Símbolos a cada mudança de escopo durante a análise semântica. |
+| `--tac` | Gera e imprime o Código Intermediário de Três Endereços (TAC). |
+| `--opt` | Gera o TAC, aplica as passadas de otimização e imprime o TAC otimizado. |
+| `--cs [arquivo]` | Gera o código-alvo em C# (grava em `arquivo` se informado; caso contrário, imprime no `stdout`). Só é gerado quando não há erros léxicos, sintáticos ou semânticos. |
+
+Exemplos:
+
+```bash
+./compilador --ast --tabela < programa.py
+./compilador --opt < programa.py
+./compilador --cs saida.cs < programa.py
+```
+
 ---
 
 ## Objetivo do Semestre

@@ -26,7 +26,7 @@ make all
 # ou
 make compilador
 ```
-Este é o comando padrão. Ele compila o analisador léxico (`lexer/lexer.l`), o analisador sintático (`parser/parser.y`) e todos os módulos em C localizados na pasta `src/` (`ast.c`, `tabela.c`, `semantica.c` e `codegen_intermediario.c`), gerando o executável final `compilador` na raiz do projeto.
+Este é o comando padrão. Ele compila o analisador léxico (`lexer/lexer.l`), o analisador sintático (`parser/parser.y`) e todos os módulos em C localizados na pasta `src/` (`ast.c`, `tabela.c`, `semantica.c`, `codegen_intermediario.c`, `otimizador.c` e `codegen_csharp.c`), gerando o executável final `compilador` na raiz do projeto.
 
 > **Nota sobre Integração Contínua (CI):** Quando a variável de ambiente `CI` está definida (`make CI=1`), o `Makefile` adiciona automaticamente a flag `-Werror` ao `CFLAGS`, tratando qualquer *warning* de compilação como erro.
 
@@ -40,8 +40,10 @@ Executa toda a suíte de testes unitários (TDD) e de integração na seguinte o
 1. **`test_ast`**: Compila e executa os testes unitários da Árvore Sintática Abstrata (`testes/tdd/teste_ast.c`).
 2. **`test_tabela`**: Compila e executa os testes unitários da Tabela de Símbolos (`testes/tdd/teste_tabela.c`).
 3. **`test_semantica`**: Compila e executa os testes unitários da Análise Semântica (`testes/tdd/teste_semantica.c`).
-4. **`test_integracao`**: Compila o executável principal `compilador` e roda o script `./testes/rodar_testes.sh` com todos os cenários léxicos, sintáticos, semânticos e de recuperação de erros usando os arquivos `.py` da pasta `testes/`.
-5. **`test_tac`**: Compila e executa os testes unitários do gerador de Código Intermediário de Três Endereços (`testes/tdd/teste_tac.c`).
+4. **`test_tac`**: Compila e executa os testes unitários do gerador de Código Intermediário de Três Endereços (`testes/tdd/teste_tac.c`).
+5. **`test_otimizador`**: Compila e executa os testes unitários do otimizador de código intermediário (`testes/tdd/teste_otimizador.c`).
+6. **`test_codegen_csharp`**: Compila e executa os testes unitários do gerador de código C# (`testes/tdd/teste_codegen_csharp.c`).
+7. **`test_integracao`**: Compila o executável principal `compilador` e roda o script `./testes/rodar_testes.sh` com todos os cenários léxicos, sintáticos, semânticos, de recuperação de erros e de geração de C# usando os arquivos `.py` da pasta `testes/`.
 
 A execução para imediatamente caso qualquer etapa venha a falhar.
 
@@ -54,8 +56,8 @@ make clean
 Limpa o repositório, removendo todos os arquivos gerados no processo de build, visualização e testes. Isso inclui:
 - O executável principal `compilador`.
 - Os arquivos autogerados pelo Flex e Bison (`lex.yy.c`, `parser.tab.c`, `parser.tab.h`).
-- Os arquivos de exportação visual da AST (`ast.dot`, `ast.png`).
-- Os binários e arquivos temporários dos testes unitários (`teste_tabela`, `teste_ast`, `teste_semantica`, `teste_tac`, `_ast_test_output.tmp` e `_ast_test_dot.tmp`).
+- Os arquivos de exportação visual da AST (`ast.dot`, `ast.png`) e eventual artefato `./--tabela`.
+- Os binários e arquivos temporários dos testes unitários (`teste_tabela`, `teste_ast`, `teste_semantica`, `teste_tac`, `teste_otimizador`, `teste_codegen_csharp`, `_ast_test_output.tmp` e `_ast_test_dot.tmp`).
 
 ## Comandos Específicos (Desenvolvimento)
 
@@ -83,7 +85,19 @@ Compila `testes/tdd/teste_semantica.c` junto com `src/semantica.c`, `src/ast.c` 
 ```bash
 make test_tac
 ```
-Compila `testes/tdd/teste_tac.c` junto com `src/codegen_intermediario.c` e executa a suíte unitária do TAC.
+Compila `testes/tdd/teste_tac.c` junto com `src/codegen_intermediario.c` e `src/ast.c` e executa a suíte unitária do TAC.
+
+### Testar apenas o Otimizador TAC
+```bash
+make test_otimizador
+```
+Compila `testes/tdd/teste_otimizador.c` junto com `src/otimizador.c`, `src/codegen_intermediario.c` e `src/ast.c` e executa a suíte unitária do otimizador.
+
+### Testar apenas o Gerador de Código C#
+```bash
+make test_codegen_csharp
+```
+Compila `testes/tdd/teste_codegen_csharp.c` junto com `src/codegen_csharp.c`, `src/semantica.c`, `src/ast.c` e `src/tabela.c` e executa a suíte unitária do gerador de código C#.
 
 ### Testar apenas Integração
 ```bash

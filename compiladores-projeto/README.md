@@ -1,69 +1,64 @@
 # Projeto de Compiladores com Flex e Bison
 
-Este repositório contém um compilador em desenvolvimento utilizando as ferramentas **Flex** (para análise léxica) e **Bison** (para análise sintática). O projeto já conta com um lexer completo (com suporte a indentação, strings, números, operadores e 16 palavras-chave) e um parser funcional com validação sintática.
+Esta pasta contém o código-fonte, os testes e a documentação técnica do compilador de **Python** para **C#** implementado em C com **Flex** e **Bison**.
 
-**Objetivo do Projeto:** Desenvolver um compilador que traduzirá código da linguagem **Python** para **C#**.
+Para a visão geral do repositório (incluindo pré-requisitos e materiais de aula), consulte o [README da raiz](../README.md). A documentação completa das fases de compilação está em `docs/`.
 
 ---
 
 ## 🛠️ Estrutura de Diretórios
 
-- `lexer/`: Contém os arquivos do analisador léxico (`lexer.l`).
-- `parser/`: Contém os arquivos do analisador sintático (`parser.y`).
-- `src/`: Reservado para arquivos fonte auxiliares em C.
-- `testes/`: Contém 5 arquivos de teste (`.py`) e um script de automação (`rodar_testes.sh`).
-- `docs/`: Arquivos Markdown da documentação do projeto (site gerado via MkDocs + GitHub Pages).
-- `Makefile`: Script para automação da compilação.
+- `lexer/`: Analisador léxico em Flex (`lexer.l`).
+- `parser/`: Analisador sintático em Bison (`parser.y`).
+- `src/`: Módulos em C do compilador:
+  - `ast.c` / `ast.h` — Árvore Sintática Abstrata (AST)
+  - `tabela.c` / `tabela.h` — Tabela de Símbolos e escopos
+  - `semantica.c` / `semantica.h` — Análise Semântica e inferência de tipos
+  - `codegen_intermediario.c` / `codegen_intermediario.h` — Geração de Código Intermediário (TAC)
+  - `otimizador.c` / `otimizador.h` — Otimizações sobre o TAC
+  - `codegen_csharp.c` / `codegen_csharp.h` — Geração de Código Alvo (C#)
+  - `tipos.h` — Tipos de dados compartilhados
+- `testes/`: Arquivos `.py` de testes de integração (léxicos, sintáticos, semânticos e geração de C#) e o script de automação (`rodar_testes.sh`).
+- `testes/tdd/`: Suítes de testes unitários em C (`teste_ast.c`, `teste_tabela.c`, `teste_semantica.c`, `teste_tac.c`, `teste_otimizador.c` e `teste_codegen_csharp.c`).
+- `docs/`: Documentação técnica em Markdown (publicada via MkDocs + GitHub Pages).
+- `Makefile`: Automação de build, testes e limpeza.
 
---- 
+---
 
 ## ⚙️ Como compilar e executar
 
-Para compilar o projeto, basta executar o comando:
-
 ```bash
 make
+./compilador < programa.py
 ```
 
-Isso irá gerar um executável chamado `compilador` na raiz do projeto.
-
-Para executá-lo:
-
-```bash
-./compilador
-```
-
-Após iniciar o programa, você pode digitar código Python válido. Exemplo:
-
-```python
-x = 10
-if x > 5:
-    print(x)
-```
-
-Use `Ctrl+D` (Linux/Mac) ou `Ctrl+Z` (Windows) para finalizar a entrada.
+Consulte a tabela completa de flags de linha de comando (`--ast`, `--dot`, `--tabela`, `--tac`, `--opt`, `--cs [arquivo]`) no [README da raiz](../README.md#flags-de-linha-de-comando) ou em [`docs/index.md`](docs/index.md).
 
 ### Rodando os Testes
 
-O projeto inclui testes automatizados para o lexer:
-
 ```bash
-./testes/rodar_testes.sh
+make test                 # Roda todas as suítes unitárias e a integração
+make test_integracao      # Roda apenas ./testes/rodar_testes.sh
+make test_ast             # Testes unitários da AST
+make test_tabela          # Testes unitários da Tabela de Símbolos
+make test_semantica       # Testes unitários da Análise Semântica
+make test_tac             # Testes unitários do Código Intermediário (TAC)
+make test_otimizador      # Testes unitários do Otimizador TAC
+make test_codegen_csharp  # Testes unitários do Gerador de Código C#
 ```
 
 ### Limpeza
 
-Para remover os arquivos gerados durante a compilação, execute:
-
 ```bash
 make clean
 ```
+
 ---
 
-## 👤 Integrantes & Funções
+## 👤 Integrantes
 
-* **Arthur Amaral:** Palavras-chave e Identificadores. Responsável por "mapear" o vocabulário da linguagem.
-* **Rafael Schetinger:** Símbolos, Operadores e Comentários. Responsável pela matemática e formatação do código.
-* **Andris:** Literais. Responsável pelos dados que o usuário digita.
-* **Renan Santos:** "Especialista" em Indentação.
-* **Beatriz Brandão:** Testes (Quality Assurance - QA) e Makefile.
+* Arthur Amaral
+* Rafael Schetinger
+* Andris
+* Renan Santos
+* Beatriz Brandão
