@@ -132,12 +132,6 @@ static int tratar_fim_de_arquivo(void) {
 ":"             { return COLON; }
 ","             { return COMMA; }
 
-"/*"([^*]|\*+[^*/])*\*+"/" {
-    /* Ignorar comentários em bloco, contando as linhas que eles ocupam */
-    int i;
-    for (i = 0; i < yyleng; i++)
-        if (yytext[i] == '\n') linha_atual++;
-}
 "#"[^\n]*       { /* Ignorar comentários de linha */ }
 
 [a-zA-Z_][a-zA-Z0-9_]* { 
