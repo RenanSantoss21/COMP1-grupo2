@@ -49,14 +49,22 @@ static bool e_flutuante(const char *s, double *out) {
     return false;
 }
 
+static bool e_string_literal(const char *s) {
+    if (!s) return false;
+    size_t len = strlen(s);
+    if (len >= 2 && ((s[0] == '"' && s[len - 1] == '"') || (s[0] == '\'' && s[len - 1] == '\''))) {
+        return true;
+    }
+    return false;
+}
+
 bool e_constante(const char *val) {
     if (!val || *val == '\0') return false;
     long dummy_int;
     if (e_inteiro(val, &dummy_int)) return true;
     bool dummy_bool;
     if (e_booleano(val, &dummy_bool)) return true;
-    size_t len = strlen(val);
-    if (len >= 2 && val[0] == '"' && val[len - 1] == '"') return true;
+    if (e_string_literal(val)) return true;
     char *endptr;
     strtod(val, &endptr);
     if (*endptr == '\0') return true;
@@ -211,257 +219,492 @@ bool otimizar_propagacao_constantes(TAC *tac) {
 
 bool otimizar_constant_folding(TAC *tac) {
     if (!tac || tac->tamanho == 0) return false;
-    bool modificou = false;
+    bool modificou_geral = false;
+    bool modificou_passo = true;
+    int passadas = 0;
 
-    for (int i = 0; i < tac->tamanho; i++) {
-        Instrucao *inst = &tac->Instrucoes[i];
+    while (modificou_passo && passadas < 10) {
+        modificou_passo = false;
+        TabelaConstantes tab;
+        const_tab_init(&tab);
 
-        if (inst->tipo == TAC_BINOP && inst->operando1 && inst->operando2 && inst->operador) {
-            long v1, v2;
-            bool v1_int = e_inteiro(inst->operando1, &v1);
-            bool v2_int = e_inteiro(inst->operando2, &v2);
+        for (int i = 0; i < tac->tamanho; i++) {
+            Instrucao *inst = &tac->Instrucoes[i];
 
-            // Dobra de constantes inteiras
-            if (v1_int && v2_int) {
-                char buffer[64];
-                bool calculado = false;
+            // Fronteira de fluxo de controle: limpa as constantes conhecidas
+            if (inst->tipo == TAC_LABEL || inst->tipo == TAC_GOTO ||
+                inst->tipo == TAC_FUNC_BEGIN || inst->tipo == TAC_FUNC_END) {
+                const_tab_limpar(&tab);
+                continue;
+            }
 
-                if (strcmp(inst->operador, "+") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%ld", v1 + v2);
-                    calculado = true;
-                } else if (strcmp(inst->operador, "-") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%ld", v1 - v2);
-                    calculado = true;
-                } else if (strcmp(inst->operador, "*") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%ld", v1 * v2);
-                    calculado = true;
-                } else if (strcmp(inst->operador, "/") == 0 && v2 != 0) {
-                    snprintf(buffer, sizeof(buffer), "%ld", v1 / v2);
-                    calculado = true;
-                } else if (strcmp(inst->operador, "==") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (v1 == v2) ? "True" : "False");
-                    calculado = true;
-                } else if (strcmp(inst->operador, "!=") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (v1 != v2) ? "True" : "False");
-                    calculado = true;
-                } else if (strcmp(inst->operador, "<") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (v1 < v2) ? "True" : "False");
-                    calculado = true;
-                } else if (strcmp(inst->operador, "<=") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (v1 <= v2) ? "True" : "False");
-                    calculado = true;
-                } else if (strcmp(inst->operador, ">") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (v1 > v2) ? "True" : "False");
-                    calculado = true;
-                } else if (strcmp(inst->operador, ">=") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (v1 >= v2) ? "True" : "False");
-                    calculado = true;
+            // Propagação de constantes previamente conhecidas dentro do bloco básico
+            if (inst->operando1 != NULL && !e_constante(inst->operando1)) {
+                const char *val = const_tab_obter(&tab, inst->operando1);
+                if (val != NULL) {
+                    free(inst->operando1);
+                    inst->operando1 = strdup(val);
+                    modificou_passo = true;
+                    modificou_geral = true;
+                }
+            }
+
+            if (inst->operando2 != NULL && !e_constante(inst->operando2)) {
+                const char *val = const_tab_obter(&tab, inst->operando2);
+                if (val != NULL) {
+                    free(inst->operando2);
+                    inst->operando2 = strdup(val);
+                    modificou_passo = true;
+                    modificou_geral = true;
+                }
+            }
+
+            if (inst->tipo == TAC_BINOP && inst->operando1 && inst->operando2 && inst->operador) {
+                long v1, v2;
+                bool v1_int = e_inteiro(inst->operando1, &v1);
+                bool v2_int = e_inteiro(inst->operando2, &v2);
+
+                // Dobra de constantes inteiras
+                if (v1_int && v2_int) {
+                    char buffer[64];
+                    bool calculado = false;
+
+                    if (strcmp(inst->operador, "+") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%ld", v1 + v2);
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "-") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%ld", v1 - v2);
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "*") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%ld", v1 * v2);
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "/") == 0 && v2 != 0) {
+                        snprintf(buffer, sizeof(buffer), "%ld", v1 / v2);
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "==") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (v1 == v2) ? "True" : "False");
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "!=") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (v1 != v2) ? "True" : "False");
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "<") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (v1 < v2) ? "True" : "False");
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "<=") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (v1 <= v2) ? "True" : "False");
+                        calculado = true;
+                    } else if (strcmp(inst->operador, ">") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (v1 > v2) ? "True" : "False");
+                        calculado = true;
+                    } else if (strcmp(inst->operador, ">=") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (v1 >= v2) ? "True" : "False");
+                        calculado = true;
+                    }
+
+                    if (calculado) {
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando1);
+                        inst->operando1 = strdup(buffer);
+                        free(inst->operando2);
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        const_tab_definir(&tab, inst->resultado, inst->operando1);
+                        continue;
+                    }
                 }
 
-                if (calculado) {
+                // Dobra de constantes em ponto flutuante (quando ao menos um operando é float)
+                double f1, f2;
+                if ((!v1_int || !v2_int) && e_flutuante(inst->operando1, &f1) && e_flutuante(inst->operando2, &f2)) {
+                    char buffer[64];
+                    bool calculado = false;
+
+                    if (strcmp(inst->operador, "+") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%f", f1 + f2);
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "-") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%f", f1 - f2);
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "*") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%f", f1 * f2);
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "/") == 0 && f2 != 0.0) {
+                        snprintf(buffer, sizeof(buffer), "%f", f1 / f2);
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "==") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (f1 == f2) ? "True" : "False");
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "!=") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (f1 != f2) ? "True" : "False");
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "<") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (f1 < f2) ? "True" : "False");
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "<=") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (f1 <= f2) ? "True" : "False");
+                        calculado = true;
+                    } else if (strcmp(inst->operador, ">") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (f1 > f2) ? "True" : "False");
+                        calculado = true;
+                    } else if (strcmp(inst->operador, ">=") == 0) {
+                        snprintf(buffer, sizeof(buffer), "%s", (f1 >= f2) ? "True" : "False");
+                        calculado = true;
+                    }
+
+                    if (calculado) {
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando1);
+                        inst->operando1 = strdup(buffer);
+                        free(inst->operando2);
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        const_tab_definir(&tab, inst->resultado, inst->operando1);
+                        continue;
+                    }
+                }
+
+                // Dobra de constantes booleanas (and / or)
+                bool b1, b2;
+                if (e_booleano(inst->operando1, &b1) && e_booleano(inst->operando2, &b2)) {
+                    bool calculado = false;
+                    bool res = false;
+                    if (strcmp(inst->operador, "and") == 0) {
+                        res = b1 && b2;
+                        calculado = true;
+                    } else if (strcmp(inst->operador, "or") == 0) {
+                        res = b1 || b2;
+                        calculado = true;
+                    }
+                    if (calculado) {
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando1);
+                        inst->operando1 = strdup(res ? "True" : "False");
+                        free(inst->operando2);
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        const_tab_definir(&tab, inst->resultado, inst->operando1);
+                        continue;
+                    }
+                }
+
+                // Dobra de constantes de texto (concatenação e comparação)
+                if (e_string_literal(inst->operando1) && e_string_literal(inst->operando2)) {
+                    if (strcmp(inst->operador, "+") == 0) {
+                        size_t len1 = strlen(inst->operando1);
+                        size_t len2 = strlen(inst->operando2);
+                        size_t total_len = (len1 - 2) + (len2 - 2) + 3;
+                        char *novo = malloc(total_len);
+                        novo[0] = '"';
+                        memcpy(novo + 1, inst->operando1 + 1, len1 - 2);
+                        memcpy(novo + 1 + len1 - 2, inst->operando2 + 1, len2 - 2);
+                        novo[total_len - 2] = '"';
+                        novo[total_len - 1] = '\0';
+
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando1);
+                        inst->operando1 = novo;
+                        free(inst->operando2);
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        const_tab_definir(&tab, inst->resultado, inst->operando1);
+                        continue;
+                    }
+                    if (strcmp(inst->operador, "==") == 0 || strcmp(inst->operador, "!=") == 0) {
+                        size_t len1 = strlen(inst->operando1);
+                        size_t len2 = strlen(inst->operando2);
+                        bool iguais = (len1 == len2 && memcmp(inst->operando1 + 1, inst->operando2 + 1, len1 - 2) == 0);
+                        bool res = (strcmp(inst->operador, "==") == 0) ? iguais : !iguais;
+
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando1);
+                        inst->operando1 = strdup(res ? "True" : "False");
+                        free(inst->operando2);
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        const_tab_definir(&tab, inst->resultado, inst->operando1);
+                        continue;
+                    }
+                }
+
+                // Simplificações algébricas com 0 e 1
+                if (v2_int && strcmp(inst->operador, "*") == 0 && v2 == 1) {
+                    // x * 1 -> x
                     inst->tipo = TAC_ASSIGN;
-                    free(inst->operando1);
-                    inst->operando1 = strdup(buffer);
                     free(inst->operando2);
                     inst->operando2 = NULL;
                     free(inst->operador);
                     inst->operador = NULL;
-                    modificou = true;
+                    modificou_passo = true;
+                    modificou_geral = true;
                     continue;
                 }
-            }
-
-            // Dobra de constantes em ponto flutuante (quando ao menos um operando é float)
-            double f1, f2;
-            if ((!v1_int || !v2_int) && e_flutuante(inst->operando1, &f1) && e_flutuante(inst->operando2, &f2)) {
-                char buffer[64];
-                bool calculado = false;
-
-                if (strcmp(inst->operador, "+") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%f", f1 + f2);
-                    calculado = true;
-                } else if (strcmp(inst->operador, "-") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%f", f1 - f2);
-                    calculado = true;
-                } else if (strcmp(inst->operador, "*") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%f", f1 * f2);
-                    calculado = true;
-                } else if (strcmp(inst->operador, "/") == 0 && f2 != 0.0) {
-                    snprintf(buffer, sizeof(buffer), "%f", f1 / f2);
-                    calculado = true;
-                } else if (strcmp(inst->operador, "==") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (f1 == f2) ? "True" : "False");
-                    calculado = true;
-                } else if (strcmp(inst->operador, "!=") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (f1 != f2) ? "True" : "False");
-                    calculado = true;
-                } else if (strcmp(inst->operador, "<") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (f1 < f2) ? "True" : "False");
-                    calculado = true;
-                } else if (strcmp(inst->operador, "<=") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (f1 <= f2) ? "True" : "False");
-                    calculado = true;
-                } else if (strcmp(inst->operador, ">") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (f1 > f2) ? "True" : "False");
-                    calculado = true;
-                } else if (strcmp(inst->operador, ">=") == 0) {
-                    snprintf(buffer, sizeof(buffer), "%s", (f1 >= f2) ? "True" : "False");
-                    calculado = true;
-                }
-
-                if (calculado) {
+                if (v1_int && strcmp(inst->operador, "*") == 0 && v1 == 1) {
+                    // 1 * x -> x
                     inst->tipo = TAC_ASSIGN;
                     free(inst->operando1);
-                    inst->operando1 = strdup(buffer);
+                    inst->operando1 = inst->operando2;
+                    inst->operando2 = NULL;
+                    free(inst->operador);
+                    inst->operador = NULL;
+                    modificou_passo = true;
+                    modificou_geral = true;
+                    continue;
+                }
+                if (v2_int && strcmp(inst->operador, "*") == 0 && v2 == 0) {
+                    // x * 0 -> 0
+                    inst->tipo = TAC_ASSIGN;
+                    free(inst->operando1);
+                    inst->operando1 = strdup("0");
                     free(inst->operando2);
                     inst->operando2 = NULL;
                     free(inst->operador);
                     inst->operador = NULL;
-                    modificou = true;
+                    modificou_passo = true;
+                    modificou_geral = true;
+                    const_tab_definir(&tab, inst->resultado, "0");
                     continue;
                 }
-            }
+                if (v1_int && strcmp(inst->operador, "*") == 0 && v1 == 0) {
+                    // 0 * x -> 0
+                    inst->tipo = TAC_ASSIGN;
+                    free(inst->operando2);
+                    inst->operando2 = NULL;
+                    free(inst->operador);
+                    inst->operador = NULL;
+                    modificou_passo = true;
+                    modificou_geral = true;
+                    const_tab_definir(&tab, inst->resultado, "0");
+                    continue;
+                }
+                if (v2_int && strcmp(inst->operador, "+") == 0 && v2 == 0) {
+                    // x + 0 -> x
+                    inst->tipo = TAC_ASSIGN;
+                    free(inst->operando2);
+                    inst->operando2 = NULL;
+                    free(inst->operador);
+                    inst->operador = NULL;
+                    modificou_passo = true;
+                    modificou_geral = true;
+                    continue;
+                }
+                if (v1_int && strcmp(inst->operador, "+") == 0 && v1 == 0) {
+                    // 0 + x -> x
+                    inst->tipo = TAC_ASSIGN;
+                    free(inst->operando1);
+                    inst->operando1 = inst->operando2;
+                    inst->operando2 = NULL;
+                    free(inst->operador);
+                    inst->operador = NULL;
+                    modificou_passo = true;
+                    modificou_geral = true;
+                    continue;
+                }
+                if (v2_int && strcmp(inst->operador, "-") == 0 && v2 == 0) {
+                    // x - 0 -> x
+                    inst->tipo = TAC_ASSIGN;
+                    free(inst->operando2);
+                    inst->operando2 = NULL;
+                    free(inst->operador);
+                    inst->operador = NULL;
+                    modificou_passo = true;
+                    modificou_geral = true;
+                    continue;
+                }
+                if (v2_int && strcmp(inst->operador, "/") == 0 && v2 == 1) {
+                    // x / 1 -> x
+                    inst->tipo = TAC_ASSIGN;
+                    free(inst->operando2);
+                    inst->operando2 = NULL;
+                    free(inst->operador);
+                    inst->operador = NULL;
+                    modificou_passo = true;
+                    modificou_geral = true;
+                    continue;
+                }
 
-            // Dobra de constantes booleanas (and / or)
-            bool b1, b2;
-            if (e_booleano(inst->operando1, &b1) && e_booleano(inst->operando2, &b2)) {
-                bool calculado = false;
-                bool res = false;
+                // x - x -> 0
+                if (strcmp(inst->operador, "-") == 0 && strcmp(inst->operando1, inst->operando2) == 0) {
+                    inst->tipo = TAC_ASSIGN;
+                    free(inst->operando1);
+                    inst->operando1 = strdup("0");
+                    free(inst->operando2);
+                    inst->operando2 = NULL;
+                    free(inst->operador);
+                    inst->operador = NULL;
+                    modificou_passo = true;
+                    modificou_geral = true;
+                    const_tab_definir(&tab, inst->resultado, "0");
+                    continue;
+                }
+
+                // Simplificações booleanas algébricas
                 if (strcmp(inst->operador, "and") == 0) {
-                    res = b1 && b2;
-                    calculado = true;
-                } else if (strcmp(inst->operador, "or") == 0) {
-                    res = b1 || b2;
-                    calculado = true;
+                    if (strcmp(inst->operando2, "True") == 0) {
+                        // x and True -> x
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando2);
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        continue;
+                    }
+                    if (strcmp(inst->operando1, "True") == 0) {
+                        // True and x -> x
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando1);
+                        inst->operando1 = inst->operando2;
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        continue;
+                    }
+                    if (strcmp(inst->operando2, "False") == 0) {
+                        // x and False -> False
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando1);
+                        inst->operando1 = strdup("False");
+                        free(inst->operando2);
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        const_tab_definir(&tab, inst->resultado, "False");
+                        continue;
+                    }
+                    if (strcmp(inst->operando1, "False") == 0) {
+                        // False and x -> False
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando2);
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        const_tab_definir(&tab, inst->resultado, "False");
+                        continue;
+                    }
                 }
-                if (calculado) {
+
+                if (strcmp(inst->operador, "or") == 0) {
+                    if (strcmp(inst->operando2, "False") == 0) {
+                        // x or False -> x
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando2);
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        continue;
+                    }
+                    if (strcmp(inst->operando1, "False") == 0) {
+                        // False or x -> x
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando1);
+                        inst->operando1 = inst->operando2;
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        continue;
+                    }
+                    if (strcmp(inst->operando2, "True") == 0) {
+                        // x or True -> True
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando1);
+                        inst->operando1 = strdup("True");
+                        free(inst->operando2);
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        const_tab_definir(&tab, inst->resultado, "True");
+                        continue;
+                    }
+                    if (strcmp(inst->operando1, "True") == 0) {
+                        // True or x -> True
+                        inst->tipo = TAC_ASSIGN;
+                        free(inst->operando2);
+                        inst->operando2 = NULL;
+                        free(inst->operador);
+                        inst->operador = NULL;
+                        modificou_passo = true;
+                        modificou_geral = true;
+                        const_tab_definir(&tab, inst->resultado, "True");
+                        continue;
+                    }
+                }
+            }
+
+            // Operador unário sobre constante
+            if (inst->tipo == TAC_UNOP && inst->operando1 && inst->operador) {
+                long v;
+                if (strcmp(inst->operador, "-") == 0 && e_inteiro(inst->operando1, &v)) {
+                    char buffer[64];
+                    snprintf(buffer, sizeof(buffer), "%ld", -v);
                     inst->tipo = TAC_ASSIGN;
                     free(inst->operando1);
-                    inst->operando1 = strdup(res ? "True" : "False");
-                    free(inst->operando2);
-                    inst->operando2 = NULL;
+                    inst->operando1 = strdup(buffer);
                     free(inst->operador);
                     inst->operador = NULL;
-                    modificou = true;
+                    modificou_passo = true;
+                    modificou_geral = true;
+                    const_tab_definir(&tab, inst->resultado, inst->operando1);
+                    continue;
+                }
+                bool b;
+                if (strcmp(inst->operador, "not") == 0 && e_booleano(inst->operando1, &b)) {
+                    inst->tipo = TAC_ASSIGN;
+                    free(inst->operando1);
+                    inst->operando1 = strdup(b ? "False" : "True");
+                    free(inst->operador);
+                    inst->operador = NULL;
+                    modificou_passo = true;
+                    modificou_geral = true;
+                    const_tab_definir(&tab, inst->resultado, inst->operando1);
                     continue;
                 }
             }
 
-            // Simplificações algébricas com 0 e 1
-            if (v2_int && strcmp(inst->operador, "*") == 0 && v2 == 1) {
-                // x * 1 -> x
-                inst->tipo = TAC_ASSIGN;
-                free(inst->operando2);
-                inst->operando2 = NULL;
-                free(inst->operador);
-                inst->operador = NULL;
-                modificou = true;
-                continue;
-            }
-            if (v1_int && strcmp(inst->operador, "*") == 0 && v1 == 1) {
-                // 1 * x -> x
-                inst->tipo = TAC_ASSIGN;
-                free(inst->operando1);
-                inst->operando1 = inst->operando2;
-                inst->operando2 = NULL;
-                free(inst->operador);
-                inst->operador = NULL;
-                modificou = true;
-                continue;
-            }
-            if (v2_int && strcmp(inst->operador, "*") == 0 && v2 == 0) {
-                // x * 0 -> 0
-                inst->tipo = TAC_ASSIGN;
-                free(inst->operando1);
-                inst->operando1 = strdup("0");
-                free(inst->operando2);
-                inst->operando2 = NULL;
-                free(inst->operador);
-                inst->operador = NULL;
-                modificou = true;
-                continue;
-            }
-            if (v1_int && strcmp(inst->operador, "*") == 0 && v1 == 0) {
-                // 0 * x -> 0
-                inst->tipo = TAC_ASSIGN;
-                free(inst->operando2);
-                inst->operando2 = NULL;
-                free(inst->operador);
-                inst->operador = NULL;
-                modificou = true;
-                continue;
-            }
-            if (v2_int && strcmp(inst->operador, "+") == 0 && v2 == 0) {
-                // x + 0 -> x
-                inst->tipo = TAC_ASSIGN;
-                free(inst->operando2);
-                inst->operando2 = NULL;
-                free(inst->operador);
-                inst->operador = NULL;
-                modificou = true;
-                continue;
-            }
-            if (v1_int && strcmp(inst->operador, "+") == 0 && v1 == 0) {
-                // 0 + x -> x
-                inst->tipo = TAC_ASSIGN;
-                free(inst->operando1);
-                inst->operando1 = inst->operando2;
-                inst->operando2 = NULL;
-                free(inst->operador);
-                inst->operador = NULL;
-                modificou = true;
-                continue;
-            }
-            if (v2_int && strcmp(inst->operador, "-") == 0 && v2 == 0) {
-                // x - 0 -> x
-                inst->tipo = TAC_ASSIGN;
-                free(inst->operando2);
-                inst->operando2 = NULL;
-                free(inst->operador);
-                inst->operador = NULL;
-                modificou = true;
-                continue;
-            }
-            if (v2_int && strcmp(inst->operador, "/") == 0 && v2 == 1) {
-                // x / 1 -> x
-                inst->tipo = TAC_ASSIGN;
-                free(inst->operando2);
-                inst->operando2 = NULL;
-                free(inst->operador);
-                inst->operador = NULL;
-                modificou = true;
-                continue;
+            // Atualização da tabela de constantes para TAC_ASSIGN
+            if (inst->tipo == TAC_ASSIGN && inst->resultado != NULL) {
+                if (e_constante(inst->operando1)) {
+                    const_tab_definir(&tab, inst->resultado, inst->operando1);
+                } else {
+                    const_tab_invalidar(&tab, inst->resultado);
+                }
+            } else if (inst->tipo != TAC_IF_FALSE && inst->resultado != NULL) {
+                const_tab_invalidar(&tab, inst->resultado);
             }
         }
 
-        // Operador unário sobre constante
-        if (inst->tipo == TAC_UNOP && inst->operando1 && inst->operador) {
-            long v;
-            if (strcmp(inst->operador, "-") == 0 && e_inteiro(inst->operando1, &v)) {
-                char buffer[64];
-                snprintf(buffer, sizeof(buffer), "%ld", -v);
-                inst->tipo = TAC_ASSIGN;
-                free(inst->operando1);
-                inst->operando1 = strdup(buffer);
-                free(inst->operador);
-                inst->operador = NULL;
-                modificou = true;
-                continue;
-            }
-            bool b;
-            if (strcmp(inst->operador, "not") == 0 && e_booleano(inst->operando1, &b)) {
-                inst->tipo = TAC_ASSIGN;
-                free(inst->operando1);
-                inst->operando1 = strdup(b ? "False" : "True");
-                free(inst->operador);
-                inst->operador = NULL;
-                modificou = true;
-                continue;
-            }
-        }
+        const_tab_destruir(&tab);
+        passadas++;
     }
 
-    return modificou;
+    return modificou_geral;
 }
 
 /* ── Passada 3: Remoção de Código Morto ───────────────────────────── */
