@@ -2,7 +2,7 @@
 
 A fase de Análise Semântica do compilador Python-C# é responsável por garantir que as construções sintáticas (que já foram validadas pelo Parser e transformadas em uma AST) façam sentido dentro das regras da linguagem.
 
-Atualmente, o foco principal da nossa análise semântica engloba a **Verificação de Declaração de Variáveis**, o **Gerenciamento de Escopos**, a **Inferência e Verificação de Tipos** e a **Análise em Duas Passadas** para suporte a *forward references* de funções.
+Atualmente, o foco principal da nossa análise semântica engloba a **Verificação de Declaração de Variáveis**, o **Gerenciamento de Escopos**, a **Inferência e Verificação de Tipos** e a **Análise em Duas Passadas** para suporte a *forward references* de funções. A lista completa de mensagens de erro emitidas está documentada no [Catálogo de Erros Semânticos](ErrosSemanticos.md).
 
 ## Verificação de Variáveis
 
@@ -99,7 +99,7 @@ Esses testes simulam árvores AST básicas e atestam que os cenários de sucesso
 
 ### Testes de Integração
 
-Além dos testes unitários, a suíte conta com **16 arquivos de testes de integração semântica** que passam código Python real pelo compilador completo. Eles estão organizados na pasta `testes/` e são executados pelo script `rodar_testes.sh`.
+Além dos testes unitários, a suíte conta com os arquivos de testes de integração semântica listados nas tabelas abaixo, que passam código Python real pelo compilador completo. Eles estão organizados na pasta `testes/` e são executados pelo script `rodar_testes.sh`.
 
 **Casos válidos (devem passar sem erros):**
 
@@ -128,6 +128,9 @@ Além dos testes unitários, a suíte conta com **16 arquivos de testes de integ
 | `TestesSemanticaErros7.py` | Reatribuição de variável para `string` em laço seguida de soma com `int` (1 erro) |
 | `TestesSemanticaErros8.py` | Redefinição de função no mesmo escopo com assinaturas diferentes (1 erro) |
 | `TestesSemanticaErros9.py` | Chamada de função com argumento incompatível com o tipo inferido do parâmetro (`def f(a): return a + 1` seguida de `f("oi")`) (1 erro) |
+| `TestesSemanticaErros10.py` | Precisão do número de linha nos erros de `if`, `elif`, `while`, `for` e redefinição de `def` (5 erros) |
+| `TestesSemanticaErros11.py` | Reatribuição de variável com tipo incompatível (`int` → `string`, `SEM-17`) (1 erro) |
+| `TestesSemanticaErros12.py` | Expressão com tipos incompatíveis dentro de `print("a" + 1)` (1 erro) |
 | `teste_semantico.py` | Tipos incompatíveis, condição não booleana e função não declarada (4 erros) |
 | `TestesSemanticoErro1.py` | Erros combinados de lógica, comparação, aridade, chamada inválida e `return` global (5 erros) |
 | `TestesSemanticoErro2.py` | Variável não declarada e tentativa de uso de variável local fora da função |

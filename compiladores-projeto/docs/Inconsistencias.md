@@ -9,10 +9,10 @@ Levantamento das divergências entre a documentação do projeto e o comportamen
 | Categoria | Itens |
 |---|---|
 | [1. Comportamento documentado que não acontece](#1-comportamento-documentado-que-nao-acontece) | 8 |
-| [2. Documentação desatualizada](#2-documentacao-desatualizada) | 4 |
-| [3. Links e navegação](#3-links-e-navegacao) | 3 |
+| [2. Documentação desatualizada](#2-documentacao-desatualizada) | 3 |
+| [3. Links e navegação](#3-links-e-navegacao) | 2 |
 | [4. Documentos que se contradizem](#4-documentos-que-se-contradizem) | 1 |
-| [5. Já corrigido](#5-ja-corrigido) | 15 |
+| [5. Já corrigido](#5-ja-corrigido) | 17 |
 
 ---
 
@@ -92,23 +92,11 @@ O código evoluiu depois que o texto foi escrito. Nenhum destes casos muda o com
 - **Na prática:** são 12 testes. Faltam `test_contagem_nao_declarada`, `test_contagem_argumentos_de_chamada`, `test_inferencia_parametros_e_void` e `test_politica_reatribuicao_tipos`. A integração passa 72.
 - **Correção sugerida:** completar a Parte 1 e atualizar a saída do runner.
 
-### D11 — Contagem e lista dos testes de integração semântica
-- **Onde:** `docs/Semantica.md:102-133`
-- **O doc diz:** "16 arquivos de testes de integração semântica"; a tabela lista 21.
-- **Na prática:** são 23. A tabela omite `TestesSemanticaErros10.py` e `TestesSemanticaErros11.py`.
-- **Correção sugerida:** completar a tabela e trocar o número fixo por "a tabela abaixo".
-
 ---
 
 ## 3. Links e navegação
 
 Afetam o site publicado pelo MkDocs.
-
-### N1 — Páginas fora do menu
-- **Onde:** `mkdocs.yml`
-- **O doc diz:** a seção "Decisões de Design (ADRs)" do menu aponta só para a Especificação da Linguagem.
-- **Na prática:** `ErrosSemanticos.md` e `ADR/001-reatribuicao-de-tipo.md` existem, mas não estão no `nav` e não aparecem no site.
-- **Correção sugerida:** adicionar as duas ao `nav` (a ADR dentro da seção de ADRs).
 
 ### N2 — Link quebrado para o `CODING_STANDARDS.md`
 - **Onde:** `docs/ADR/001-reatribuicao-de-tipo.md:12`
@@ -196,3 +184,11 @@ Precisam de uma decisão do grupo antes de mexer no texto.
 ### R15 — Alinhamento da estrutura do arquivo C# (X1 / Issue #58)
 - **Estava:** `CODING_STANDARDS.md` pedia apenas "um `namespace` e uma classe `Program` estática", sem explicitar o nome do namespace adotado.
 - **Ficou:** `CODING_STANDARDS.md` atualizado para especificar `namespace CompiladorPython` e `static class Program`, alinhado a `docs/Especificacao_Linguagem.md`, `docs/CodegenCSharp.md` e `src/codegen_csharp.c` (restando apenas registrar em comentário nas Issues #14 e #29 no GitHub).
+
+### R16 — Tabela de testes de integração em `docs/Semantica.md` (D11 / Issue #20)
+- **Estava:** citava "16 arquivos de testes de integração semântica" e omitia `TestesSemanticaErros10.py`, `TestesSemanticaErros11.py` e `TestesSemanticaErros12.py`.
+- **Ficou:** texto ajustado para referenciar as tabelas sem contagem fixa desatualizada, com os três arquivos incluídos e link para o `Catálogo de Erros Semânticos`.
+
+### R17 — Navegação do MkDocs para Semântica, ADR-001 e TAC (N1 / Issue #20)
+- **Estava:** `ErrosSemanticos.md` e `ADR/001-reatribuicao-de-tipo.md` estavam fora do `nav` do `mkdocs.yml`, e o módulo de Código Intermediário (TAC) ainda não tinha página própria.
+- **Ficou:** adicionados ao `nav` em `mkdocs.yml` (`Catálogo de Erros Semânticos`, `ADR-001` e a nova página `CodigoIntermediario.md`).

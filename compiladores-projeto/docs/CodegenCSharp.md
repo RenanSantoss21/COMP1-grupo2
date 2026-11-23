@@ -89,13 +89,28 @@ Identificadores que são palavras reservadas do C# recebem `@` (`string = 1` →
 
 Os parênteses são emitidos apenas quando a precedência do C# exige (`(a + b) * 2`, `a - (b - c)`), e não em volta de toda subexpressão.
 
+## Saída (`print`)
+
+| Python | C# | Observação |
+|--------|-----|------------|
+| `print()` | `Console.WriteLine();` | Imprime linha em branco. |
+| `print(x)` | `Console.WriteLine(x);` | Um único argumento vai direto para `Console.WriteLine`. |
+| `print("x =", x)` | `Console.WriteLine(string.Join(" ", "x =", x));` | Múltiplos argumentos são separados por espaço, como no Python. |
+
+- Quando o programa contém ao menos um `print`, o gerador emite no início de `Main`:
+  ```csharp
+  System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+  ```
+  Isso garante que números `double` sempre usem ponto decimal (`3.14`), independentemente da cultura do sistema operacional (como `pt-BR`, que imprimiria `3,14`).
+- Valores `bool` já são formatados pelo C# como `True` e `False`, coincidindo com a saída do Python.
+
 ## Construções ainda não traduzidas
 
-`print`, `input`, `if`/`elif`/`else`, `while`, `for`, `def`, `return`, chamadas de função e o operador `in` ficam para as próximas subtasks. Enquanto isso, o gerador as marca com comentário (`// [não traduzido] if (linha 5)`) ou, dentro de expressões, com um valor neutro do tipo inferido (`default(int)`), para que o arquivo continue compilando. O compilador avisa no `stderr` quantas construções ficaram pendentes.
+`input`, `if`/`elif`/`else`, `while`, `for`, `def`, `return`, chamadas de função e o operador `in` ficam para as próximas subtasks (Issues #30 e #31). Enquanto isso, o gerador as marca com comentário (`// [não traduzido] if (linha 5)`) ou, dentro de expressões, com um valor neutro do tipo inferido (`default(int)`), para que o arquivo continue compilando. O compilador avisa no `stderr` quantas construções ficaram pendentes.
 
 Chamadas de função entram nessa lista porque, sem o `def` correspondente emitido, a chamada referenciaria um método inexistente.
 
 ## Testes
 
 - Unitários: `make test_codegen_csharp` (`testes/tdd/teste_codegen_csharp.c`).
-- Integração: seção "Geracao de codigo C#" de `testes/rodar_testes.sh`, com o programa `testes/TestesCodegenCSharp1.py`.
+- Integração: seção "Geracao de codigo C#" de `testes/rodar_testes.sh`, com os programas `testes/TestesCodegenCSharp1.py` (variáveis e expressões) e `testes/TestesCodegenCSharp2.py` (`print` + compilação/execução via `.NET SDK` comparando o `stdout` com o Python).
