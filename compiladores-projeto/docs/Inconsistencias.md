@@ -9,10 +9,10 @@ Levantamento das divergências entre a documentação do projeto e o comportamen
 | Categoria | Itens |
 |---|---|
 | [1. Comportamento documentado que não acontece](#1-comportamento-documentado-que-nao-acontece) | 8 |
-| [2. Documentação desatualizada](#2-documentacao-desatualizada) | 3 |
-| [3. Links e navegação](#3-links-e-navegacao) | 2 |
-| [4. Documentos que se contradizem](#4-documentos-que-se-contradizem) | 1 |
-| [5. Já corrigido](#5-ja-corrigido) | 17 |
+| [2. Documentação desatualizada](#2-documentacao-desatualizada) | 2 |
+| [3. Links e navegação](#3-links-e-navegacao) | 0 |
+| [4. Documentos que se contradizem](#4-documentos-que-se-contradizem) | 0 |
+| [5. Já corrigido](#5-ja-corrigido) | 21 |
 
 ---
 
@@ -96,19 +96,7 @@ O código evoluiu depois que o texto foi escrito. Nenhum destes casos muda o com
 
 ## 3. Links e navegação
 
-Afetam o site publicado pelo MkDocs.
-
-### N2 — Link quebrado para o `CODING_STANDARDS.md`
-- **Onde:** `docs/ADR/001-reatribuicao-de-tipo.md:12`
-- **O doc diz:** link para `../../CODING_STANDARDS.md`.
-- **Na prática:** o caminho resolve para `compiladores-projeto/CODING_STANDARDS.md`, que não existe. O arquivo está na raiz do repositório (`../../../`).
-- **Correção sugerida:** corrigir o caminho ou usar o link do GitHub.
-
-### N3 — Links para código fora de `docs/`
-- **Onde:** vários arquivos de `docs/`
-- **O doc diz:** links como `../src/ast.h`, `../parser/parser.y` e `../testes/tdd/...`.
-- **Na prática:** o MkDocs publica só o conteúdo de `docs/`, então esses links não abrem no site; funcionam apenas na navegação pelo GitHub. (Não verificado no site publicado.)
-- **Correção sugerida:** trocar por links absolutos para os arquivos no GitHub.
+Todos os 3 itens desta categoria (`N1`, `N2` e `N3`) foram resolvidos nas Issues #20 e #59 (ver **R17**, **R20** e **R21** na [seção 5](#5-ja-corrigido)).
 
 ---
 
@@ -189,9 +177,10 @@ Precisam de uma decisão do grupo antes de mexer no texto.
 - **Estava:** citava "16 arquivos de testes de integração semântica" e omitia `TestesSemanticaErros10.py`, `TestesSemanticaErros11.py` e `TestesSemanticaErros12.py`.
 - **Ficou:** texto ajustado para referenciar as tabelas sem contagem fixa desatualizada, com os três arquivos incluídos e link para o `Catálogo de Erros Semânticos`.
 
-### R17 — Navegação do MkDocs para Semântica, ADR-001 e TAC (N1 / Issue #20)
+### R17 — Navegação do MkDocs para Semântica, ADR-001 e TAC (N1 / Issues #20 e #59)
 - **Estava:** `ErrosSemanticos.md` e `ADR/001-reatribuicao-de-tipo.md` estavam fora do `nav` do `mkdocs.yml`, e o módulo de Código Intermediário (TAC) ainda não tinha página própria.
 - **Ficou:** adicionados ao `nav` em `mkdocs.yml` (`Catálogo de Erros Semânticos`, `ADR-001` e a nova página `CodigoIntermediario.md`).
+
 ### R18 — Comentário de bloco `/* */` removido do lexer (X2 / Issue #55)
 - **Estava:** O lexer aceitava comentários de bloco no estilo C (`/* ... */`), que não fazem parte do Python.
 - **Ficou:** Regra removida de `lexer/lexer.l` e documentado em `docs/Lexer.md` e `docs/Especificacao_Linguagem.md` que apenas `#` é suportado.
@@ -199,3 +188,11 @@ Precisam de uma decisão do grupo antes de mexer no texto.
 ### R19 — Origem da linha dos nós via locations do Bison (D6 / Issue #55)
 - **Estava:** `docs/AST.md` e `docs/Lexer.md` diziam que os nós recebiam a variável `linha_token`.
 - **Ficou:** Documentado o uso de `%locations`, `yylloc` e `@N.first_line` do Bison nos dois documentos.
+
+### R20 — Link quebrado para `CODING_STANDARDS.md` na ADR-001 (N2 / Issue #59)
+- **Estava:** `docs/ADR/001-reatribuicao-de-tipo.md:12` apontava para `../../CODING_STANDARDS.md`, resolvendo para o caminho inexistente `compiladores-projeto/CODING_STANDARDS.md`.
+- **Ficou:** link corrigido para a URL absoluta do arquivo na raiz do repositório no GitHub (`https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/CODING_STANDARDS.md`).
+
+### R21 — Links para código fora de `docs/` substituídos por URLs do GitHub (N3 / Issue #59)
+- **Estava:** 33 links relativos com `../` (como `../src/ast.h`, `../parser/parser.y` e `../testes/tdd/...`) em `AST.md`, `ErrosSemanticos.md`, `Especificacao_Linguagem.md`, `Parser.md`, `TabelaSimbolos.md` e `VidaDeUmPrograma.md` apontavam para fora da raiz publicada pelo MkDocs.
+- **Ficou:** todos os 33 links convertidos para URLs absolutas em `https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/...`, preservando as imagens relativas (`img/*.png`), os links internos entre páginas de `docs/` e as âncoras `#...`.

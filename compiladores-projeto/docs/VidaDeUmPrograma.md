@@ -118,7 +118,7 @@ Nosso compilador utiliza o **GNU Bison** para gerar um analisador sintático asc
 Diferente de um analisador descendente, que tenta prever as regras a partir do símbolo inicial, o analisador do Bison opera por **empilhamento e redução** (*shift-reduce*):
 1. **Shift (Empilhamento):** Lê o próximo token fornecido pelo lexer e empilha seu símbolo e valor semântico (`yylval`).
 2. **Reduce (Redução):** Quando o topo da pilha coincide com o lado direito de uma regra gramatical, esses elementos são desempilhados e substituídos pelo não-terminal do lado esquerdo da regra, executando a ação semântica associada (`{ $$ = ... }`).
-3. As ações semânticas em [`parser/parser.y`](../parser/parser.y) chamam as funções construtoras de [`src/ast.c`](../src/ast.c) (`criar_no_*`), construindo a árvore sintática abstrata das folhas até a raiz.
+3. As ações semânticas em [`parser/parser.y`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/parser/parser.y) chamam as funções construtoras de [`src/ast.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/ast.c) (`criar_no_*`), construindo a árvore sintática abstrata das folhas até a raiz.
 
 ### Construção de Listas Dinâmicas no Bison
 
@@ -313,7 +313,7 @@ Executando o compilador com a flag `--dot`:
 ./compilador --dot < exemplo.py > exemplo.dot && dot -Tpng exemplo.dot -o docs/img/ast_vida_programa.png
 ```
 
-O módulo [`src/ast.c`](../src/ast.c) exporta os 20 nós (`n0` a `n19`) no formato Graphviz DOT e renderiza a árvore final abaixo:
+O módulo [`src/ast.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/ast.c) exporta os 20 nós (`n0` a `n19`) no formato Graphviz DOT e renderiza a árvore final abaixo:
 
 ![AST completa do programa de exemplo](img/ast_vida_programa.png)
 

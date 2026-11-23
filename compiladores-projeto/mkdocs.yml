@@ -37,7 +37,7 @@ nav:
     - Inconsistências da Documentação: Inconsistencias.md
   - Decisões de Design (ADRs):
     - Especificação da Linguagem: Especificacao_Linguagem.md
-    - ADR-001 — Reatribuição de Tipo: ADR/001-reatribuicao-de-tipo.md
+    - "ADR-001: Tipagem Estática na Reatribuição": ADR/001-reatribuicao-de-tipo.md
   - Implementação:
     - Vida de um Programa: VidaDeUmPrograma.md
     - Lexer: Lexer.md
