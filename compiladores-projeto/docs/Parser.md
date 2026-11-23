@@ -12,12 +12,12 @@ O arquivo é dividido em três seções principais:
 
 ### 1. Declarações (Seção `%{ ... %}` e tokens)
 
-Define a interface com o Flex, importa os cabeçalhos da AST, Tabela de Símbolos e Semântica (`src/ast.h`, `src/tabela.h`, `src/semantica.h`) e declara os tokens e tipos semânticos:
+Define a interface com o Flex, importa os cabeçalhos da AST, Tabela de Símbolos, Semântica, Código Intermediário, Otimizador e C# (`src/ast.h`, `src/tabela.h`, `src/semantica.h`, `src/codegen_intermediario.h`, `src/otimizador.h`, `src/codegen_csharp.h`) e declara os tokens e tipos semânticos:
 
 - **Tipos de valor** (`%union`): `int ival`, `double dval`, `char *sval`, `struct noAST *ast`
 - **Tokens com valor**: `NUM_INT` (`ival`), `NUM_FLOAT` (`dval`), `STRING_LITERAL` (`sval`), `ID` (`sval`)
 - **Tokens simples**: operadores, delimitadores, palavras-chave, `INDENT`, `DEDENT`, `NEWLINE`
-- **Não-terminais tipados** (`%type <ast>`): `programa`, `comandos`, `comando`, `comando_simples`, `comando_composto`, `bloco`, `lista_elif`, `senao_opt`, `parametros_opt`, `parametros`, `argumentos_opt`, `expressao`
+- **Não-terminais tipados** (`%type <ast>`): `programa`, `comandos`, `comando`, `comando_simples`, `comando_composto`, `bloco`, `lista_elif`, `senao_opt`, `parametros_opt`, `parametros`, `argumentos_opt`, `expressao`, `erro_linha`, `erro_identacao`
 
 ### 2. Precedência de Operadores
 
@@ -98,11 +98,10 @@ A lista de argumentos é apenas uma `expressao` opcional porque a própria regra
 Expressões suportam:
 
 - **Operações aritméticas**: `+`, `-`, `*`, `/` e menos unário (`-x`)
-- **Atribuição**: `=` (associativa à direita, permitindo `a = b = 0`)
+- **Atribuição**: `=` (atribuição simples; encadeamento como `a = b = 0` não é suportado)
 - **Comparações**: `==`, `!=`, `>`, `<`, `>=`, `<=`
 - **Operadores lógicos**: `and`, `or`, `not`, `in`
 - **Agrupamento**: `( )`
-- **Listas**: `[ ]` (vazia) e `[ expressao ]`
 - **Chamada de função**: `ID LPAREN argumentos_opt RPAREN`
 - **Entrada nativa**: `INPUT LPAREN argumentos_opt RPAREN`
 - **Literais**: `NUM_INT`, `NUM_FLOAT`, `STRING_LITERAL`, `TRUE`, `FALSE`

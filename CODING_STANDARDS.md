@@ -42,6 +42,3 @@ Estas regras governam o "formato" do código C# que será emitido pela etapa de 
 - **Tradução de Funções Built-in**:
   - `print(...)` deve ser mapeado exatamente para `Console.WriteLine(...)`.
   - `input(...)` deve ser mapeado exatamente para `Console.ReadLine()`. Caso tenha um prompt, deve gerar um `Console.Write(prompt)` antes do `ReadLine()`.
-
-- **Mapeamento de Listas (Arrays)**:
-  - Listas do Python (ex: `[1, 2, 3]`) devem preferencialmente ser traduzidas para `List<T>` do C# (ex: `new List<int> { 1, 2, 3 }`), exigindo `using System.Collections.Generic;` no topo do arquivo gerado.

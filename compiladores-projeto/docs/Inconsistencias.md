@@ -213,3 +213,11 @@ Precisam de uma decisão do grupo antes de mexer no texto.
 ### R7 — Struct, API e exemplo em `docs/TabelaSimbolos.md` (D8 / Issue #57)
 - **Estava:** faltavam `pre_registrada` na struct `Simbolo` e `tabela_buscar_escopo_atual` na tabela da API; o texto dizia que blocos abrem escopo e o exemplo registrava `x` antes do pré-registro de `calcular`.
 - **Ficou:** documentação de `TabelaSimbolos.md` alinhada com a implementação atual.
+
+### R8 — Comentário de bloco `/* */` removido do lexer (X2 / Issue #55)
+- **Estava:** O lexer aceitava comentários de bloco no estilo C (`/* ... */`), que não fazem parte do Python.
+- **Ficou:** Regra removida de `lexer/lexer.l` e documentado em `docs/Lexer.md` e `docs/Especificacao_Linguagem.md` que apenas `#` é suportado.
+
+### R9 — Origem da linha dos nós via locations do Bison (D6 / Issue #55)
+- **Estava:** `docs/AST.md` e `docs/Lexer.md` diziam que os nós recebiam a variável `linha_token`.
+- **Ficou:** Documentado o uso de `%locations`, `yylloc` e `@N.first_line` do Bison nos dois documentos.
