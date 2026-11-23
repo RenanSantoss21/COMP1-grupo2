@@ -43,6 +43,7 @@ nav:
     - AST: AST.md
     - Tabela de Símbolos: TabelaSimbolos.md
     - Análise Semântica: Semantica.md
+    - Otimizador TAC: Otimizador.md
     - Geração de Código C#: CodegenCSharp.md
   - Testes:
     - Testes Léxicos: Testes_Lexicos.md
