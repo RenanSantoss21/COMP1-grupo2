@@ -89,13 +89,16 @@ Identificadores que são palavras reservadas do C# recebem `@` (`string = 1` →
 
 Os parênteses são emitidos apenas quando a precedência do C# exige (`(a + b) * 2`, `a - (b - c)`), e não em volta de toda subexpressão.
 
-## Saída (`print`)
+## Saída (`print`) e Entrada (`input`)
 
 | Python | C# | Observação |
 |--------|-----|------------|
 | `print()` | `Console.WriteLine();` | Imprime linha em branco. |
 | `print(x)` | `Console.WriteLine(x);` | Um único argumento vai direto para `Console.WriteLine`. |
 | `print("x =", x)` | `Console.WriteLine(string.Join(" ", "x =", x));` | Múltiplos argumentos são separados por espaço, como no Python. |
+| `input()` | `Console.ReadLine()` | Em comando solto emite `Console.ReadLine();`. |
+| `x = input()` | `string x = Console.ReadLine();` | `NO_INPUT` tem tipo `TIPO_STRING` inferido pela semântica. |
+| `x = input("Nome: ")` | `Console.Write("Nome: ");` + `string x = Console.ReadLine();` | Quando há prompt, emite `Console.Write(prompt)` antes do `ReadLine()` (`CODING_STANDARDS.md`). |
 
 - Quando o programa contém ao menos um `print`, o gerador emite no início de `Main`:
   ```csharp
@@ -103,6 +106,22 @@ Os parênteses são emitidos apenas quando a precedência do C# exige (`(a + b) 
   ```
   Isso garante que números `double` sempre usem ponto decimal (`3.14`), independentemente da cultura do sistema operacional (como `pt-BR`, que imprimiria `3,14`).
 - Valores `bool` já são formatados pelo C# como `True` e `False`, coincidindo com a saída do Python.
+- Se `input(prompt)` for usado dentro de uma expressão composta (ex.: `"Olá, " + input("Nome: ")`), o gerador emite um método auxiliar `static string _input(object prompt)` na classe `Program` que chama `Console.Write(prompt)` e retorna `Console.ReadLine()`.
+
+## Funções (`def`, `return` e chamadas)
+
+Definições de funções (`NO_FUNCDEF`) são emitidas como métodos `static` da classe `Program`, antes de `Main`:
+
+| Python | C# | Observação |
+|--------|-----|------------|
+| `def saudacao(nome):` (sem `return` com valor) | `static void saudacao(string nome) { ... }` | Retorno `void` e tipo do parâmetro inferido pelo uso ou pela 1ª chamada. |
+| `def soma(x, y): return x + y` | `static int soma(int x, int y) { return x + y; }` | Tipo de retorno e parâmetros lidos de `tipo_resolvido`. |
+| `return` (sem expressão) | `return;` | |
+| `return expr` | `return expr;` | |
+| `foo(a, b)` | `foo(a, b)` / `foo(a, b);` | Funciona tanto como expressão quanto como comando solto. |
+
+- Cada função possui seu próprio contexto de variáveis declaradas e seu próprio **hoisting** de variáveis criadas dentro de blocos (`if`, `while`, `for`) no início do corpo do método, sem interferir nas variáveis de `Main`.
+- Se uma função com tipo de retorno não-`void` tiver caminhos que não terminam em `return` (ex.: `return` apenas dentro de um `if` sem `else`), o gerador acrescenta `return default(<tipo>);` ao final do método para satisfazer a verificação de fluxo do C# (`CS0161`).
 
 ## Estruturas de controle
 
@@ -124,12 +143,10 @@ Em Python, após um laço `for i in range(n):` que executa ao menos uma vez, a v
 
 ## Construções ainda não traduzidas
 
-`input`, `def`, `return`, chamadas de função e o operador `in` ficam para as próximas subtasks. Enquanto isso, o gerador as marca com comentário (`// [não traduzido] def (linha 1)`) ou, dentro de expressões, com um valor neutro do tipo inferido (`default(int)` ou `default(object)`), para que o arquivo continue compilando. O compilador avisa no `stderr` quantas construções ficaram pendentes.
-
-Chamadas de função entram nessa lista porque, sem o `def` correspondente emitido, a chamada referenciaria um método inexistente.
+O operador `in` fora do cabeçalho do `for` (e listas) é marcado com comentário ou, dentro de expressões, com um valor neutro do tipo inferido (`default(bool)`), para que o arquivo continue compilando. O compilador avisa no `stderr` quantas construções ficaram pendentes.
 
 ## Testes
 
 - Unitários: `make test_codegen_csharp` (`testes/tdd/teste_codegen_csharp.c`).
-- Integração: seção "Geracao de codigo C#" de `testes/rodar_testes.sh`, com os programas `testes/TestesCodegenCSharp1.py`, `testes/TestesCodegenCSharp2.py`, `testes/TestesCodegenCSharp3.py`, `testes/TestesCodegenCSharp4.py` e `testes/TestesCodegenCSharpErroPassoZero.py`.
+- Integração: seção "Geracao de codigo C#" de `testes/rodar_testes.sh`, com os programas `testes/TestesCodegenCSharp1.py` a `testes/TestesCodegenCSharp6.py` e `testes/TestesCodegenCSharpErroPassoZero.py`.
 - E2E (pipeline completo `--ast`/`--tabela`/`--tac`/`--opt`/`--cs`, compilação C# real e comparação `stdout` com `python3`): `bash testes/rodar_e2e.sh`.

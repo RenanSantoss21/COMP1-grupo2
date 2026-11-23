@@ -334,11 +334,14 @@ static int test_declaracao_e_reatribuicao(void) {
 static int test_construcoes_pendentes(void) {
     printf("Running test_construcoes_pendentes...\n");
 
-    /* def f(): return 1 e y = f(): ainda fora do escopo do gerador; if já traduzido */
+    /* OP_IN (1 in [1, 2]) ainda cai em não traduzido; def, if e chamadas já são traduzidos */
     NoAST **corpo = malloc(sizeof(NoAST *));
     corpo[0] = criar_no_return(criar_no_int(1, 2), 2);
     NoAST **corpo_if = malloc(sizeof(NoAST *));
     corpo_if[0] = criar_no_assign("x", criar_no_int(2, 4), 4);
+    NoAST **itens_lista = malloc(sizeof(NoAST *) * 2);
+    itens_lista[0] = criar_no_int(1, 6);
+    itens_lista[1] = criar_no_int(2, 6);
 
     NoAST *cmds[] = {
         criar_no_funcdef("f", NULL, 0, criar_no_bloco(corpo, 1), 1),
@@ -346,24 +349,26 @@ static int test_construcoes_pendentes(void) {
         criar_no_if(criar_no_binop(OP_GT, criar_no_id("x", 4), criar_no_int(0, 4), 4),
                     criar_no_bloco(corpo_if, 1), NULL, 0, NULL, 4),
         criar_no_assign("y", criar_no_funccall("f", NULL, 0, 5), 5),
+        criar_no_assign("achou",
+            criar_no_binop(OP_IN, criar_no_int(1, 6), criar_no_bloco(itens_lista, 2), 6), 6),
     };
-    NoAST *raiz = programa(4, cmds);
+    NoAST *raiz = programa(5, cmds);
 
     int erros = 0, nao_traduzidos = 0;
     char *cs = gerar_csharp(raiz, &erros, &nao_traduzidos);
 
     ASSERT(erros == 0, "programa semanticamente válido");
-    ASSERT(nao_traduzidos == 2, "def e chamada contados como não traduzidos");
-    ASSERT(strstr(cs, "        // [não traduzido] def (linha 1)\n") != NULL,
-           "def marcado no corpo da classe (fora do Main)");
+    ASSERT(nao_traduzidos == 1, "apenas operador in contado como não traduzido");
+    ASSERT(strstr(cs, "        static int f() {\n") != NULL,
+           "def traduzido como método static da classe");
     ASSERT(strstr(cs, "            if (x > 0) {\n") != NULL,
            "if traduzido dentro do Main");
-    ASSERT(strstr(cs, "// [não traduzido] if") == NULL,
-           "if não aparece mais como não traduzido");
-    ASSERT(strstr(cs, "def") < strstr(cs, "static void Main"), "funções vêm antes do Main");
-    /* Sem o def emitido, a chamada não pode referenciar f(): placeholder tipado. */
-    ASSERT(strstr(cs, "            int y = /* não traduzido: chamada de função (linha 5) */ default(int);\n") != NULL,
-           "chamada de função vira placeholder com o tipo de retorno inferido");
+    ASSERT(strstr(cs, "static int f()") < strstr(cs, "static void Main"),
+           "funções vêm antes do Main");
+    ASSERT(strstr(cs, "            int y = f();\n") != NULL,
+           "chamada de função traduzida com tipo de retorno inferido");
+    ASSERT(strstr(cs, "            bool achou = /* não traduzido: operador in (linha 6) */ default(bool);\n") != NULL,
+           "operador in vira placeholder default(bool)");
 
     free(cs);
     liberar_ast(raiz);
@@ -692,7 +697,7 @@ static int test_hoisting_blocos(void) {
     char *cs = gerar_csharp(raiz, &erros, &nao_traduzidos);
 
     ASSERT(erros == 0, "programa válido com uso pós-bloco");
-    ASSERT(nao_traduzidos == 1, "apenas def f() pendente");
+    ASSERT(nao_traduzidos == 0, "tudo traduzido");
     ASSERT(strstr(cs, "            string situacao = default(string);\n") != NULL,
            "situacao sofre hoist com default(string)");
     ASSERT(strstr(cs, "            int @string = default(int);\n") != NULL,
@@ -713,7 +718,8 @@ static int test_hoisting_blocos(void) {
            "variável hoisted reatribuída na raiz não redeclara");
     ASSERT(strstr(cs, "int nivel = 20") == NULL,
            "não redeclara nivel na raiz");
-    ASSERT(strstr(cs, "local_func") == NULL,
+    const char *pos_main = strstr(cs, "static void Main");
+    ASSERT(pos_main != NULL && strstr(pos_main, "local_func") == NULL,
            "variável interna de NO_FUNCDEF não vaza para Main");
 
     /* Hoist aparece após CultureInfo e antes do primeiro comando do Main */
@@ -740,7 +746,7 @@ static int test_hoisting_blocos(void) {
 
     char *cs_desc = gerar_csharp(raiz_desc, &erros, &nao_traduzidos);
     ASSERT(erros == 0, "def sem return com atribuição em if é válido");
-    ASSERT(nao_traduzidos == 2, "def e chamada pendentes");
+    ASSERT(nao_traduzidos == 0, "def e chamada traduzidos");
     ASSERT(strstr(cs_desc, "            object misterio = default(object);\n") != NULL,
            "TIPO_VOID faz fallback para object = default(object)");
     ASSERT(strstr(cs_desc, "default(var)") == NULL,
@@ -1286,50 +1292,327 @@ static int test_nao_suportado_em_estruturas_controle(void) {
     printf("Running test_nao_suportado_em_estruturas_controle...\n");
 
     /*
-     * def f():
-     *     return 1
-     * if f() > 0:
+     * if 1 in [1, 2]:
      *     x = 1
-     * for i in range(f()):
+     * for i in range(1 in [1, 2]):
      *     x = 2
      */
-    NoAST **b_func = malloc(sizeof(NoAST *));
-    b_func[0] = criar_no_return(criar_no_int(1, 2), 2);
-
+    NoAST **lista1 = malloc(sizeof(NoAST *) * 2);
+    lista1[0] = criar_no_int(1, 1);
+    lista1[1] = criar_no_int(2, 1);
     NoAST **b_if = malloc(sizeof(NoAST *));
-    b_if[0] = criar_no_assign("x", criar_no_int(1, 4), 4);
+    b_if[0] = criar_no_assign("x", criar_no_int(1, 2), 2);
 
+    NoAST **lista2 = malloc(sizeof(NoAST *) * 2);
+    lista2[0] = criar_no_int(1, 3);
+    lista2[1] = criar_no_int(2, 3);
     NoAST **b_for = malloc(sizeof(NoAST *));
-    b_for[0] = criar_no_assign("x", criar_no_int(2, 6), 6);
+    b_for[0] = criar_no_assign("x", criar_no_int(2, 4), 4);
 
     NoAST *cmds[] = {
-        criar_no_funcdef("f", NULL, 0, criar_no_bloco(b_func, 1), 1),
         criar_no_if(
-            criar_no_binop(OP_GT, criar_no_funccall("f", NULL, 0, 3), criar_no_int(0, 3), 3),
-            criar_no_bloco(b_if, 1), NULL, 0, NULL, 3),
-        criar_no_for("i", criar_no_funccall("f", NULL, 0, 5),
-                     criar_no_bloco(b_for, 1), 5),
+            criar_no_binop(OP_IN, criar_no_int(1, 1), criar_no_bloco(lista1, 2), 1),
+            criar_no_bloco(b_if, 1), NULL, 0, NULL, 1),
+        criar_no_for("i",
+            criar_no_binop(OP_IN, criar_no_int(1, 3), criar_no_bloco(lista2, 2), 3),
+            criar_no_bloco(b_for, 1), 3),
+    };
+    NoAST *raiz = programa(2, cmds);
+
+    int erros = 0, nao_traduzidos = 0;
+    char *cs = gerar_csharp(raiz, &erros, &nao_traduzidos);
+
+    ASSERT(erros == 0, "operador in em if e range sem erro semântico");
+    ASSERT(nao_traduzidos == 2,
+           "exatamente 2 construções não traduzidas (in em if, in em for)");
+    ASSERT(strstr(cs,
+                  "            if (/* não traduzido: operador in (linha 1) */ default(bool)) {\n"
+                  "                x = 1;\n"
+                  "            }\n") != NULL,
+           "expressão não suportada em condição if emite placeholder default(bool)");
+    ASSERT(strstr(cs,
+                  "            for (i = 0; i < /* não traduzido: operador in (linha 3) */ default(bool); i++) {\n"
+                  "                x = 2;\n"
+                  "            }\n") != NULL,
+           "expressão não suportada em range() emite placeholder");
+
+    free(cs);
+    liberar_ast(raiz);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_input(void) {
+    printf("Running test_input...\n");
+
+    /*
+     * x = input()
+     * nome = input("Nome: ")
+     * input()
+     * input("Pressione Enter...")
+     * msg = "Ola, " + input("Seu nome: ")
+     */
+    NoAST *cmds[] = {
+        criar_no_assign("x", criar_no_input(NULL, 1), 1),
+        criar_no_assign("nome", criar_no_input(criar_no_string("\"Nome: \"", 2), 2), 2),
+        criar_no_input(NULL, 3),
+        criar_no_input(criar_no_string("\"Pressione Enter...\"", 4), 4),
+        criar_no_assign("msg",
+            criar_no_binop(OP_SOMA,
+                criar_no_string("\"Ola, \"", 5),
+                criar_no_input(criar_no_string("\"Seu nome: \"", 5), 5),
+                5),
+            5),
+    };
+    NoAST *raiz = programa(5, cmds);
+
+    int erros = 0, nao_traduzidos = 0;
+    char *cs = gerar_csharp(raiz, &erros, &nao_traduzidos);
+
+    ASSERT(erros == 0, "input com e sem prompt semanticamente válido");
+    ASSERT(nao_traduzidos == 0, "input traduzido por completo");
+    ASSERT(strstr(cs, "            string x = Console.ReadLine();\n") != NULL,
+           "x = input() -> string x = Console.ReadLine();");
+    ASSERT(strstr(cs,
+                  "            Console.Write(\"Nome: \");\n"
+                  "            string nome = Console.ReadLine();\n") != NULL,
+           "nome = input(prompt) emite Console.Write(prompt); antes de Console.ReadLine()");
+    ASSERT(strstr(cs,
+                  "            Console.ReadLine();\n"
+                  "            Console.Write(\"Pressione Enter...\");\n"
+                  "            Console.ReadLine();\n") != NULL,
+           "input() como comando solto (sem e com prompt)");
+    ASSERT(strstr(cs, "            string msg = \"Ola, \" + _input(\"Seu nome: \");\n") != NULL,
+           "input(prompt) em subexpressão usa helper _input");
+    ASSERT(strstr(cs,
+                  "        static string _input(object prompt) {\n"
+                  "            Console.Write(prompt);\n"
+                  "            return Console.ReadLine();\n"
+                  "        }\n") != NULL,
+           "helper _input emitido na classe quando input(prompt) aparece em subexpressão");
+
+    free(cs);
+    liberar_ast(raiz);
+
+    /* Sem input(prompt) em subexpressão, não emite o helper _input */
+    NoAST *cmds_simples[] = {
+        criar_no_assign("a", criar_no_input(NULL, 1), 1),
+        criar_no_assign("b", criar_no_input(criar_no_string("\"Prompt: \"", 2), 2), 2),
+    };
+    NoAST *raiz_simples = programa(2, cmds_simples);
+    char *cs_simples = gerar_csharp(raiz_simples, &erros, &nao_traduzidos);
+    ASSERT(erros == 0 && nao_traduzidos == 0, "input simples traduzido");
+    ASSERT(strstr(cs_simples, "_input") == NULL,
+           "não emite helper _input quando não há input(prompt) em subexpressão");
+    free(cs_simples);
+    liberar_ast(raiz_simples);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_funcoes_chamadas_e_return(void) {
+    printf("Running test_funcoes_chamadas_e_return...\n");
+
+    /*
+     * def saudar(nome):
+     *     print("Olá")
+     *     print(nome)
+     *
+     * def soma(x, y):
+     *     return x + y
+     *
+     * def id(val):
+     *     return val
+     *
+     * def maior(a, b):
+     *     if a > b:
+     *         res = a
+     *         return res
+     *     return b
+     *
+     * saudar("Rafael")
+     * total = soma(3, 4)
+     * texto = id("abc")
+     * m = maior(total, 5)
+     */
+    NoAST **p_saudar = malloc(sizeof(NoAST *));
+    p_saudar[0] = criar_no_id("nome", 1);
+    NoAST **arg_ola = malloc(sizeof(NoAST *));
+    arg_ola[0] = criar_no_string("\"Olá\"", 2);
+    NoAST **arg_nome = malloc(sizeof(NoAST *));
+    arg_nome[0] = criar_no_id("nome", 3);
+    NoAST **b_saudar = malloc(sizeof(NoAST *) * 2);
+    b_saudar[0] = criar_no_print(arg_ola, 1, 2);
+    b_saudar[1] = criar_no_print(arg_nome, 1, 3);
+    NoAST *fn_saudar = criar_no_funcdef("saudar", p_saudar, 1, criar_no_bloco(b_saudar, 2), 1);
+
+    NoAST **p_soma = malloc(sizeof(NoAST *) * 2);
+    p_soma[0] = criar_no_id("x", 5);
+    p_soma[1] = criar_no_id("y", 5);
+    NoAST **b_soma = malloc(sizeof(NoAST *));
+    b_soma[0] = criar_no_return(
+        criar_no_binop(OP_SOMA, criar_no_id("x", 6), criar_no_id("y", 6), 6), 6);
+    NoAST *fn_soma = criar_no_funcdef("soma", p_soma, 2, criar_no_bloco(b_soma, 1), 5);
+
+    NoAST **p_id = malloc(sizeof(NoAST *));
+    p_id[0] = criar_no_id("val", 8);
+    NoAST **b_id = malloc(sizeof(NoAST *));
+    b_id[0] = criar_no_return(criar_no_id("val", 9), 9);
+    NoAST *fn_id = criar_no_funcdef("id", p_id, 1, criar_no_bloco(b_id, 1), 8);
+
+    NoAST **p_maior = malloc(sizeof(NoAST *) * 2);
+    p_maior[0] = criar_no_id("a", 11);
+    p_maior[1] = criar_no_id("b", 11);
+    NoAST **b_if_maior = malloc(sizeof(NoAST *) * 2);
+    b_if_maior[0] = criar_no_assign("res", criar_no_id("a", 13), 13);
+    b_if_maior[1] = criar_no_return(criar_no_id("res", 14), 14);
+    NoAST **b_maior = malloc(sizeof(NoAST *) * 2);
+    b_maior[0] = criar_no_if(
+        criar_no_binop(OP_GT, criar_no_id("a", 12), criar_no_id("b", 12), 12),
+        criar_no_bloco(b_if_maior, 2), NULL, 0, NULL, 12);
+    b_maior[1] = criar_no_return(criar_no_id("b", 15), 15);
+    NoAST *fn_maior = criar_no_funcdef("maior", p_maior, 2, criar_no_bloco(b_maior, 2), 11);
+
+    NoAST **args_call_saudar = malloc(sizeof(NoAST *));
+    args_call_saudar[0] = criar_no_string("\"Rafael\"", 17);
+    NoAST **args_call_soma = malloc(sizeof(NoAST *) * 2);
+    args_call_soma[0] = criar_no_int(3, 18);
+    args_call_soma[1] = criar_no_int(4, 18);
+    NoAST **args_call_id = malloc(sizeof(NoAST *));
+    args_call_id[0] = criar_no_string("\"abc\"", 19);
+    NoAST **args_call_maior = malloc(sizeof(NoAST *) * 2);
+    args_call_maior[0] = criar_no_id("total", 20);
+    args_call_maior[1] = criar_no_int(5, 20);
+
+    NoAST *cmds[] = {
+        fn_saudar,
+        fn_soma,
+        fn_id,
+        fn_maior,
+        criar_no_funccall("saudar", args_call_saudar, 1, 17),
+        criar_no_assign("total", criar_no_funccall("soma", args_call_soma, 2, 18), 18),
+        criar_no_assign("texto", criar_no_funccall("id", args_call_id, 1, 19), 19),
+        criar_no_assign("m", criar_no_funccall("maior", args_call_maior, 2, 20), 20),
+    };
+    NoAST *raiz = programa(8, cmds);
+
+    int erros = 0, nao_traduzidos = 0;
+    char *cs = gerar_csharp(raiz, &erros, &nao_traduzidos);
+
+    ASSERT(erros == 0, "funções, chamadas e return semanticamente válidos");
+    ASSERT(nao_traduzidos == 0, "todas as funções e chamadas traduzidas");
+    ASSERT(strstr(cs,
+                  "        static void saudar(string nome) {\n"
+                  "            Console.WriteLine(\"Olá\");\n"
+                  "            Console.WriteLine(nome);\n"
+                  "        }\n") != NULL,
+           "função void com tipo de parâmetro inferido pela 1ª chamada");
+    ASSERT(strstr(cs,
+                  "        static int soma(int x, int y) {\n"
+                  "            return x + y;\n"
+                  "        }\n") != NULL,
+           "função com retorno int e parâmetros inferidos pelo corpo");
+    ASSERT(strstr(cs,
+                  "        static string id(string val) {\n"
+                  "            return val;\n"
+                  "        }\n") != NULL,
+           "função identidade com parâmetro e retorno inferidos pela 1ª chamada");
+    ASSERT(strstr(cs,
+                  "        static int maior(int a, int b) {\n"
+                  "            int res = default(int);\n"
+                  "            if (a > b) {\n"
+                  "                res = a;\n"
+                  "                return res;\n"
+                  "            }\n"
+                  "            return b;\n"
+                  "        }\n") != NULL,
+           "função com hoisting de variável local em bloco if e múltiplos returns");
+    ASSERT(strstr(cs,
+                  "            saudar(\"Rafael\");\n"
+                  "            int total = soma(3, 4);\n"
+                  "            string texto = id(\"abc\");\n"
+                  "            int m = maior(total, 5);\n") != NULL,
+           "chamadas de função no Main como comando e em expressões");
+
+    free(cs);
+    liberar_ast(raiz);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_exemplo_especificacao(void) {
+    printf("Running test_exemplo_especificacao...\n");
+
+    /*
+     * Exemplo da Especificação (docs/Especificacao_Linguagem.md):
+     * def saudacao(nome):
+     *     print("Olá")
+     *     print(nome)
+     *
+     * limite = 5
+     * for i in range(limite):
+     *     if i == 3:
+     *         saudacao("Visitante")
+     *     else:
+     *         print(i)
+     */
+    NoAST **params = malloc(sizeof(NoAST *));
+    params[0] = criar_no_id("nome", 1);
+    NoAST **arg_p1 = malloc(sizeof(NoAST *));
+    arg_p1[0] = criar_no_string("\"Olá\"", 2);
+    NoAST **arg_p2 = malloc(sizeof(NoAST *));
+    arg_p2[0] = criar_no_id("nome", 3);
+    NoAST **corpo_fn = malloc(sizeof(NoAST *) * 2);
+    corpo_fn[0] = criar_no_print(arg_p1, 1, 2);
+    corpo_fn[1] = criar_no_print(arg_p2, 1, 3);
+    NoAST *fn_saudacao = criar_no_funcdef("saudacao", params, 1, criar_no_bloco(corpo_fn, 2), 1);
+
+    NoAST **arg_call = malloc(sizeof(NoAST *));
+    arg_call[0] = criar_no_string("\"Visitante\"", 8);
+    NoAST **b_if = malloc(sizeof(NoAST *));
+    b_if[0] = criar_no_funccall("saudacao", arg_call, 1, 8);
+
+    NoAST **arg_pi = malloc(sizeof(NoAST *));
+    arg_pi[0] = criar_no_id("i", 10);
+    NoAST **b_else = malloc(sizeof(NoAST *));
+    b_else[0] = criar_no_print(arg_pi, 1, 10);
+
+    NoAST **b_for = malloc(sizeof(NoAST *));
+    b_for[0] = criar_no_if(
+        criar_no_binop(OP_EQ, criar_no_id("i", 7), criar_no_int(3, 7), 7),
+        criar_no_bloco(b_if, 1), NULL, 0, criar_no_bloco(b_else, 1), 7);
+
+    NoAST *cmds[] = {
+        fn_saudacao,
+        criar_no_assign("limite", criar_no_int(5, 5), 5),
+        criar_no_for("i", criar_no_id("limite", 6), criar_no_bloco(b_for, 1), 6),
     };
     NoAST *raiz = programa(3, cmds);
 
     int erros = 0, nao_traduzidos = 0;
     char *cs = gerar_csharp(raiz, &erros, &nao_traduzidos);
 
-    ASSERT(erros == 0, "def + chamada em if e range sem erro semântico");
-    ASSERT(nao_traduzidos == 3,
-           "exatamente 3 construções não traduzidas (def, f() em if, f() em for)");
-    ASSERT(strstr(cs, "// [não traduzido] def (linha 1)") != NULL,
-           "def marcado como não traduzido");
+    ASSERT(erros == 0, "exemplo da especificação semanticamente válido");
+    ASSERT(nao_traduzidos == 0, "exemplo da especificação 100% traduzido");
     ASSERT(strstr(cs,
-                  "            if (/* não traduzido: chamada de função (linha 3) */ default(int) > 0) {\n"
-                  "                x = 1;\n"
-                  "            }\n") != NULL,
-           "chamada não suportada em condição if emite placeholder default(int)");
+                  "        static void saudacao(string nome) {\n"
+                  "            Console.WriteLine(\"Olá\");\n"
+                  "            Console.WriteLine(nome);\n"
+                  "        }\n") != NULL,
+           "método static void saudacao(string nome) gerado como na especificação");
     ASSERT(strstr(cs,
-                  "            for (i = 0; i < /* não traduzido: chamada de função (linha 5) */ default(int); i++) {\n"
-                  "                x = 2;\n"
+                  "            int limite = 5;\n"
+                  "            for (i = 0; i < limite; i++) {\n"
+                  "                if (i == 3) {\n"
+                  "                    saudacao(\"Visitante\");\n"
+                  "                } else {\n"
+                  "                    Console.WriteLine(i);\n"
+                  "                }\n"
                   "            }\n") != NULL,
-           "chamada não suportada em range() emite placeholder default(int)");
+           "corpo do Main gerado com laço for, if/else e chamada a saudacao");
 
     free(cs);
     liberar_ast(raiz);
@@ -1365,7 +1648,10 @@ int main(void) {
         test_for_range_passo(),
         test_estruturas_aninhadas(),
         test_hoisting_promocao_e_condicoes_especiais(),
-        test_nao_suportado_em_estruturas_controle()
+        test_nao_suportado_em_estruturas_controle(),
+        test_input(),
+        test_funcoes_chamadas_e_return(),
+        test_exemplo_especificacao()
     };
 
     int n_tests = sizeof(test_results) / sizeof(test_results[0]);

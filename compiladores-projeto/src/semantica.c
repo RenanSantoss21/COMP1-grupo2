@@ -147,10 +147,50 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
                 if(chamada_valida && sim->tipos_parametros != NULL ){
                     if(sim->tipos_parametros[i]==TIPO_DESCONHECIDO ){
                         sim->tipos_parametros[i]=tipo_arg;
-                        if (sim->tipo == TIPO_DESCONHECIDO) sim->tipo = tipo_arg;
+                        if (sim->no_declaracao != NULL &&
+                            i < sim->no_declaracao->num_argumentos &&
+                            sim->no_declaracao->argumentos[i] != NULL) {
+                            sim->no_declaracao->argumentos[i]->tipo_resolvido = tipo_arg;
+                        }
+                        if (sim->tipo == TIPO_DESCONHECIDO) {
+                            sim->tipo = tipo_arg;
+                            if (sim->no_declaracao != NULL) {
+                                sim->no_declaracao->tipo_resolvido = tipo_arg;
+                            }
+                        }
                     }else if(tipo_arg != TIPO_DESCONHECIDO && sim->tipos_parametros[i]!=tipo_arg){
                     fprintf(stderr, "Erro semântico na linha %d: Tipos dos argumentos são incompatíveis.\n", raiz->linha);
                     if (erros) *erros += 1; 
+                    }
+                }
+            }
+            if (chamada_valida && sim->no_declaracao != NULL &&
+                sim->no_declaracao->bloco_if != NULL) {
+                /* Propaga os tipos inferidos dos parâmetros para seus usos e variáveis locais no corpo da função. */
+                for (int k = 0; k < sim->no_declaracao->num_argumentos; k++) {
+                    NoAST *p_no = sim->no_declaracao->argumentos[k];
+                    TipoDado t_p = sim->tipos_parametros ? sim->tipos_parametros[k] : TIPO_DESCONHECIDO;
+                    if (p_no != NULL && p_no->nome != NULL && t_p != TIPO_DESCONHECIDO) {
+                        NoAST *bloco_fn = sim->no_declaracao->bloco_if;
+                        for (int c = 0; c < bloco_fn->num_argumentos; c++) {
+                            NoAST *cmd_fn = bloco_fn->argumentos[c];
+                            if (cmd_fn == NULL) continue;
+                            if (cmd_fn->tipo == NO_RETURN && cmd_fn->esquerda != NULL &&
+                                cmd_fn->esquerda->tipo == NO_ID &&
+                                strcmp(cmd_fn->esquerda->nome, p_no->nome) == 0) {
+                                cmd_fn->esquerda->tipo_resolvido = t_p;
+                                cmd_fn->tipo_resolvido = t_p;
+                            } else if (cmd_fn->tipo == NO_IF && cmd_fn->bloco_if != NULL) {
+                                for (int ic = 0; ic < cmd_fn->bloco_if->num_argumentos; ic++) {
+                                    NoAST *sub = cmd_fn->bloco_if->argumentos[ic];
+                                    if (sub != NULL && sub->tipo == NO_ASSIGN &&
+                                        sub->esquerda != NULL && sub->esquerda->tipo == NO_ID &&
+                                        strcmp(sub->esquerda->nome, p_no->nome) == 0) {
+                                        sub->esquerda->tipo_resolvido = t_p;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -214,6 +254,7 @@ static int pre_registrar_funcoes(NoAST *bloco, TabelaSimbolos *tabela) {
         s->e_funcao = true;
         s->pre_registrada = true;
         s->num_parametros = cmd->num_argumentos;
+        s->no_declaracao = cmd;
         if (cmd->num_argumentos > 0) {
             s->tipos_parametros = malloc(sizeof(TipoDado) * cmd->num_argumentos);
             for (int j = 0; j < cmd->num_argumentos; j++) {
@@ -318,6 +359,7 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
             s->e_funcao = true;
             s->pre_registrada = false;
             s->num_parametros = raiz->num_argumentos;
+            s->no_declaracao = raiz;
             if (raiz->num_argumentos > 0) {
                 s->tipos_parametros = malloc(sizeof(TipoDado) * raiz->num_argumentos);
                 for (int i = 0; i < raiz->num_argumentos; i++) {
@@ -326,6 +368,7 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
             }
         } else if (s->pre_registrada) {
             s->pre_registrada = false;
+            s->no_declaracao = raiz;
         } else {
             atualizar_simbolo = false;
             erros += 1;
@@ -356,11 +399,14 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
             for (int i = 0; i < raiz->num_argumentos; i++) {
                 Simbolo *param = tabela_buscar_escopo_atual(tabela, raiz->argumentos[i]->nome);
                 if (param != NULL) {
+                    if (param->tipo == TIPO_DESCONHECIDO && s->tipos_parametros[i] != TIPO_DESCONHECIDO) {
+                        param->tipo = s->tipos_parametros[i];
+                    }
                     s->tipos_parametros[i] = param->tipo;             
                     raiz->argumentos[i]->tipo_resolvido = param->tipo;
-                    }
                 }
-            } 
+            }
+        } 
     
         tabela_sair_escopo(tabela);
         
@@ -412,7 +458,13 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
         }
 
         if (raiz->esquerda) {
-            erros += analisar_semantica(raiz->esquerda, tabela);
+            if (raiz->esquerda->tipo == NO_BLOCO) {
+                for (int i = 0; i < raiz->esquerda->num_argumentos; i++) {
+                    inferir_tipo(raiz->esquerda->argumentos[i], tabela, &erros);
+                }
+            } else {
+                inferir_tipo(raiz->esquerda, tabela, &erros);
+            }
         }
 
         if (raiz->bloco_if) {

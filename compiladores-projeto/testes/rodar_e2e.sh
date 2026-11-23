@@ -236,7 +236,7 @@ fi
 echo ""
 echo "--- 3. Emissao, compilacao C# e execucao comparada ---"
 
-for idx in 1 2 3 4; do
+for idx in 1 2 3 4 5; do
     arquivo="testes/TestesCodegenCSharp${idx}.py"
     nome="$(basename "$arquivo")"
     prefixo="cs${idx}"

@@ -366,11 +366,31 @@ static void anexar_unaryop(Buffer *b, NoAST *no, int *nao_suportados) {
     buffer_liberar(&operando);
 }
 
+static void anexar_funccall(Buffer *b, NoAST *no, int *nao_suportados) {
+    anexar_identificador(b, no->nome);
+    buffer_anexar_char(b, '(');
+    for (int i = 0; i < no->num_argumentos; i++) {
+        if (i > 0) buffer_anexar(b, ", ");
+        anexar_expressao(b, no->argumentos[i], nao_suportados);
+    }
+    buffer_anexar_char(b, ')');
+}
+
 /*
- * Chamadas de função ainda caem no caso não suportado: como os 'def' ainda
- * não são emitidos, uma chamada traduzida referenciaria um método inexistente
- * e o arquivo deixaria de compilar. Entram junto com a tradução de funções.
+ * input() -> Console.ReadLine()
+ * Quando há prompt e a chamada ocorre em subexpressão, usa o helper
+ * _input(prompt) da classe Program (que emite Console.Write antes do ReadLine).
  */
+static void anexar_input(Buffer *b, NoAST *no, int *nao_suportados) {
+    if (no->esquerda != NULL) {
+        buffer_anexar(b, "_input(");
+        anexar_expressao(b, no->esquerda, nao_suportados);
+        buffer_anexar_char(b, ')');
+    } else {
+        buffer_anexar(b, "Console.ReadLine()");
+    }
+}
+
 static void anexar_expressao(Buffer *b, NoAST *no, int *nao_suportados) {
     if (no == NULL) return;
 
@@ -382,6 +402,8 @@ static void anexar_expressao(Buffer *b, NoAST *no, int *nao_suportados) {
         case NO_ID:        anexar_identificador(b, no->nome);               break;
         case NO_BINOP:     anexar_binop(b, no, nao_suportados);             break;
         case NO_UNARYOP:   anexar_unaryop(b, no, nao_suportados);           break;
+        case NO_FUNCCALL:  anexar_funccall(b, no, nao_suportados);          break;
+        case NO_INPUT:     anexar_input(b, no, nao_suportados);             break;
         default:           anexar_nao_suportado(b, no, nao_suportados);     break;
     }
 }
@@ -607,6 +629,17 @@ static void emitir_nao_suportado(Contexto *ctx, NoAST *no, int nivel) {
 }
 
 static void emitir_atribuicao(Contexto *ctx, NoAST *no, int nivel) {
+    /* Caso tenha prompt direto em x = input(prompt), emite Console.Write(prompt); antes. */
+    if (no->esquerda != NULL && no->esquerda->tipo == NO_INPUT &&
+        no->esquerda->esquerda != NULL) {
+        Buffer linha_prompt;
+        buffer_iniciar(&linha_prompt);
+        buffer_anexar(&linha_prompt, "Console.Write(");
+        anexar_expressao(&linha_prompt, no->esquerda->esquerda, &ctx->nao_suportados);
+        buffer_anexar(&linha_prompt, ");");
+        emitir_linha_buffer(ctx, &linha_prompt, nivel);
+    }
+
     Buffer linha;
     buffer_iniciar(&linha);
 
@@ -620,9 +653,49 @@ static void emitir_atribuicao(Contexto *ctx, NoAST *no, int nivel) {
 
     anexar_identificador(&linha, no->nome);
     buffer_anexar(&linha, " = ");
-    anexar_expressao(&linha, no->esquerda, &ctx->nao_suportados);
+    if (no->esquerda != NULL && no->esquerda->tipo == NO_INPUT &&
+        no->esquerda->esquerda != NULL) {
+        buffer_anexar(&linha, "Console.ReadLine()");
+    } else {
+        anexar_expressao(&linha, no->esquerda, &ctx->nao_suportados);
+    }
     buffer_anexar_char(&linha, ';');
 
+    emitir_linha_buffer(ctx, &linha, nivel);
+}
+
+static void emitir_input_comando(Contexto *ctx, NoAST *no, int nivel) {
+    if (no->esquerda != NULL) {
+        Buffer linha_prompt;
+        buffer_iniciar(&linha_prompt);
+        buffer_anexar(&linha_prompt, "Console.Write(");
+        anexar_expressao(&linha_prompt, no->esquerda, &ctx->nao_suportados);
+        buffer_anexar(&linha_prompt, ");");
+        emitir_linha_buffer(ctx, &linha_prompt, nivel);
+    }
+
+    emitir_indentacao(ctx, nivel);
+    fputs("Console.ReadLine();\n", ctx->saida);
+}
+
+static void emitir_funccall_comando(Contexto *ctx, NoAST *no, int nivel) {
+    Buffer linha;
+    buffer_iniciar(&linha);
+    anexar_funccall(&linha, no, &ctx->nao_suportados);
+    buffer_anexar_char(&linha, ';');
+    emitir_linha_buffer(ctx, &linha, nivel);
+}
+
+static void emitir_return(Contexto *ctx, NoAST *no, int nivel) {
+    Buffer linha;
+    buffer_iniciar(&linha);
+    if (no->esquerda != NULL) {
+        buffer_anexar(&linha, "return ");
+        anexar_expressao(&linha, no->esquerda, &ctx->nao_suportados);
+        buffer_anexar_char(&linha, ';');
+    } else {
+        buffer_anexar(&linha, "return;");
+    }
     emitir_linha_buffer(ctx, &linha, nivel);
 }
 
@@ -809,6 +882,132 @@ static void emitir_for(Contexto *ctx, NoAST *no, int nivel) {
     fputs("}\n", ctx->saida);
 }
 
+/*
+ * Verifica se há input(prompt) usado dentro de uma expressão composta (e não
+ * como comando solto ou atribuído diretamente em x = input(prompt)). Nesse caso
+ * o arquivo precisa do helper static string _input(object prompt).
+ */
+static bool precisa_helper_input(NoAST *no, bool topo_comando_ou_assign) {
+    if (no == NULL) return false;
+    if (no->tipo == NO_INPUT) {
+        if (no->esquerda == NULL) return false;
+        if (!topo_comando_ou_assign) return true;
+        return precisa_helper_input(no->esquerda, false);
+    }
+    if (no->tipo == NO_PROGRAMA || no->tipo == NO_BLOCO) {
+        for (int i = 0; i < no->num_argumentos; i++) {
+            if (precisa_helper_input(no->argumentos[i], true)) return true;
+        }
+        return false;
+    }
+    if (no->tipo == NO_FUNCDEF) {
+        return precisa_helper_input(no->bloco_if, true);
+    }
+    if (no->tipo == NO_ASSIGN) {
+        return precisa_helper_input(no->esquerda, true);
+    }
+    if (no->tipo == NO_IF) {
+        if (precisa_helper_input(no->condicao, false) ||
+            precisa_helper_input(no->bloco_if, true) ||
+            precisa_helper_input(no->bloco_else, true)) return true;
+        for (int i = 0; i < no->num_argumentos; i++) {
+            if (precisa_helper_input(no->argumentos[i], true)) return true;
+        }
+        return false;
+    }
+    if (no->tipo == NO_ELIF || no->tipo == NO_WHILE) {
+        return precisa_helper_input(no->condicao, false) ||
+               precisa_helper_input(no->bloco_if, true);
+    }
+    if (no->tipo == NO_FOR) {
+        return precisa_helper_input(no->esquerda, false) ||
+               precisa_helper_input(no->bloco_if, true);
+    }
+    if (precisa_helper_input(no->esquerda, false) ||
+        precisa_helper_input(no->direita, false) ||
+        precisa_helper_input(no->condicao, false) ||
+        precisa_helper_input(no->bloco_if, false) ||
+        precisa_helper_input(no->bloco_else, false)) return true;
+    for (int i = 0; i < no->num_argumentos; i++) {
+        if (precisa_helper_input(no->argumentos[i], false)) return true;
+    }
+    return false;
+}
+
+static bool bloco_termina_com_return(NoAST *no) {
+    if (no == NULL) return false;
+    if (no->tipo == NO_RETURN) return true;
+    if (no->tipo == NO_BLOCO) {
+        if (no->num_argumentos == 0) return false;
+        return bloco_termina_com_return(no->argumentos[no->num_argumentos - 1]);
+    }
+    if (no->tipo == NO_IF) {
+        if (no->bloco_else == NULL) return false;
+        if (!bloco_termina_com_return(no->bloco_if)) return false;
+        for (int i = 0; i < no->num_argumentos; i++) {
+            NoAST *elif_no = no->argumentos[i];
+            if (elif_no == NULL || !bloco_termina_com_return(elif_no->bloco_if)) return false;
+        }
+        return bloco_termina_com_return(no->bloco_else);
+    }
+    return false;
+}
+
+static void emitir_funcdef(Contexto *ctx, NoAST *no, int nivel) {
+    Contexto fn_ctx = { ctx->saida, 0, { NULL, 0, 0 }, { NULL, 0, 0 }, 0 };
+
+    const char *tipo_ret = (no->tipo_resolvido == TIPO_VOID)
+                           ? "void"
+                           : tipo_csharp_explicito(no->tipo_resolvido);
+
+    Buffer cabecalho;
+    buffer_iniciar(&cabecalho);
+    buffer_anexarf(&cabecalho, "static %s ", tipo_ret);
+    anexar_identificador(&cabecalho, no->nome);
+    buffer_anexar_char(&cabecalho, '(');
+
+    for (int i = 0; i < no->num_argumentos; i++) {
+        NoAST *param = no->argumentos[i];
+        if (i > 0) buffer_anexar(&cabecalho, ", ");
+        TipoDado t_param = param != NULL ? param->tipo_resolvido : TIPO_DESCONHECIDO;
+        buffer_anexar(&cabecalho, tipo_csharp_explicito(t_param));
+        buffer_anexar_char(&cabecalho, ' ');
+        if (param != NULL && param->nome != NULL) {
+            anexar_identificador(&cabecalho, param->nome);
+            if (!lista_contem(&fn_ctx.declaradas, param->nome)) {
+                lista_adicionar(&fn_ctx.declaradas, param->nome);
+            }
+            if (!lista_contem(&fn_ctx.reservadas, param->nome)) {
+                lista_adicionar(&fn_ctx.reservadas, param->nome);
+            }
+        }
+    }
+    buffer_anexar(&cabecalho, ") {");
+    emitir_linha_buffer(&fn_ctx, &cabecalho, nivel);
+
+    ListaHoist hoist;
+    hoist_iniciar(&hoist);
+    coletar_variaveis_hoist(no->bloco_if, &hoist, &fn_ctx.reservadas, false);
+    emitir_variaveis_hoisted(&fn_ctx, &hoist, nivel + 1);
+    hoist_liberar(&hoist);
+
+    emitir_comando(&fn_ctx, no->bloco_if, nivel + 1);
+
+    /* Se a função retorna valor mas nem todos os caminhos terminam em return,
+       adiciona um return default(T); no final para evitar erro CS0161 em C#. */
+    if (no->tipo_resolvido != TIPO_VOID && !bloco_termina_com_return(no->bloco_if)) {
+        emitir_indentacao(&fn_ctx, nivel + 1);
+        fprintf(fn_ctx.saida, "return default(%s);\n", tipo_ret);
+    }
+
+    emitir_indentacao(&fn_ctx, nivel);
+    fputs("}\n", fn_ctx.saida);
+
+    ctx->nao_suportados += fn_ctx.nao_suportados;
+    lista_liberar(&fn_ctx.declaradas);
+    lista_liberar(&fn_ctx.reservadas);
+}
+
 static void emitir_comando(Contexto *ctx, NoAST *no, int nivel) {
     if (no == NULL) return;
 
@@ -819,6 +1018,22 @@ static void emitir_comando(Contexto *ctx, NoAST *no, int nivel) {
 
         case NO_PRINT:
             emitir_print(ctx, no, nivel);
+            break;
+
+        case NO_INPUT:
+            emitir_input_comando(ctx, no, nivel);
+            break;
+
+        case NO_FUNCCALL:
+            emitir_funccall_comando(ctx, no, nivel);
+            break;
+
+        case NO_RETURN:
+            emitir_return(ctx, no, nivel);
+            break;
+
+        case NO_FUNCDEF:
+            emitir_funcdef(ctx, no, nivel);
             break;
 
         case NO_IF:
@@ -861,11 +1076,19 @@ int codegen_csharp_gerar(NoAST *raiz, FILE *saida) {
     fprintf(saida, "namespace " NAMESPACE_CSHARP " {\n");
     fprintf(saida, INDENTACAO "static class Program {\n");
 
+    if (precisa_helper_input(raiz, true)) {
+        fprintf(saida, INDENTACAO INDENTACAO "static string _input(object prompt) {\n");
+        fprintf(saida, INDENTACAO INDENTACAO INDENTACAO "Console.Write(prompt);\n");
+        fprintf(saida, INDENTACAO INDENTACAO INDENTACAO "return Console.ReadLine();\n");
+        fprintf(saida, INDENTACAO INDENTACAO "}\n\n");
+    }
+
     /* Funções definidas pelo usuário: viram métodos static da classe. */
     bool tem_funcoes = false;
     for (int i = 0; i < num_comandos; i++) {
         if (comandos[i] != NULL && comandos[i]->tipo == NO_FUNCDEF) {
-            emitir_nao_suportado(&ctx, comandos[i], 2);
+            if (tem_funcoes) fprintf(saida, "\n");
+            emitir_funcdef(&ctx, comandos[i], 2);
             tem_funcoes = true;
         }
     }
