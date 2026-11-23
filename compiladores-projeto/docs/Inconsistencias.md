@@ -9,10 +9,10 @@ Levantamento das divergências entre a documentação do projeto e o comportamen
 | Categoria | Itens |
 |---|---|
 | [1. Comportamento documentado que não acontece](#1-comportamento-documentado-que-nao-acontece) | 8 |
-| [2. Documentação desatualizada](#2-documentacao-desatualizada) | 11 |
+| [2. Documentação desatualizada](#2-documentacao-desatualizada) | 4 |
 | [3. Links e navegação](#3-links-e-navegacao) | 3 |
-| [4. Documentos que se contradizem](#4-documentos-que-se-contradizem) | 2 |
-| [5. Já corrigido](#5-ja-corrigido) | 7 |
+| [4. Documentos que se contradizem](#4-documentos-que-se-contradizem) | 1 |
+| [5. Já corrigido](#5-ja-corrigido) | 15 |
 
 ---
 
@@ -74,30 +74,6 @@ São os casos mais graves: ou o documento está errado, ou o código tem um bug.
 
 O código evoluiu depois que o texto foi escrito. Nenhum destes casos muda o comportamento do compilador, mas eles confundem quem chega ao projeto.
 
-### D1 — README interno parado na Sprint 1
-- **Onde:** `compiladores-projeto/README.md`
-- **O doc diz:** `src/` está "reservado", há "5 arquivos de teste" e os testes cobrem só o lexer.
-- **Na prática:** `src/` tem 6 módulos, `testes/` tem 39 arquivos `.py` e há 6 suítes unitárias.
-- **Correção sugerida:** reescrever ou apontar para o README da raiz.
-
-### D2 — README da raiz sem TAC, otimizador e C#
-- **Onde:** `README.md:19-26` e `83-87`
-- **O doc diz:** `src/` tem "AST, Tabela de Símbolos, Análise Semântica"; testes unitários só desses três; exercícios em "`semana 01` a `semana 06`".
-- **Na prática:** faltam `codegen_intermediario`, `otimizador` e `codegen_csharp` e os alvos `test_tac`, `test_otimizador` e `test_codegen_csharp`. As aulas ficam em `Aulas/semana 01` a `semana 10`.
-- **Correção sugerida:** atualizar as duas listas e o caminho das aulas.
-
-### D3 — Flags de linha de comando incompletas
-- **Onde:** `docs/Parser.md:192`, `README.md`, `docs/index.md`
-- **O doc diz:** o executável aceita `--ast`, `--dot` e `--tabela`. O README e o index não citam flags.
-- **Na prática:** existem também `--tac`, `--opt` e `--cs [arquivo]`.
-- **Correção sugerida:** uma tabela única de flags no README.
-
-### D4 — Guia do Makefile sem os alvos novos
-- **Onde:** `docs/Makefile.md:29`, `39-44` e `58`
-- **O doc diz:** `make` compila `ast`, `tabela`, `semantica` e `codegen_intermediario`; `make test` roda a integração antes do `test_tac`.
-- **Na prática:** o build inclui também `otimizador.c` e `codegen_csharp.c`. A ordem real é ast, tabela, semantica, tac, otimizador, codegen_csharp e integração. Os alvos `test_otimizador` e `test_codegen_csharp`, e os binários deles no `make clean`, não aparecem.
-- **Correção sugerida:** atualizar as três listas.
-
 ### D5 — Cabeçalhos e não-terminais do `parser.y`
 - **Onde:** `docs/Parser.md:15` e `20`
 - **O doc diz:** o parser importa `ast.h`, `tabela.h` e `semantica.h`, e lista os `%type <ast>`.
@@ -116,29 +92,11 @@ O código evoluiu depois que o texto foi escrito. Nenhum destes casos muda o com
 - **Na prática:** são 12 testes. Faltam `test_contagem_nao_declarada`, `test_contagem_argumentos_de_chamada`, `test_inferencia_parametros_e_void` e `test_politica_reatribuicao_tipos`. A integração passa 72.
 - **Correção sugerida:** completar a Parte 1 e atualizar a saída do runner.
 
-### D10 — Resultado obtido antigo nos relatórios léxico e sintático
-- **Onde:** `docs/Testes_Lexicos.md:190`, `docs/Testes_Sintaticos.md:190`
-- **O doc diz:** "Resultado: 39 passaram, 0 falharam".
-- **Na prática:** 72 passam. As mensagens de erro léxico e sintático citadas foram conferidas e continuam corretas.
-- **Correção sugerida:** atualizar o bloco, ou mostrar só o trecho da categoria de cada relatório, para não envelhecer a cada teste novo.
-
 ### D11 — Contagem e lista dos testes de integração semântica
 - **Onde:** `docs/Semantica.md:102-133`
 - **O doc diz:** "16 arquivos de testes de integração semântica"; a tabela lista 21.
 - **Na prática:** são 23. A tabela omite `TestesSemanticaErros10.py` e `TestesSemanticaErros11.py`.
 - **Correção sugerida:** completar a tabela e trocar o número fixo por "a tabela abaixo".
-
-### D12 — Números e issues da Sprint 4
-- **Onde:** `docs/Sprints.md:32`, `34` e `35`
-- **O doc diz:** "39 cenários" de integração; catálogo "`SEM-01` a `SEM-14`"; *forward references* nas "Issues #49, #51".
-- **Na prática:** são 72 cenários e o catálogo vai até `SEM-17`. A Issue #51 é a política de reatribuição (ADR-001), não *forward references*.
-- **Correção sugerida:** ajustar os números e mover a #51 para o item de reatribuição.
-
-### D13 — Material de apresentação com números antigos
-- **Onde:** `apresentacao_p1.md`, `roteiro_topico5_testes_infra.md`
-- **O doc diz:** 59 testes (P1) e 66 testes, "conferidos em 27/09/2026" (roteiro).
-- **Na prática:** são 69 testes unitários e 72 de integração. Os dois documentos são registros de apresentações já feitas.
-- **Correção sugerida:** não precisa reescrever; no máximo, uma linha no topo indicando que são registros datados.
 
 ---
 
@@ -169,12 +127,6 @@ Afetam o site publicado pelo MkDocs.
 ## 4. Documentos que se contradizem
 
 Precisam de uma decisão do grupo antes de mexer no texto.
-
-### X1 — Estrutura do arquivo C#
-- **Onde:** Issues #14 e #29, `CODING_STANDARDS.md`, `docs/Especificacao_Linguagem.md`
-- **O doc diz:** as issues mostram `class Program` sem namespace; o `CODING_STANDARDS.md` pede namespace e classe estática; a especificação usa `namespace CompiladorPython` com `static class Program`.
-- **Na prática:** o gerador segue o `CODING_STANDARDS.md` com o nome da especificação ([Geração de Código C#](CodegenCSharp.md)). Só os textos das issues ficaram diferentes.
-- **Correção sugerida:** registrar nas issues a estrutura adotada.
 
 ### X2 — Comentário de bloco `/* */` não é Python
 - **Onde:** `lexer/lexer.l:135`, `docs/Lexer.md:111`, `docs/Especificacao_Linguagem.md`
@@ -213,3 +165,34 @@ Precisam de uma decisão do grupo antes de mexer no texto.
 ### R7 — Struct, API e exemplo em `docs/TabelaSimbolos.md` (D8 / Issue #57)
 - **Estava:** faltavam `pre_registrada` na struct `Simbolo` e `tabela_buscar_escopo_atual` na tabela da API; o texto dizia que blocos abrem escopo e o exemplo registrava `x` antes do pré-registro de `calcular`.
 - **Ficou:** documentação de `TabelaSimbolos.md` alinhada com a implementação atual.
+
+### R8 — README interno atualizado (`compiladores-projeto/README.md`) (D1 / Issue #58)
+- **Estava:** parado na Sprint 1, citando `src/` reservado, 5 arquivos de teste e cobertura apenas do lexer.
+- **Ficou:** reescrito com os 6 módulos em `src/`, todas as suítes unitárias e de integração, alvos do `Makefile` e referência ao README da raiz e à pasta `docs/`.
+
+### R9 — README da raiz atualizado (`README.md`) (D2 / Issue #58)
+- **Estava:** sem menção a TAC, otimizador e gerador C# na estrutura e nos testes, e listando `semana 01` a `semana 06`.
+- **Ficou:** atualizados o resumo do compilador, a estrutura (`src/`, `testes/`, `testes/tdd/`), o caminho `Aulas/semana 01` a `semana 10` e todos os alvos de teste (`make test`, `test_tac`, `test_otimizador`, `test_codegen_csharp`).
+
+### R10 — Tabela completa de flags de CLI (D3 / Issue #58)
+- **Estava:** `docs/Parser.md` listava apenas `--ast`, `--dot` e `--tabela`; `README.md` e `docs/index.md` não documentavam as flags.
+- **Ficou:** tabela completa com `--ast`, `--dot`, `--tabela`, `--tac`, `--opt` e `--cs [arquivo]` adicionada em `README.md` e `docs/index.md`, e lista atualizada em `docs/Parser.md`.
+
+### R11 — Guia do Makefile atualizado (`docs/Makefile.md`) (D4 / Issue #58)
+- **Estava:** omitia `otimizador.c` e `codegen_csharp.c` no build, apresentava ordem antiga em `make test` e não listava `test_otimizador` nem `test_codegen_csharp` (inclusive no `make clean`).
+- **Ficou:** alinhado ao `Makefile` atual (build com os 6 módulos, ordem real de `make test`, seções individuais para todos os alvos e lista completa do `make clean`).
+
+### R12 — Resultado obtido nos relatórios léxico e sintático (D10 / Issue #58)
+- **Estava:** `docs/Testes_Lexicos.md` e `docs/Testes_Sintaticos.md` reproduziam a saída inteira antiga do runner ("Resultado: 39 passaram, 0 falharam").
+- **Ficou:** cada relatório exibe apenas o trecho correspondente à sua categoria (léxico em `Testes_Lexicos.md`; sintático e recuperação de erros em `Testes_Sintaticos.md`), evitando defasagem a cada novo teste.
+
+### R13 — Números e issues da Sprint 4 (`docs/Sprints.md`) (D12 / Issue #58)
+- **Estava:** citava "39 cenários", catálogo até `SEM-14` e a Issue #51 em *forward references*.
+- **Ficou:** catálogo corrigido para `SEM-01` a `SEM-17`, Issue #51 movida para o item de reatribuição (ADR-001) e descrição da suíte no `rodar_testes.sh` sem contagem fixa desatualizada.
+
+### R14 — Material de apresentação (`apresentacao_p1.md`, `roteiro_topico5_testes_infra.md`) (D13 / Issue #58)
+- **Situação:** os arquivos de apresentação citados no levantamento não estão versionados neste repositório; por serem registros históricos externos de apresentações já concluídas, nenhuma alteração foi necessária no repositório.
+
+### R15 — Alinhamento da estrutura do arquivo C# (X1 / Issue #58)
+- **Estava:** `CODING_STANDARDS.md` pedia apenas "um `namespace` e uma classe `Program` estática", sem explicitar o nome do namespace adotado.
+- **Ficou:** `CODING_STANDARDS.md` atualizado para especificar `namespace CompiladorPython` e `static class Program`, alinhado a `docs/Especificacao_Linguagem.md`, `docs/CodegenCSharp.md` e `src/codegen_csharp.c` (restando apenas registrar em comentário nas Issues #14 e #29 no GitHub).
