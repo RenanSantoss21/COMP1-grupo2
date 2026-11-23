@@ -217,9 +217,15 @@ expressao:
       expressao PLUS expressao   { $$ = criar_no_binop(OP_SOMA, $1, $3, @2.first_line); }
     | expressao MINUS expressao  { $$ = criar_no_binop(OP_SUB, $1, $3, @2.first_line); }
     | expressao ASSIGN expressao {
-          /* Verifica se o lado esquerdo é um ID válido */
-          char *nome = ($1 && $1->tipo == NO_ID) ? $1->nome : "invalido";
-          $$ = criar_no_assign(nome, $3, @2.first_line);
+          if (!$1 || $1->tipo != NO_ID) {
+            yyerror("lado esquerdo da atribuição deve ser um identificador");
+            liberar_ast($1);
+            liberar_ast($3);
+            $$ = NULL;
+          } else {
+            $$ = criar_no_assign($1->nome, $3, @2.first_line);
+            liberar_ast($1);
+          }
       }
     | expressao EQ expressao     { $$ = criar_no_binop(OP_EQ, $1, $3, @2.first_line); }
     | expressao NEQ expressao    { $$ = criar_no_binop(OP_NEQ, $1, $3, @2.first_line); }
