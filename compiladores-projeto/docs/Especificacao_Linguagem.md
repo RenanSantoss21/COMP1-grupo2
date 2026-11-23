@@ -10,7 +10,9 @@ Para manter a complexidade do compilador factível durante o semestre, implement
   - Numéricos: `int` (inteiros) e `float` (ponto flutuante, mapeado para `double` em C#).
   - Booleanos: `True` e `False` (`bool`).
   - Texto: `str` (`string`).
-  - Listas: literais de lista como `[]` e `[1, 2, 3]`.
+  - Retorno de função sem valor: `void` (quando `return` é vazio ou omitido).
+- **Tipos Não Suportados**:
+  - Estruturas compostas (`list`, `tuple`, `dict`) não fazem parte do escopo do compilador.
 - **Estruturas de Controle de Fluxo**:
   - Condicionais: `if`, `elif`, `else`.
   - Laços de repetição: `while` e `for` (utilizado com `in range(...)` de 1, 2 ou 3 argumentos).
@@ -20,6 +22,9 @@ Para manter a complexidade do compilador factível durante o semestre, implement
   - Funções nativas predefinidas: `print()` e `input()`.
 - **Blocos de Código (Indentação)**:
   - Respeitando o padrão Python, blocos de código são definidos através de níveis de indentação reais. O analisador léxico gera tokens de fim de linha lógica (`NEWLINE`), aumento de indentação (`INDENT`) e retorno de indentação (`DEDENT`).
+- **Comentários**:
+  - Aceita exclusivamente comentários de linha única iniciados por `#`.
+  - Comentários de bloco estilo C (`/* ... */`) **não são suportados**, respeitando estritamente a sintaxe do Python.
 
 ---
 

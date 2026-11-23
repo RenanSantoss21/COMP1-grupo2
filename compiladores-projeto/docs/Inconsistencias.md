@@ -192,3 +192,10 @@ Precisam de uma decisão do grupo antes de mexer no texto.
 ### R17 — Navegação do MkDocs para Semântica, ADR-001 e TAC (N1 / Issue #20)
 - **Estava:** `ErrosSemanticos.md` e `ADR/001-reatribuicao-de-tipo.md` estavam fora do `nav` do `mkdocs.yml`, e o módulo de Código Intermediário (TAC) ainda não tinha página própria.
 - **Ficou:** adicionados ao `nav` em `mkdocs.yml` (`Catálogo de Erros Semânticos`, `ADR-001` e a nova página `CodigoIntermediario.md`).
+### R18 — Comentário de bloco `/* */` removido do lexer (X2 / Issue #55)
+- **Estava:** O lexer aceitava comentários de bloco no estilo C (`/* ... */`), que não fazem parte do Python.
+- **Ficou:** Regra removida de `lexer/lexer.l` e documentado em `docs/Lexer.md` e `docs/Especificacao_Linguagem.md` que apenas `#` é suportado.
+
+### R19 — Origem da linha dos nós via locations do Bison (D6 / Issue #55)
+- **Estava:** `docs/AST.md` e `docs/Lexer.md` diziam que os nós recebiam a variável `linha_token`.
+- **Ficou:** Documentado o uso de `%locations`, `yylloc` e `@N.first_line` do Bison nos dois documentos.

@@ -422,7 +422,7 @@ A integração da AST com o analisador sintático (`parser/parser.y`) foi conclu
 
 ### 2. Ações Semânticas e Construtores
 * Em cada regra gramatical, foram adicionadas ações no formato `{ $$ = criar_no_*(...); }` utilizando a API de construtores.
-* A variável global `linha_token` (gerenciada pelo lexer) foi repassada no último parâmetro de todas as chamadas `criar_no_*` para garantir a rastreabilidade exata em caso de erros semânticos.
+* A rastreabilidade das linhas dos nós é realizada utilizando o mecanismo de locations do Bison (`%locations`), repassando `@N.first_line` no parâmetro de linha de cada construtor `criar_no_*`. O lexer alimenta `yylloc` através da macro `YY_USER_ACTION`, garantindo que a linha exata de cada token e estrutura composta seja preservada com precisão.
 
 ### 3. Gerenciamento de Listas Dinâmicas
 Como a análise do Bison é reduzida de baixo para cima, o tamanho final de blocos de código ou listas de argumentos não é conhecido previamente.

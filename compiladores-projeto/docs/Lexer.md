@@ -108,11 +108,8 @@ Os comentários não geram tokens, eles são identificados e **descartados** (ig
   - Exemplo: `# Isto é um comentário de linha`
   - **Regex:** `"#"[^\n]*`
 
-- **Comentários de bloco:** Textos delimitados por `/*` e `*/` podendo se estender por múltiplas linhas.
-  - Exemplo: `/* Comentário de bloco */`
-  - **Regex:** `"/*"([^*]|\*+[^*/])*\*+"/"`
-  - As quebras de linha dentro do comentário são contadas, para que a numeração das
-    linhas seguintes (usada nas mensagens de erro) continue correta.
+- **Comentários de bloco:** **Não são suportados.** O compilador aceita exclusivamente comentários iniciados por `#`, mantendo total conformidade com a sintaxe do Python. Comentários delimitados no estilo C (`/* ... */`) não são aceitos.`
+
 
 ### 9. Controle de Indentação (INDENT / DEDENT / NEWLINE)
 
@@ -173,8 +170,7 @@ branco seguintes e a indentação da próxima linha. Quando o parser reclama de 
 (ex.: `if x > 1` sem `:`), `linha_atual` — e também o `yylineno` do Flex — já aponta para
 a linha de baixo. Por isso as mensagens de erro sintático usam `linha_token`:
 
-- É atualizada automaticamente antes da ação de cada regra, via
-  `#define YY_USER_ACTION linha_token = linha_atual;`.
+- É atualizada automaticamente antes da ação de cada regra, via: `#define YY_USER_ACTION linha_token = linha_atual; yylloc.first_line = yylloc.last_line = linha_token;`, preenchendo a localização de tokens (`yylloc`) para suporte ao rastreamento exato via `@N.first_line` no Bison.
 - Para tokens da fila de indentação: o `INDENT` recebe a linha recém-indentada; o `DEDENT`
   mantém a linha do último token, onde está o bloco que acabou de ser fechado.
 
