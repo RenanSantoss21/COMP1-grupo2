@@ -449,6 +449,53 @@ static int test_inferencia_parametros_e_void(void) {
     liberar_ast(prog3);
     tabela_liberar(tab3);
 
+    // Caso 4: Função com 2 parâmetros que retorna o 2º via variável local em else (def escolhe2(a, b): if False: res = b else: res = b; return res; escolhe2(10, "oi"))
+    TabelaSimbolos *tab4 = tabela_criar();
+    NoAST **params_e2 = malloc(2 * sizeof(NoAST *));
+    params_e2[0] = criar_no_id("a", 1);
+    params_e2[1] = criar_no_id("b", 1);
+
+    NoAST **bloco_then_e2 = malloc(sizeof(NoAST *));
+    NoAST *assign_then = criar_no_assign("res", criar_no_id("b", 3), 3);
+    bloco_then_e2[0] = assign_then;
+
+    NoAST **bloco_else_e2 = malloc(sizeof(NoAST *));
+    NoAST *assign_else = criar_no_assign("res", criar_no_id("b", 5), 5);
+    bloco_else_e2[0] = assign_else;
+
+    NoAST *if_e2 = criar_no_if(criar_no_bool(0, 2),
+                               criar_no_bloco(bloco_then_e2, 1),
+                               NULL, 0,
+                               criar_no_bloco(bloco_else_e2, 1), 2);
+    NoAST *ret_e2 = criar_no_return(criar_no_id("res", 6), 6);
+
+    NoAST **corpo_e2 = malloc(2 * sizeof(NoAST *));
+    corpo_e2[0] = if_e2;
+    corpo_e2[1] = ret_e2;
+    NoAST *def_e2 = criar_no_funcdef("escolhe2", params_e2, 2, criar_no_bloco(corpo_e2, 2), 1);
+
+    NoAST **args_e2 = malloc(2 * sizeof(NoAST *));
+    args_e2[0] = criar_no_int(10, 7);
+    args_e2[1] = criar_no_string("oi", 7);
+    NoAST *call_e2 = criar_no_funccall("escolhe2", args_e2, 2, 7);
+
+    NoAST **cmds4 = malloc(2 * sizeof(NoAST *));
+    cmds4[0] = def_e2;
+    cmds4[1] = call_e2;
+    NoAST *prog4 = criar_no_programa(cmds4, 2);
+
+    int erros4 = analisar_semantica(prog4, tab4);
+    Simbolo *s_e2 = tabela_buscar(tab4, "escolhe2");
+    ASSERT(erros4 == 0, "Should report 0 errors for escolhe2(10, \"oi\")");
+    ASSERT(s_e2 != NULL && s_e2->tipo == TIPO_STRING,
+           "Return type of escolhe2 should be TIPO_STRING (from 2nd param 'b'), not TIPO_INT (from 1st param 'a')");
+    ASSERT(def_e2->tipo_resolvido == TIPO_STRING, "NO_FUNCDEF tipo_resolvido should be TIPO_STRING");
+    ASSERT(ret_e2->tipo_resolvido == TIPO_STRING, "NO_RETURN tipo_resolvido should be TIPO_STRING");
+    ASSERT(assign_else->esquerda->tipo_resolvido == TIPO_STRING,
+           "Assignment inside else block should have tipo_resolvido propagated as TIPO_STRING");
+    liberar_ast(prog4);
+    tabela_liberar(tab4);
+
     printf("  PASSED\n");
     return 1;
 }

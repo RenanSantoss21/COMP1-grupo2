@@ -33,6 +33,7 @@ typedef struct {
     bool pre_registrada;
     int num_parametros;
     TipoDado* tipos_parametros;
+    struct noAST* no_declaracao;
 } Simbolo;
 ```
 
@@ -44,6 +45,7 @@ typedef struct {
 * **`pre_registrada`:** Booleano que indica se a função foi inserida na 1ª passada (`pre_registrar_funcoes`) e seu `def` ainda não foi visitado na 2ª passada.
 * **`num_parametros`:** Quantidade de parâmetros formais esperados pela função.
 * **`tipos_parametros`:** Vetor dinâmico com os tipos esperados para cada parâmetro formal.
+* **`no_declaracao`:** Ponteiro para o nó `NO_FUNCDEF` correspondente na AST, permitindo que a análise semântica propague tipos de parâmetros e de retorno inferidos tardiamente na 1ª chamada para os nós do corpo da função.
 
 ### 3. Tabela de Símbolos (`src/tabela.h`)
 

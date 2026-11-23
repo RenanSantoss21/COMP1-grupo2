@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "semantica.h"
+
 static void inferir_parametro_se_desconhecido(NoAST *no, TabelaSimbolos *tabela, TipoDado novo_tipo, TipoDado *tipo_atual){
     if(*tipo_atual==TIPO_DESCONHECIDO && novo_tipo != TIPO_DESCONHECIDO && no!=NULL && no->tipo == NO_ID){
         Simbolo *sim = tabela_buscar(tabela,no->nome);
@@ -10,6 +11,111 @@ static void inferir_parametro_se_desconhecido(NoAST *no, TabelaSimbolos *tabela,
             no->tipo_resolvido = novo_tipo;
             *tipo_atual = novo_tipo;
         }
+    }
+}
+
+static void propagar_tipo_identificador_ast(NoAST *no, const char *nome, TipoDado tipo) {
+    if (no == NULL || nome == NULL || tipo == TIPO_DESCONHECIDO) return;
+    if (no->tipo == NO_FUNCDEF) return;
+
+    if (no->tipo == NO_ID && no->nome != NULL && strcmp(no->nome, nome) == 0) {
+        if (no->tipo_resolvido == TIPO_DESCONHECIDO) {
+            no->tipo_resolvido = tipo;
+        }
+    }
+
+    propagar_tipo_identificador_ast(no->esquerda, nome, tipo);
+    propagar_tipo_identificador_ast(no->direita, nome, tipo);
+    propagar_tipo_identificador_ast(no->condicao, nome, tipo);
+    propagar_tipo_identificador_ast(no->bloco_if, nome, tipo);
+    propagar_tipo_identificador_ast(no->bloco_else, nome, tipo);
+    for (int i = 0; i < no->num_argumentos; i++) {
+        propagar_tipo_identificador_ast(no->argumentos[i], nome, tipo);
+    }
+}
+
+static void atualizar_tipos_corpo_funcao_ast(NoAST *no, NoAST *corpo_raiz, Simbolo *sim_func, bool *mudou) {
+    if (no == NULL || no->tipo == NO_FUNCDEF) return;
+
+    atualizar_tipos_corpo_funcao_ast(no->esquerda, corpo_raiz, sim_func, mudou);
+    atualizar_tipos_corpo_funcao_ast(no->direita, corpo_raiz, sim_func, mudou);
+    atualizar_tipos_corpo_funcao_ast(no->condicao, corpo_raiz, sim_func, mudou);
+    atualizar_tipos_corpo_funcao_ast(no->bloco_if, corpo_raiz, sim_func, mudou);
+    atualizar_tipos_corpo_funcao_ast(no->bloco_else, corpo_raiz, sim_func, mudou);
+    for (int i = 0; i < no->num_argumentos; i++) {
+        atualizar_tipos_corpo_funcao_ast(no->argumentos[i], corpo_raiz, sim_func, mudou);
+    }
+
+    if (no->tipo == NO_UNARYOP && no->tipo_resolvido == TIPO_DESCONHECIDO && no->esquerda != NULL) {
+        TipoDado t_op = no->esquerda->tipo_resolvido;
+        if (no->operador == OP_NEG && (t_op == TIPO_INT || t_op == TIPO_FLOAT)) {
+            no->tipo_resolvido = t_op;
+            *mudou = true;
+        } else if (no->operador == OP_NOT && t_op == TIPO_BOOL) {
+            no->tipo_resolvido = TIPO_BOOL;
+            *mudou = true;
+        }
+    } else if (no->tipo == NO_BINOP && no->tipo_resolvido == TIPO_DESCONHECIDO &&
+               no->esquerda != NULL && no->direita != NULL) {
+        TipoDado te = no->esquerda->tipo_resolvido;
+        TipoDado td = no->direita->tipo_resolvido;
+        if (no->operador == OP_SOMA || no->operador == OP_SUB ||
+            no->operador == OP_MULT || no->operador == OP_DIV) {
+            if (no->operador == OP_SOMA && te == TIPO_STRING && td == TIPO_STRING) {
+                no->tipo_resolvido = TIPO_STRING;
+                *mudou = true;
+            } else if ((te == TIPO_INT || te == TIPO_FLOAT) && (td == TIPO_INT || td == TIPO_FLOAT)) {
+                no->tipo_resolvido = (no->operador == OP_DIV || te == TIPO_FLOAT || td == TIPO_FLOAT)
+                                     ? TIPO_FLOAT : TIPO_INT;
+                *mudou = true;
+            }
+        }
+    } else if (no->tipo == NO_ASSIGN && no->nome != NULL && no->esquerda != NULL) {
+        TipoDado t_rhs = no->esquerda->tipo_resolvido;
+        if (t_rhs != TIPO_DESCONHECIDO) {
+            propagar_tipo_identificador_ast(corpo_raiz, no->nome, t_rhs);
+        }
+    } else if (no->tipo == NO_RETURN && no->esquerda != NULL) {
+        TipoDado t_ret = no->esquerda->tipo_resolvido;
+        if (t_ret != TIPO_DESCONHECIDO) {
+            if (no->tipo_resolvido == TIPO_DESCONHECIDO) {
+                no->tipo_resolvido = t_ret;
+                *mudou = true;
+            }
+            if (sim_func->tipo == TIPO_DESCONHECIDO) {
+                sim_func->tipo = t_ret;
+                if (sim_func->no_declaracao != NULL) {
+                    sim_func->no_declaracao->tipo_resolvido = t_ret;
+                }
+                *mudou = true;
+            }
+        }
+    }
+}
+
+static void propagar_tipos_inferidos_na_chamada(Simbolo *sim) {
+    if (sim == NULL || sim->no_declaracao == NULL || sim->no_declaracao->bloco_if == NULL) return;
+
+    NoAST *decl = sim->no_declaracao;
+    NoAST *corpo = decl->bloco_if;
+
+    for (int k = 0; k < decl->num_argumentos; k++) {
+        NoAST *p_no = decl->argumentos[k];
+        TipoDado t_p = (sim->tipos_parametros != NULL && k < sim->num_parametros)
+                       ? sim->tipos_parametros[k]
+                       : TIPO_DESCONHECIDO;
+        if (p_no != NULL && p_no->nome != NULL && t_p != TIPO_DESCONHECIDO) {
+            p_no->tipo_resolvido = t_p;
+            propagar_tipo_identificador_ast(corpo, p_no->nome, t_p);
+        }
+    }
+
+    bool mudou = true;
+    int iter = 0;
+    while (mudou && iter < 8) {
+        mudou = false;
+        atualizar_tipos_corpo_funcao_ast(corpo, corpo, sim, &mudou);
+        iter++;
     }
 }
 TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
@@ -152,45 +258,19 @@ TipoDado inferir_tipo(NoAST *raiz, TabelaSimbolos *tabela, int *erros) {
                             sim->no_declaracao->argumentos[i] != NULL) {
                             sim->no_declaracao->argumentos[i]->tipo_resolvido = tipo_arg;
                         }
-                        if (sim->tipo == TIPO_DESCONHECIDO) {
-                            sim->tipo = tipo_arg;
-                            if (sim->no_declaracao != NULL) {
-                                sim->no_declaracao->tipo_resolvido = tipo_arg;
-                            }
-                        }
                     }else if(tipo_arg != TIPO_DESCONHECIDO && sim->tipos_parametros[i]!=tipo_arg){
                     fprintf(stderr, "Erro semântico na linha %d: Tipos dos argumentos são incompatíveis.\n", raiz->linha);
                     if (erros) *erros += 1; 
                     }
                 }
             }
-            if (chamada_valida && sim->no_declaracao != NULL &&
-                sim->no_declaracao->bloco_if != NULL) {
-                /* Propaga os tipos inferidos dos parâmetros para seus usos e variáveis locais no corpo da função. */
-                for (int k = 0; k < sim->no_declaracao->num_argumentos; k++) {
-                    NoAST *p_no = sim->no_declaracao->argumentos[k];
-                    TipoDado t_p = sim->tipos_parametros ? sim->tipos_parametros[k] : TIPO_DESCONHECIDO;
-                    if (p_no != NULL && p_no->nome != NULL && t_p != TIPO_DESCONHECIDO) {
-                        NoAST *bloco_fn = sim->no_declaracao->bloco_if;
-                        for (int c = 0; c < bloco_fn->num_argumentos; c++) {
-                            NoAST *cmd_fn = bloco_fn->argumentos[c];
-                            if (cmd_fn == NULL) continue;
-                            if (cmd_fn->tipo == NO_RETURN && cmd_fn->esquerda != NULL &&
-                                cmd_fn->esquerda->tipo == NO_ID &&
-                                strcmp(cmd_fn->esquerda->nome, p_no->nome) == 0) {
-                                cmd_fn->esquerda->tipo_resolvido = t_p;
-                                cmd_fn->tipo_resolvido = t_p;
-                            } else if (cmd_fn->tipo == NO_IF && cmd_fn->bloco_if != NULL) {
-                                for (int ic = 0; ic < cmd_fn->bloco_if->num_argumentos; ic++) {
-                                    NoAST *sub = cmd_fn->bloco_if->argumentos[ic];
-                                    if (sub != NULL && sub->tipo == NO_ASSIGN &&
-                                        sub->esquerda != NULL && sub->esquerda->tipo == NO_ID &&
-                                        strcmp(sub->esquerda->nome, p_no->nome) == 0) {
-                                        sub->esquerda->tipo_resolvido = t_p;
-                                    }
-                                }
-                            }
-                        }
+            if (chamada_valida) {
+                propagar_tipos_inferidos_na_chamada(sim);
+                if (sim->tipo == TIPO_DESCONHECIDO && sim->num_parametros > 0 &&
+                    sim->tipos_parametros != NULL && sim->tipos_parametros[0] != TIPO_DESCONHECIDO) {
+                    sim->tipo = sim->tipos_parametros[0];
+                    if (sim->no_declaracao != NULL) {
+                        sim->no_declaracao->tipo_resolvido = sim->tipo;
                     }
                 }
             }
