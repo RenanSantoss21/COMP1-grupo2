@@ -202,6 +202,95 @@ static int test_condicional_float_e_apos_return(void) {
     return 1;
 }
 
+static int test_constant_folding_issue_27(void) {
+    printf("Running test_constant_folding_issue_27 (Exemplo exato da Issue #27)...\n");
+    liberar_tac();
+
+    // t1 = 3 + 4 -> t1 = 7
+    emitir(cria_instrucao(TAC_BINOP, "t1", "3", "4", "+"));
+    // t2 = 10 * 2 -> t2 = 20
+    emitir(cria_instrucao(TAC_BINOP, "t2", "10", "2", "*"));
+    // t3 = t1 + t2 -> t3 = 27 (propaga t1=7 e t2=20, depois dobra)
+    emitir(cria_instrucao(TAC_BINOP, "t3", "t1", "t2", "+"));
+
+    TAC *tac = obter_tac();
+    bool mudou = otimizar_constant_folding(tac);
+    ASSERT(mudou == true, "otimizar_constant_folding should report changes");
+
+    ASSERT(tac->tamanho == 3, "tac should have 3 instructions");
+    ASSERT(tac->Instrucoes[0].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[0].resultado, "t1") == 0 && strcmp(tac->Instrucoes[0].operando1, "7") == 0, "t1 = 7");
+    ASSERT(tac->Instrucoes[1].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[1].resultado, "t2") == 0 && strcmp(tac->Instrucoes[1].operando1, "20") == 0, "t2 = 20");
+    ASSERT(tac->Instrucoes[2].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[2].resultado, "t3") == 0 && strcmp(tac->Instrucoes[2].operando1, "27") == 0, "t3 = 27");
+
+    liberar_tac();
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_simplificacoes_algebricas_adicionais(void) {
+    printf("Running test_simplificacoes_algebricas_adicionais (x-x, booleanos, comutativas)...\n");
+    liberar_tac();
+
+    // t0 = x - x -> 0
+    emitir(cria_instrucao(TAC_BINOP, "t0", "x", "x", "-"));
+    // t1 = 1 * y -> y
+    emitir(cria_instrucao(TAC_BINOP, "t1", "1", "y", "*"));
+    // t2 = 0 + z -> z
+    emitir(cria_instrucao(TAC_BINOP, "t2", "0", "z", "+"));
+    // t3 = 0 * w -> 0
+    emitir(cria_instrucao(TAC_BINOP, "t3", "0", "w", "*"));
+    // t4 = a and True -> a
+    emitir(cria_instrucao(TAC_BINOP, "t4", "a", "True", "and"));
+    // t5 = True and b -> b
+    emitir(cria_instrucao(TAC_BINOP, "t5", "True", "b", "and"));
+    // t6 = c and False -> False
+    emitir(cria_instrucao(TAC_BINOP, "t6", "c", "False", "and"));
+    // t7 = d or True -> True
+    emitir(cria_instrucao(TAC_BINOP, "t7", "d", "True", "or"));
+    // t8 = e or False -> e
+    emitir(cria_instrucao(TAC_BINOP, "t8", "e", "False", "or"));
+
+    TAC *tac = obter_tac();
+    otimizar_constant_folding(tac);
+
+    ASSERT(tac->Instrucoes[0].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[0].operando1, "0") == 0, "x - x -> 0");
+    ASSERT(tac->Instrucoes[1].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[1].operando1, "y") == 0, "1 * y -> y");
+    ASSERT(tac->Instrucoes[2].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[2].operando1, "z") == 0, "0 + z -> z");
+    ASSERT(tac->Instrucoes[3].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[3].operando1, "0") == 0, "0 * w -> 0");
+    ASSERT(tac->Instrucoes[4].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[4].operando1, "a") == 0, "a and True -> a");
+    ASSERT(tac->Instrucoes[5].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[5].operando1, "b") == 0, "True and b -> b");
+    ASSERT(tac->Instrucoes[6].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[6].operando1, "False") == 0, "c and False -> False");
+    ASSERT(tac->Instrucoes[7].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[7].operando1, "True") == 0, "d or True -> True");
+    ASSERT(tac->Instrucoes[8].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[8].operando1, "e") == 0, "e or False -> e");
+
+    liberar_tac();
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_constant_folding_strings(void) {
+    printf("Running test_constant_folding_strings...\n");
+    liberar_tac();
+
+    // t0 = "hello " + "world" -> "hello world"
+    emitir(cria_instrucao(TAC_BINOP, "t0", "\"hello \"", "\"world\"", "+"));
+    // t1 = "abc" == "abc" -> True
+    emitir(cria_instrucao(TAC_BINOP, "t1", "\"abc\"", "\"abc\"", "=="));
+    // t2 = "abc" != "abc" -> False
+    emitir(cria_instrucao(TAC_BINOP, "t2", "\"abc\"", "\"abc\"", "!="));
+
+    TAC *tac = obter_tac();
+    otimizar_constant_folding(tac);
+
+    ASSERT(tac->Instrucoes[0].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[0].operando1, "\"hello world\"") == 0, "concatena strings");
+    ASSERT(tac->Instrucoes[1].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[1].operando1, "True") == 0, "strings iguais == True");
+    ASSERT(tac->Instrucoes[2].tipo == TAC_ASSIGN && strcmp(tac->Instrucoes[2].operando1, "False") == 0, "strings iguais != False");
+
+    liberar_tac();
+    printf("  PASSED\n");
+    return 1;
+}
+
 int main(void) {
     printf("=========================================\n");
     printf("   Testes do módulo Otimizador (TAC)     \n");
@@ -214,7 +303,10 @@ int main(void) {
         test_simplificacoes_algebricas(),
         test_fronteira_controle_fluxo(),
         test_invalidacao_por_reatribuicao(),
-        test_condicional_float_e_apos_return()
+        test_condicional_float_e_apos_return(),
+        test_constant_folding_issue_27(),
+        test_simplificacoes_algebricas_adicionais(),
+        test_constant_folding_strings()
     };
 
     int passed = 0;
