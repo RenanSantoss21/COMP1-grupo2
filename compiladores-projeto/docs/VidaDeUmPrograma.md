@@ -617,13 +617,12 @@ Tabela ao fim do `if`:
 
 ```text
 analisar_semantica(Print) [esc=0]
-  analisar_semantica(Id y) [esc=0]
-    tabela_buscar(y) -> INT
+  inferir_tipo(Id y) -> INT
 ```
 
-`NO_PRINT` não tem ramo próprio e cai no percurso genérico, que chama `analisar_semantica` em cada argumento. No ramo `NO_ID`, `tabela_buscar(y)` encontra o `y` inserido no passo 5.4, então não há erro, e o nó recebe o tipo do símbolo (`INT`).
+`NO_PRINT` tem ramo próprio em `analisar_semantica`, que chama `inferir_tipo` em cada argumento. No caso `NO_ID`, `tabela_buscar(y)` encontra o `y` inserido no passo 5.4, então não há erro, e o nó recebe o tipo do símbolo (`INT`) em `tipo_resolvido`. É esse tipo que o gerador C# usa para traduzir o `print` em `Console.WriteLine`.
 
-Como os argumentos não passam por `inferir_tipo`, uma expressão com tipos incompatíveis dentro do `print`, como `print("a" + 1)`, **não** é reportada.
+Como os argumentos passam por `inferir_tipo`, uma expressão com tipos incompatíveis dentro do `print` também é reportada. Por exemplo, `print("a" + 1)` gera `Erro semântico na linha 1: Operação aritmética com tipos incompatíveis.` (coberto por `TestesSemanticaErros12.py`).
 
 ### Resultado
 
@@ -649,13 +648,13 @@ Nenhuma mensagem e código de saída `0`: o programa é aceito. Em Python, ele i
 | 4 | `x > 2` | BOOL | toda comparação é BOOL |
 | 5 | `x` (argumento) | INT | tipo de `x` na tabela |
 | 5 | `dobro(x)` | INT | tipo de retorno de `dobro` |
-| 6 | `y` (em `print`) | INT | tipo de `y` na tabela (ramo `NO_ID`) |
+| 6 | `y` (em `print`) | INT | tipo de `y` na tabela (`inferir_tipo`, caso `NO_ID`) |
 
 São esses valores que aparecem entre colchetes na saída de `--ast` da [seção 3](#3-arvore-sintatica-abstrata-ast).
 
 ### Observações do rastreio
 
-- **Cada expressão é visitada uma vez:** neste exemplo, os ramos `Assign`, `Return` e `If` de `analisar_semantica` chamam só `inferir_tipo` nas expressões, que verifica os tipos e a existência das variáveis. O argumento do `Print` é visitado só pelo percurso genérico, que verifica a existência mas não os tipos. Por isso uma variável não declarada gera um único erro (issue #39).
+- **Cada expressão é visitada uma vez:** neste exemplo, os ramos `Assign`, `Return`, `If` e `Print` de `analisar_semantica` chamam só `inferir_tipo` nas expressões, que verifica os tipos e a existência das variáveis e anota o `tipo_resolvido` usado pelo gerador C#. Por isso uma variável não declarada gera um único erro (issue #39), e um erro de tipo dentro de `print(...)` também é reportado.
 - **Parâmetros ganham tipo pelo uso:** `n` começa `DESCONHECIDO` e vira `INT` por causa de `n * 2`. A partir daí, o retorno de `dobro` e `y` também ficam `INT` (issue #52).
 - **Linha do `If`:** os erros da condição apontam a linha do `if` (linha 4), não o fim do bloco (issue #46).
 - **Variante com `y = 0` antes do `if`:** o `y = dobro(x)` de dentro do bloco reatribui o mesmo `y` do escopo 0, sem criar um segundo símbolo, porque o `if` não abre escopo.

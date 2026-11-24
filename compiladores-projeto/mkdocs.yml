@@ -34,7 +34,6 @@ nav:
     - Guia do Makefile: Makefile.md
   - Planejamento:
     - Sprints e Andamento: Sprints.md
-    - Inconsistências da Documentação: Inconsistencias.md
   - Decisões de Design (ADRs):
     - Especificação da Linguagem: Especificacao_Linguagem.md
     - "ADR-001: Tipagem Estática na Reatribuição": ADR/001-reatribuicao-de-tipo.md
