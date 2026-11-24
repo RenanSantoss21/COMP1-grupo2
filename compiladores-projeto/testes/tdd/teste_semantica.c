@@ -496,6 +496,124 @@ static int test_inferencia_parametros_e_void(void) {
     liberar_ast(prog4);
     tabela_liberar(tab4);
 
+    // Caso 5: Convergência de ponto fixo entre elif e return anterior (def aux(): return aux(); def escolhe_via_elif(a, b): res = aux(); if False: return res elif True: res = b; escolhe_via_elif(10, "oi"))
+    TabelaSimbolos *tab5 = tabela_criar();
+    NoAST **corpo_aux5 = malloc(sizeof(NoAST *));
+    corpo_aux5[0] = criar_no_return(criar_no_funccall("aux", NULL, 0, 2), 2);
+    NoAST *def_aux5 = criar_no_funcdef("aux", NULL, 0, criar_no_bloco(corpo_aux5, 1), 1);
+
+    NoAST **params5 = malloc(2 * sizeof(NoAST *));
+    params5[0] = criar_no_id("a", 3);
+    params5[1] = criar_no_id("b", 3);
+
+    NoAST *assign_init5 = criar_no_assign("res", criar_no_funccall("aux", NULL, 0, 4), 4);
+    NoAST *ret5 = criar_no_return(criar_no_id("res", 6), 6);
+    NoAST **bloco_then5 = malloc(sizeof(NoAST *));
+    bloco_then5[0] = ret5;
+
+    NoAST **bloco_elif5 = malloc(sizeof(NoAST *));
+    bloco_elif5[0] = criar_no_assign("res", criar_no_id("b", 8), 8);
+    NoAST **elifs5 = malloc(sizeof(NoAST *));
+    elifs5[0] = criar_no_elif(criar_no_bool(1, 7), criar_no_bloco(bloco_elif5, 1), 7);
+
+    NoAST *if5 = criar_no_if(criar_no_bool(0, 5),
+                             criar_no_bloco(bloco_then5, 1),
+                             elifs5, 1, NULL, 5);
+    NoAST **corpo5 = malloc(2 * sizeof(NoAST *));
+    corpo5[0] = assign_init5;
+    corpo5[1] = if5;
+    NoAST *def5 = criar_no_funcdef("escolhe_via_elif", params5, 2, criar_no_bloco(corpo5, 2), 3);
+
+    NoAST **args5 = malloc(2 * sizeof(NoAST *));
+    args5[0] = criar_no_int(10, 9);
+    args5[1] = criar_no_string("oi", 9);
+    NoAST *call5 = criar_no_funccall("escolhe_via_elif", args5, 2, 9);
+
+    NoAST **cmds5 = malloc(3 * sizeof(NoAST *));
+    cmds5[0] = def_aux5;
+    cmds5[1] = def5;
+    cmds5[2] = call5;
+    NoAST *prog5 = criar_no_programa(cmds5, 3);
+
+    int erros5 = analisar_semantica(prog5, tab5);
+    Simbolo *s5 = tabela_buscar(tab5, "escolhe_via_elif");
+    ASSERT(erros5 == 0, "Should report 0 errors for escolhe_via_elif(10, \"oi\")");
+    ASSERT(s5 != NULL && s5->tipo == TIPO_STRING,
+           "Fixed-point propagation should infer TIPO_STRING return from elif assignment");
+    ASSERT(def5->tipo_resolvido == TIPO_STRING, "def5 tipo_resolvido should be TIPO_STRING");
+    ASSERT(ret5->tipo_resolvido == TIPO_STRING, "ret5 tipo_resolvido should be TIPO_STRING");
+    ASSERT(ret5->esquerda != NULL && ret5->esquerda->tipo_resolvido == TIPO_STRING,
+           "Returned identifier 'res' should have tipo_resolvido propagated as TIPO_STRING");
+    liberar_ast(prog5);
+    tabela_liberar(tab5);
+
+    // Caso 6: Expressão composta (NO_BINOP) e variável local com parâmetro inferido tardiamente (def concat_tardia(a, b): tmp = b + b; return tmp; concat_tardia(10, "oi"))
+    TabelaSimbolos *tab6 = tabela_criar();
+    NoAST **params6 = malloc(2 * sizeof(NoAST *));
+    params6[0] = criar_no_id("a", 1);
+    params6[1] = criar_no_id("b", 1);
+    NoAST *binop6 = criar_no_binop(OP_SOMA, criar_no_id("b", 2), criar_no_id("b", 2), 2);
+    NoAST *assign6 = criar_no_assign("tmp", binop6, 2);
+    NoAST *ret6 = criar_no_return(criar_no_id("tmp", 3), 3);
+    NoAST **corpo6 = malloc(2 * sizeof(NoAST *));
+    corpo6[0] = assign6;
+    corpo6[1] = ret6;
+    NoAST *def6 = criar_no_funcdef("concat_tardia", params6, 2, criar_no_bloco(corpo6, 2), 1);
+
+    NoAST **args6 = malloc(2 * sizeof(NoAST *));
+    args6[0] = criar_no_int(10, 4);
+    args6[1] = criar_no_string("oi", 4);
+    NoAST *call6 = criar_no_funccall("concat_tardia", args6, 2, 4);
+
+    NoAST **cmds6 = malloc(2 * sizeof(NoAST *));
+    cmds6[0] = def6;
+    cmds6[1] = call6;
+    NoAST *prog6 = criar_no_programa(cmds6, 2);
+
+    int erros6 = analisar_semantica(prog6, tab6);
+    Simbolo *s6 = tabela_buscar(tab6, "concat_tardia");
+    ASSERT(erros6 == 0, "Should report 0 errors for concat_tardia(10, \"oi\")");
+    ASSERT(s6 != NULL && s6->tipo == TIPO_STRING, "concat_tardia should infer TIPO_STRING return");
+    ASSERT(def6->tipo_resolvido == TIPO_STRING, "def6 tipo_resolvido should be TIPO_STRING");
+    ASSERT(binop6->tipo_resolvido == TIPO_STRING, "binop6 tipo_resolvido should be TIPO_STRING");
+    ASSERT(ret6->tipo_resolvido == TIPO_STRING, "ret6 tipo_resolvido should be TIPO_STRING");
+    liberar_ast(prog6);
+    tabela_liberar(tab6);
+
+    // Caso 7: Função multiparâmetro cujo retorno permanece desconhecido não deve herdar o tipo do 1º parâmetro
+    TabelaSimbolos *tab7 = tabela_criar();
+    NoAST **corpo_aux7 = malloc(sizeof(NoAST *));
+    corpo_aux7[0] = criar_no_return(criar_no_funccall("aux2", NULL, 0, 2), 2);
+    NoAST *def_aux7 = criar_no_funcdef("aux2", NULL, 0, criar_no_bloco(corpo_aux7, 1), 1);
+
+    NoAST **params7 = malloc(2 * sizeof(NoAST *));
+    params7[0] = criar_no_id("a", 3);
+    params7[1] = criar_no_id("b", 3);
+    NoAST **corpo7 = malloc(sizeof(NoAST *));
+    corpo7[0] = criar_no_return(criar_no_funccall("aux2", NULL, 0, 4), 4);
+    NoAST *def7 = criar_no_funcdef("sem_tipo_ret", params7, 2, criar_no_bloco(corpo7, 1), 3);
+
+    NoAST **args7 = malloc(2 * sizeof(NoAST *));
+    args7[0] = criar_no_int(10, 5);
+    args7[1] = criar_no_string("oi", 5);
+    NoAST *call7 = criar_no_funccall("sem_tipo_ret", args7, 2, 5);
+
+    NoAST **cmds7 = malloc(3 * sizeof(NoAST *));
+    cmds7[0] = def_aux7;
+    cmds7[1] = def7;
+    cmds7[2] = call7;
+    NoAST *prog7 = criar_no_programa(cmds7, 3);
+
+    int erros7 = analisar_semantica(prog7, tab7);
+    Simbolo *s7 = tabela_buscar(tab7, "sem_tipo_ret");
+    ASSERT(erros7 == 0, "Should report 0 errors for sem_tipo_ret(10, \"oi\")");
+    ASSERT(s7 != NULL && s7->tipo == TIPO_DESCONHECIDO,
+           "Function with unresolved return must not fall back to 1st parameter type");
+    ASSERT(def7->tipo_resolvido == TIPO_DESCONHECIDO,
+           "def7 tipo_resolvido must remain TIPO_DESCONHECIDO");
+    liberar_ast(prog7);
+    tabela_liberar(tab7);
+
     printf("  PASSED\n");
     return 1;
 }
