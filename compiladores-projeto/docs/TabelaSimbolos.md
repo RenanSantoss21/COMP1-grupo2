@@ -33,6 +33,7 @@ typedef struct {
     bool pre_registrada;
     int num_parametros;
     TipoDado* tipos_parametros;
+    struct noAST* no_declaracao;
 } Simbolo;
 ```
 
@@ -44,6 +45,7 @@ typedef struct {
 * **`pre_registrada`:** Booleano que indica se a função foi inserida na 1ª passada (`pre_registrar_funcoes`) e seu `def` ainda não foi visitado na 2ª passada.
 * **`num_parametros`:** Quantidade de parâmetros formais esperados pela função.
 * **`tipos_parametros`:** Vetor dinâmico com os tipos esperados para cada parâmetro formal.
+* **`no_declaracao`:** Ponteiro para o nó `NO_FUNCDEF` correspondente na AST, permitindo que a análise semântica propague tipos de parâmetros e de retorno inferidos tardiamente na 1ª chamada para os nós do corpo da função.
 
 ### 3. Tabela de Símbolos (`src/tabela.h`)
 
@@ -175,7 +177,7 @@ Durante a análise semântica:
 
 ## Testes Unitários (TDD)
 
-A integridade da Tabela de Símbolos é validada por testes unitários dedicados em [`testes/tdd/teste_tabela.c`](../testes/tdd/teste_tabela.c), cobrindo:
+A integridade da Tabela de Símbolos é validada por testes unitários dedicados em [`testes/tdd/teste_tabela.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/testes/tdd/teste_tabela.c), cobrindo:
 * Inicialização da tabela e escopos iniciais.
 * Inserção e busca simples.
 * Resolução de *shadowing* entre escopos aninhados.
@@ -196,9 +198,9 @@ valgrind --leak-check=full ./testes/tdd/teste_tabela
 
 ## Referências
 
-- Cabeçalho: [`src/tabela.h`](../src/tabela.h)
-- Implementação: [`src/tabela.c`](../src/tabela.c)
-- Definição de Tipos: [`src/tipos.h`](../src/tipos.h)
-- Suíte de Testes: [`testes/tdd/teste_tabela.c`](../testes/tdd/teste_tabela.c)
-- Integração Semântica: [`src/semantica.c`](../src/semantica.c)
+- Cabeçalho: [`src/tabela.h`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/tabela.h)
+- Implementação: [`src/tabela.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/tabela.c)
+- Definição de Tipos: [`src/tipos.h`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/tipos.h)
+- Suíte de Testes: [`testes/tdd/teste_tabela.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/testes/tdd/teste_tabela.c)
+- Integração Semântica: [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c)
 - Issues relacionadas: #19 (Documentação AST e Tabela de Símbolos)

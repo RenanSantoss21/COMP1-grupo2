@@ -99,7 +99,7 @@ namespace CompiladorPython {
 
 ## 4. Gramática Formal Implementada (Formato Bison / BNF)
 
-Abaixo está a gramática livre de contexto implementada no arquivo [`parser/parser.y`](../parser/parser.y):
+Abaixo está a gramática livre de contexto implementada no arquivo [`parser/parser.y`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/parser/parser.y):
 
 ```text
 programa : %empty

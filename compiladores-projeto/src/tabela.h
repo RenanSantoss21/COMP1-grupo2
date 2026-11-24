@@ -4,6 +4,8 @@
 #include "tipos.h"
 #include <stdbool.h>
 
+struct noAST;
+
 typedef struct {
     char* nome;
     TipoDado tipo;
@@ -13,6 +15,7 @@ typedef struct {
     bool pre_registrada;
     int num_parametros;
     TipoDado* tipos_parametros;
+    struct noAST* no_declaracao;
 } Simbolo;
 
 typedef struct {

@@ -34,10 +34,9 @@ nav:
     - Guia do Makefile: Makefile.md
   - Planejamento:
     - Sprints e Andamento: Sprints.md
-    - Inconsistências da Documentação: Inconsistencias.md
   - Decisões de Design (ADRs):
     - Especificação da Linguagem: Especificacao_Linguagem.md
-    - ADR-001 — Reatribuição de Tipo: ADR/001-reatribuicao-de-tipo.md
+    - "ADR-001: Tipagem Estática na Reatribuição": ADR/001-reatribuicao-de-tipo.md
   - Implementação:
     - Vida de um Programa: VidaDeUmPrograma.md
     - Lexer: Lexer.md
@@ -53,4 +52,5 @@ nav:
     - Testes Léxicos: Testes_Lexicos.md
     - Testes Sintáticos: Testes_Sintaticos.md
     - Testes Semânticos: Testes_Semanticos.md
+    - Testes End-to-End (E2E): Testes_E2E.md
 

@@ -17,7 +17,8 @@ O projeto principal está na pasta `compiladores-projeto/`:
 - `compiladores-projeto/lexer/`: Contém os arquivos do analisador léxico (`lexer.l`).
 - `compiladores-projeto/parser/`: Contém os arquivos do analisador sintático (`parser.y`).
 - `compiladores-projeto/src/`: Arquivos fonte auxiliares em C (AST, Tabela de Símbolos, Análise Semântica, Código Intermediário TAC, Otimizador e Gerador de Código C#).
-- `compiladores-projeto/testes/`: Contém testes de integração (`.py`) léxicos, sintáticos, semânticos e de geração de código C#, além do script de automação (`rodar_testes.sh`).
+- `compiladores-projeto/testes/`: Contém testes de integração (`.py`) léxicos, sintáticos, semânticos e de geração de código C#, além dos scripts de automação (`rodar_testes.sh` e `rodar_testes_e2e.sh`).
+- `compiladores-projeto/testes/e2e/`: Programas de teste ponta a ponta (`.py`, `.in` e `.out`) que validam a tradução Mini-Python → C# compilado e executado.
 - `compiladores-projeto/testes/tdd/`: Testes unitários em C para AST, Tabela de Símbolos, Semântica, TAC, Otimizador e Gerador de Código C#.
 - `compiladores-projeto/docs/`: Arquivos Markdown da documentação do projeto (site gerado via MkDocs).
 - `compiladores-projeto/Makefile`: Script para automação da compilação e dos testes.
@@ -104,6 +105,14 @@ Para rodar apenas os testes de integração (léxicos, sintáticos, semânticos 
 make test_integracao
 # ou
 ./testes/rodar_testes.sh
+```
+
+Para rodar os testes de ponta a ponta (traduz Mini-Python para C#, compila com `dotnet`/`mcs`/`csc` e compara a saída com `.out` e `python3`):
+
+```bash
+make test_e2e
+# ou
+./testes/rodar_testes_e2e.sh
 ```
 
 Para rodar testes unitários específicos de cada módulo:

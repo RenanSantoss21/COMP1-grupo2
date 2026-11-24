@@ -282,6 +282,85 @@ rodar_teste_csharp "$CS2" "Console.WriteLine();" "print sem argumentos"
 rodar_teste_csharp "$CS2" "Console.WriteLine((double)x / 4);" "divisao no print"
 rodar_teste_csharp_execucao "$CS2"
 
+CS3="testes/TestesCodegenCSharp3.py"
+rodar_teste "$CS3" "nao"
+rodar_teste_csharp "$CS3" "string situacao = default(string);" "hoisting de variavel criada em if/elif/else"
+rodar_teste_csharp "$CS3" "int @string = default(int);" "hoisting com escape @ em palavra reservada"
+rodar_teste_csharp "$CS3" "int @switch = default(int);" "hoisting de indice for com escape @"
+rodar_teste_csharp "$CS3" "} else if (nota >= 5 && nota < 9) {" "elif com condicao composta"
+rodar_teste_csharp "$CS3" "while (n > 0) {" "laco while"
+rodar_teste_csharp "$CS3" "for (i = 0; i < 4; i++) {" "for range com 1 argumento"
+rodar_teste_csharp "$CS3" "for (i = 2; i < 6; i++) {" "for range com 2 argumentos e reuso de indice"
+rodar_teste_csharp "$CS3" "for (j = 0; j < 10; j += 2) {" "for range com passo constante positivo"
+rodar_teste_csharp "$CS3" "for (j = 6; j > 0; j -= 2) {" "for range com passo constante negativo"
+rodar_teste_csharp "$CS3" "for (j = 3; j > 0; j--) {" "for range com passo -1"
+rodar_teste_csharp "$CS3" "int _passo1 = _passo0;" "passo dinamico evita colisao com _passo0"
+rodar_teste_csharp "$CS3" "int _passo4 = p_din;" "passo dinamico em bloco evita colisao com _passo3 posterior"
+rodar_teste_csharp "$CS3" "            int _passo3 = 10;" "variavel _passo3 posterior na raiz preserva declaracao int"
+rodar_teste_csharp "$CS3" "throw new ArgumentException(\"range() arg 3 must not be zero\");" "guarda contra passo zero dinamico"
+rodar_teste_csharp "$CS3" "for (k = 0; _passo1 > 0 ? k < 10 : k > 10; k += _passo1) {" "condicao ternaria para passo dinamico"
+rodar_teste_csharp "$CS3" "                for (b = 0; b < 2; b++) {" "estruturas aninhadas com indentacao"
+rodar_teste_csharp_execucao "$CS3"
+
+CS4="testes/TestesCodegenCSharp4.py"
+rodar_teste "$CS4" "nao"
+rodar_teste_csharp "$CS4" "string.CompareOrdinal(" "comparacao ordinal de string em if/elif"
+rodar_teste_csharp "$CS4" "(b_cmp1 ? 1 : 0)" "comparacao ordinal de bool em while/if"
+rodar_teste_csharp "$CS4" "double val_prom = default(double);" "hoisting com promocao ADR-001 float <- int"
+rodar_teste_csharp "$CS4" "a + 1" "limite inicial composto em range()"
+rodar_teste_csharp "$CS4" "b * 2" "limite final composto em range()"
+rodar_teste_csharp "$CS4" "int @double = default(int);" "escape @ para palavra reservada double em bloco"
+rodar_teste_csharp "$CS4" "int @struct = default(int);" "escape @ para palavra reservada struct em bloco"
+rodar_teste_csharp "$CS4" "int @namespace = default(int);" "escape @ para palavra reservada namespace em for"
+rodar_teste_csharp "$CS4" "                    if (lvl1 == 0 && lvl2 == 0) {" "aninhamento em 3 niveis (for -> while -> if)"
+
+cs4_stdout=$(mktemp)
+cs4_arquivo=$(mktemp)
+./compilador --cs < "$CS4" > "$cs4_stdout" 2>/dev/null
+rc_stdout=$?
+./compilador --cs "$cs4_arquivo" < "$CS4" >/dev/null 2>&1
+rc_arquivo=$?
+if [ "$rc_stdout" -eq 0 ] && [ "$rc_arquivo" -eq 0 ] && diff -q "$cs4_stdout" "$cs4_arquivo" >/dev/null 2>&1; then
+    echo "[OK]    TestesCodegenCSharp4.py (--cs arquivo.cs) - identico ao stdout"
+    PASSOU=$((PASSOU + 1))
+else
+    echo "[FALHA] TestesCodegenCSharp4.py (--cs arquivo.cs) - difere do stdout ou falhou"
+    FALHOU=$((FALHOU + 1))
+fi
+rm -f "$cs4_stdout" "$cs4_arquivo"
+
+saida_sem_cs=$(./compilador --cs < testes/TestesSemanticaErros5.py 2>&1)
+rc_sem_cs=$?
+if [ "$rc_sem_cs" -ne 0 ] && ! echo "$saida_sem_cs" | grep -Fq "namespace CompiladorPython"; then
+    echo "[OK]    TestesSemanticaErros5.py (--cs bloqueado em erro semantico)"
+    PASSOU=$((PASSOU + 1))
+else
+    echo "[FALHA] TestesSemanticaErros5.py (--cs nao bloqueou geracao C#)"
+    FALHOU=$((FALHOU + 1))
+fi
+
+rodar_teste_csharp_execucao "$CS4"
+
+CS_ZERO="testes/TestesCodegenCSharpErroPassoZero.py"
+rodar_teste "$CS_ZERO" "nao"
+rodar_teste_csharp "$CS_ZERO" 'throw new ArgumentException("range() arg 3 must not be zero");' "guarda passo zero"
+
+CS5="testes/TestesCodegenCSharp5.py"
+rodar_teste "$CS5" "nao"
+rodar_teste_csharp "$CS5" "static void saudacao(string nome) {" "def void com parametro string inferido"
+rodar_teste_csharp "$CS5" "static int soma(int x, int y) {" "def com retorno int e parametros inferidos"
+rodar_teste_csharp "$CS5" "return x + y;" "return com expressao"
+rodar_teste_csharp "$CS5" "saudacao(\"Visitante\");" "chamada de funcao como comando"
+rodar_teste_csharp "$CS5" "int total = soma(3, 4);" "chamada de funcao em atribuicao"
+rodar_teste_csharp_execucao "$CS5"
+
+CS6="testes/TestesCodegenCSharp6.py"
+rodar_teste "$CS6" "nao"
+rodar_teste_csharp "$CS6" "string x = Console.ReadLine();" "x = input()"
+rodar_teste_csharp "$CS6" 'Console.Write("Nome: ");' "prompt do input()"
+rodar_teste_csharp "$CS6" "string nome = Console.ReadLine();" "nome = input(prompt)"
+rodar_teste_csharp "$CS6" "Console.ReadLine();" "input() solto"
+
 echo ""
 echo "========================================="
 echo "   Resultado: $PASSOU passaram, $FALHOU falharam"

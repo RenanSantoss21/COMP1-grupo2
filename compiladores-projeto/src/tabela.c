@@ -30,6 +30,7 @@ void tabela_inserir(TabelaSimbolos* tab, char* nome, TipoDado tipo, int linha) {
     s->pre_registrada = false;
     s->num_parametros = 0;
     s->tipos_parametros = NULL;
+    s->no_declaracao = NULL;
 }
 
 Simbolo* tabela_buscar(TabelaSimbolos* tab, char* nome) {

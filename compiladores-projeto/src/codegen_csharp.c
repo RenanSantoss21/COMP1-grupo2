@@ -1,4 +1,5 @@
 #include "codegen_csharp.h"
+#include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -7,7 +8,25 @@
 #define INDENTACAO "    "
 #define NAMESPACE_CSHARP "CompiladorPython"
 
-/* ── Buffer de texto dinâmico ────────────────────────────────────── */
+/* ── Alocação segura e buffer de texto dinâmico ─────────────────── */
+
+static void *realocar_ou_sair(void *ptr, size_t bytes) {
+    void *novo = realloc(ptr, bytes);
+    if (novo == NULL) {
+        fprintf(stderr, "Erro: falha ao alocar memória no gerador C#.\n");
+        exit(1);
+    }
+    return novo;
+}
+
+static char *duplicar_ou_sair(const char *s) {
+    char *copia = strdup(s);
+    if (copia == NULL) {
+        fprintf(stderr, "Erro: falha ao alocar memória no gerador C#.\n");
+        exit(1);
+    }
+    return copia;
+}
 
 typedef struct {
     char  *dados;
@@ -18,23 +37,22 @@ typedef struct {
 static void buffer_iniciar(Buffer *b) {
     b->capacidade = 64;
     b->tamanho = 0;
-    b->dados = malloc(b->capacidade);
-    if (b->dados == NULL) {
-        fprintf(stderr, "Erro: falha ao alocar memória no gerador C#.\n");
-        exit(1);
-    }
+    b->dados = realocar_ou_sair(NULL, b->capacidade);
     b->dados[0] = '\0';
+}
+
+static void buffer_liberar(Buffer *b) {
+    free(b->dados);
+    b->dados = NULL;
+    b->tamanho = 0;
+    b->capacidade = 0;
 }
 
 static void buffer_anexar(Buffer *b, const char *texto) {
     size_t n = strlen(texto);
     if (b->tamanho + n + 1 > b->capacidade) {
         while (b->tamanho + n + 1 > b->capacidade) b->capacidade *= 2;
-        b->dados = realloc(b->dados, b->capacidade);
-        if (b->dados == NULL) {
-            fprintf(stderr, "Erro: falha ao alocar memória no gerador C#.\n");
-            exit(1);
-        }
+        b->dados = realocar_ou_sair(b->dados, b->capacidade);
     }
     memcpy(b->dados + b->tamanho, texto, n + 1);
     b->tamanho += n;
@@ -65,6 +83,12 @@ const char *codegen_csharp_tipo(TipoDado tipo) {
         case TIPO_VOID:   return "void";
         default:          return "var";
     }
+}
+
+/* Tipo C# explícito para declarações com '= default(T)' (evita default(var)). */
+static const char *tipo_csharp_explicito(TipoDado tipo) {
+    if (tipo == TIPO_DESCONHECIDO || tipo == TIPO_VOID) return "object";
+    return codegen_csharp_tipo(tipo);
 }
 
 /* ── Identificadores ─────────────────────────────────────────────── */
@@ -251,11 +275,9 @@ static void anexar_operando(Buffer *b, NoAST *filho, int prec_pai, bool lado_dir
 
 /* Valor neutro do tipo, usado no lugar de expressões ainda não suportadas. */
 static void anexar_nao_suportado(Buffer *b, NoAST *no, int *nao_suportados) {
-    TipoDado tipo = no->tipo_resolvido;
     buffer_anexarf(b, "/* não traduzido: %s (linha %d) */ default(%s)",
                    nome_construcao(no), no->linha,
-                   tipo == TIPO_DESCONHECIDO || tipo == TIPO_VOID ? "object"
-                                                                  : codegen_csharp_tipo(tipo));
+                   tipo_csharp_explicito(no->tipo_resolvido));
     if (nao_suportados) (*nao_suportados)++;
 }
 
@@ -341,14 +363,34 @@ static void anexar_unaryop(Buffer *b, NoAST *no, int *nao_suportados) {
     buffer_anexar(b, operando.dados);
     if (parenteses) buffer_anexar_char(b, ')');
 
-    free(operando.dados);
+    buffer_liberar(&operando);
+}
+
+static void anexar_funccall(Buffer *b, NoAST *no, int *nao_suportados) {
+    anexar_identificador(b, no->nome);
+    buffer_anexar_char(b, '(');
+    for (int i = 0; i < no->num_argumentos; i++) {
+        if (i > 0) buffer_anexar(b, ", ");
+        anexar_expressao(b, no->argumentos[i], nao_suportados);
+    }
+    buffer_anexar_char(b, ')');
 }
 
 /*
- * Chamadas de função ainda caem no caso não suportado: como os 'def' ainda
- * não são emitidos, uma chamada traduzida referenciaria um método inexistente
- * e o arquivo deixaria de compilar. Entram junto com a tradução de funções.
+ * input() -> Console.ReadLine()
+ * Quando há prompt e a chamada ocorre em subexpressão, usa o helper
+ * _input(prompt) da classe Program (que emite Console.Write antes do ReadLine).
  */
+static void anexar_input(Buffer *b, NoAST *no, int *nao_suportados) {
+    if (no->esquerda != NULL) {
+        buffer_anexar(b, "_input(");
+        anexar_expressao(b, no->esquerda, nao_suportados);
+        buffer_anexar_char(b, ')');
+    } else {
+        buffer_anexar(b, "Console.ReadLine()");
+    }
+}
+
 static void anexar_expressao(Buffer *b, NoAST *no, int *nao_suportados) {
     if (no == NULL) return;
 
@@ -360,6 +402,8 @@ static void anexar_expressao(Buffer *b, NoAST *no, int *nao_suportados) {
         case NO_ID:        anexar_identificador(b, no->nome);               break;
         case NO_BINOP:     anexar_binop(b, no, nao_suportados);             break;
         case NO_UNARYOP:   anexar_unaryop(b, no, nao_suportados);           break;
+        case NO_FUNCCALL:  anexar_funccall(b, no, nao_suportados);          break;
+        case NO_INPUT:     anexar_input(b, no, nao_suportados);             break;
         default:           anexar_nao_suportado(b, no, nao_suportados);     break;
     }
 }
@@ -390,13 +434,9 @@ static bool lista_contem(ListaNomes *l, const char *nome) {
 static void lista_adicionar(ListaNomes *l, const char *nome) {
     if (l->tamanho == l->capacidade) {
         l->capacidade = l->capacidade == 0 ? 8 : l->capacidade * 2;
-        l->nomes = realloc(l->nomes, sizeof(char *) * l->capacidade);
-        if (l->nomes == NULL) {
-            fprintf(stderr, "Erro: falha ao alocar memória no gerador C#.\n");
-            exit(1);
-        }
+        l->nomes = realocar_ou_sair(l->nomes, sizeof(char *) * l->capacidade);
     }
-    l->nomes[l->tamanho++] = strdup(nome);
+    l->nomes[l->tamanho++] = duplicar_ou_sair(nome);
 }
 
 static void lista_liberar(ListaNomes *l) {
@@ -406,14 +446,180 @@ static void lista_liberar(ListaNomes *l) {
     l->tamanho = l->capacidade = 0;
 }
 
+/* ── Hoisting de variáveis de blocos (Issue #45 + ADR-001) ───────── */
+
+typedef struct {
+    char    *nome;
+    TipoDado tipo;
+} VariavelHoist;
+
+typedef struct {
+    VariavelHoist *itens;
+    int            tamanho;
+    int            capacidade;
+} ListaHoist;
+
+static void hoist_iniciar(ListaHoist *h) {
+    h->itens = NULL;
+    h->tamanho = 0;
+    h->capacidade = 0;
+}
+
+static int hoist_buscar(const ListaHoist *h, const char *nome) {
+    for (int i = 0; i < h->tamanho; i++) {
+        if (strcmp(h->itens[i].nome, nome) == 0) return i;
+    }
+    return -1;
+}
+
+static bool hoist_contem(const ListaHoist *h, const char *nome) {
+    return hoist_buscar(h, nome) >= 0;
+}
+
+static void hoist_adicionar(ListaHoist *h, const char *nome, TipoDado tipo) {
+    if (nome == NULL) return;
+
+    int idx = hoist_buscar(h, nome);
+    if (idx >= 0) {
+        if (h->itens[idx].tipo == TIPO_DESCONHECIDO && tipo != TIPO_DESCONHECIDO) {
+            h->itens[idx].tipo = tipo;
+        }
+        return;
+    }
+
+    if (h->tamanho == h->capacidade) {
+        int nova_cap = h->capacidade == 0 ? 8 : h->capacidade * 2;
+        h->itens = realocar_ou_sair(h->itens, sizeof(VariavelHoist) * nova_cap);
+        h->capacidade = nova_cap;
+    }
+
+    h->itens[h->tamanho].nome = duplicar_ou_sair(nome);
+    h->itens[h->tamanho].tipo = tipo;
+    h->tamanho++;
+}
+
+static void hoist_liberar(ListaHoist *h) {
+    for (int i = 0; i < h->tamanho; i++) free(h->itens[i].nome);
+    free(h->itens);
+    h->itens = NULL;
+    h->tamanho = h->capacidade = 0;
+}
+
+static void coletar_variaveis_hoist(NoAST *no, ListaHoist *hoist,
+                                    ListaNomes *declaradas_raiz,
+                                    bool dentro_de_bloco) {
+    if (no == NULL) return;
+
+    switch (no->tipo) {
+        case NO_FUNCDEF:
+            /* Funções definem outro Escopo e outro método static em C#. */
+            return;
+
+        case NO_PROGRAMA:
+            for (int i = 0; i < no->num_argumentos; i++) {
+                coletar_variaveis_hoist(no->argumentos[i], hoist, declaradas_raiz, false);
+            }
+            break;
+
+        case NO_BLOCO:
+            for (int i = 0; i < no->num_argumentos; i++) {
+                coletar_variaveis_hoist(no->argumentos[i], hoist, declaradas_raiz, dentro_de_bloco);
+            }
+            break;
+
+        case NO_ASSIGN:
+            if (no->nome == NULL) break;
+            if (!dentro_de_bloco) {
+                if (!hoist_contem(hoist, no->nome) && !lista_contem(declaradas_raiz, no->nome)) {
+                    lista_adicionar(declaradas_raiz, no->nome);
+                }
+            } else if (!lista_contem(declaradas_raiz, no->nome)) {
+                TipoDado t = no->esquerda ? no->esquerda->tipo_resolvido : TIPO_DESCONHECIDO;
+                hoist_adicionar(hoist, no->nome, t);
+            }
+            break;
+
+        case NO_IF:
+            coletar_variaveis_hoist(no->bloco_if, hoist, declaradas_raiz, true);
+            for (int i = 0; i < no->num_argumentos; i++) {
+                coletar_variaveis_hoist(no->argumentos[i], hoist, declaradas_raiz, true);
+            }
+            coletar_variaveis_hoist(no->bloco_else, hoist, declaradas_raiz, true);
+            break;
+
+        case NO_ELIF:
+        case NO_WHILE:
+            coletar_variaveis_hoist(no->bloco_if, hoist, declaradas_raiz, true);
+            break;
+
+        case NO_FOR:
+            if (no->nome != NULL && !lista_contem(declaradas_raiz, no->nome)) {
+                hoist_adicionar(hoist, no->nome, TIPO_INT);
+            }
+            coletar_variaveis_hoist(no->bloco_if, hoist, declaradas_raiz, true);
+            break;
+
+        default:
+            break;
+    }
+}
+
 typedef struct {
     FILE      *saida;
     int        nao_suportados;
     ListaNomes declaradas;
+    ListaNomes reservadas;
+    int        contador_temp;
 } Contexto;
+
+static void gerar_nome_temporario(Contexto *ctx, const char *prefixo,
+                                  char *buf, size_t tam) {
+    do {
+        snprintf(buf, tam, "%s%d", prefixo, ctx->contador_temp++);
+    } while (lista_contem(&ctx->declaradas, buf) ||
+             lista_contem(&ctx->reservadas, buf));
+    lista_adicionar(&ctx->declaradas, buf);
+}
+
+static bool avaliar_int_constante(const NoAST *no, int *valor) {
+    if (no == NULL) return false;
+    if (no->tipo == NO_NUM_INT) {
+        *valor = no->valor_int;
+        return true;
+    }
+    if (no->tipo == NO_UNARYOP && no->operador == OP_NEG) {
+        int v = 0;
+        if (avaliar_int_constante(no->esquerda, &v) && v != INT_MIN) {
+            *valor = -v;
+            return true;
+        }
+    }
+    return false;
+}
 
 static void emitir_indentacao(Contexto *ctx, int nivel) {
     for (int i = 0; i < nivel; i++) fputs(INDENTACAO, ctx->saida);
+}
+
+static void emitir_linha_buffer(Contexto *ctx, Buffer *b, int nivel) {
+    emitir_indentacao(ctx, nivel);
+    fprintf(ctx->saida, "%s\n", b->dados);
+    buffer_liberar(b);
+}
+
+static void emitir_variaveis_hoisted(Contexto *ctx, const ListaHoist *hoist, int nivel) {
+    for (int i = 0; i < hoist->tamanho; i++) {
+        const char *tipo_cs = tipo_csharp_explicito(hoist->itens[i].tipo);
+        Buffer linha;
+        buffer_iniciar(&linha);
+        buffer_anexar(&linha, tipo_cs);
+        buffer_anexar_char(&linha, ' ');
+        anexar_identificador(&linha, hoist->itens[i].nome);
+        buffer_anexarf(&linha, " = default(%s);", tipo_cs);
+
+        emitir_linha_buffer(ctx, &linha, nivel);
+        lista_adicionar(&ctx->declaradas, hoist->itens[i].nome);
+    }
 }
 
 static void emitir_nao_suportado(Contexto *ctx, NoAST *no, int nivel) {
@@ -423,6 +629,17 @@ static void emitir_nao_suportado(Contexto *ctx, NoAST *no, int nivel) {
 }
 
 static void emitir_atribuicao(Contexto *ctx, NoAST *no, int nivel) {
+    /* Caso tenha prompt direto em x = input(prompt), emite Console.Write(prompt); antes. */
+    if (no->esquerda != NULL && no->esquerda->tipo == NO_INPUT &&
+        no->esquerda->esquerda != NULL) {
+        Buffer linha_prompt;
+        buffer_iniciar(&linha_prompt);
+        buffer_anexar(&linha_prompt, "Console.Write(");
+        anexar_expressao(&linha_prompt, no->esquerda->esquerda, &ctx->nao_suportados);
+        buffer_anexar(&linha_prompt, ");");
+        emitir_linha_buffer(ctx, &linha_prompt, nivel);
+    }
+
     Buffer linha;
     buffer_iniciar(&linha);
 
@@ -436,12 +653,50 @@ static void emitir_atribuicao(Contexto *ctx, NoAST *no, int nivel) {
 
     anexar_identificador(&linha, no->nome);
     buffer_anexar(&linha, " = ");
-    anexar_expressao(&linha, no->esquerda, &ctx->nao_suportados);
+    if (no->esquerda != NULL && no->esquerda->tipo == NO_INPUT &&
+        no->esquerda->esquerda != NULL) {
+        buffer_anexar(&linha, "Console.ReadLine()");
+    } else {
+        anexar_expressao(&linha, no->esquerda, &ctx->nao_suportados);
+    }
     buffer_anexar_char(&linha, ';');
 
+    emitir_linha_buffer(ctx, &linha, nivel);
+}
+
+static void emitir_input_comando(Contexto *ctx, NoAST *no, int nivel) {
+    if (no->esquerda != NULL) {
+        Buffer linha_prompt;
+        buffer_iniciar(&linha_prompt);
+        buffer_anexar(&linha_prompt, "Console.Write(");
+        anexar_expressao(&linha_prompt, no->esquerda, &ctx->nao_suportados);
+        buffer_anexar(&linha_prompt, ");");
+        emitir_linha_buffer(ctx, &linha_prompt, nivel);
+    }
+
     emitir_indentacao(ctx, nivel);
-    fprintf(ctx->saida, "%s\n", linha.dados);
-    free(linha.dados);
+    fputs("Console.ReadLine();\n", ctx->saida);
+}
+
+static void emitir_funccall_comando(Contexto *ctx, NoAST *no, int nivel) {
+    Buffer linha;
+    buffer_iniciar(&linha);
+    anexar_funccall(&linha, no, &ctx->nao_suportados);
+    buffer_anexar_char(&linha, ';');
+    emitir_linha_buffer(ctx, &linha, nivel);
+}
+
+static void emitir_return(Contexto *ctx, NoAST *no, int nivel) {
+    Buffer linha;
+    buffer_iniciar(&linha);
+    if (no->esquerda != NULL) {
+        buffer_anexar(&linha, "return ");
+        anexar_expressao(&linha, no->esquerda, &ctx->nao_suportados);
+        buffer_anexar_char(&linha, ';');
+    } else {
+        buffer_anexar(&linha, "return;");
+    }
+    emitir_linha_buffer(ctx, &linha, nivel);
 }
 
 /*
@@ -462,9 +717,7 @@ static void emitir_print(Contexto *ctx, NoAST *no, int nivel) {
     if (no->num_argumentos > 1) buffer_anexar_char(&linha, ')');
     buffer_anexar(&linha, ");");
 
-    emitir_indentacao(ctx, nivel);
-    fprintf(ctx->saida, "%s\n", linha.dados);
-    free(linha.dados);
+    emitir_linha_buffer(ctx, &linha, nivel);
 }
 
 static bool contem_print(NoAST *no) {
@@ -479,6 +732,282 @@ static bool contem_print(NoAST *no) {
     return false;
 }
 
+static void emitir_comando(Contexto *ctx, NoAST *no, int nivel);
+
+static void emitir_cabecalho_condicional(Contexto *ctx, const char *abertura,
+                                       NoAST *condicao, int nivel) {
+    Buffer linha;
+    buffer_iniciar(&linha);
+    buffer_anexar(&linha, abertura);
+    anexar_expressao(&linha, condicao, &ctx->nao_suportados);
+    buffer_anexar(&linha, ") {");
+
+    emitir_linha_buffer(ctx, &linha, nivel);
+}
+
+static void emitir_if(Contexto *ctx, NoAST *no, int nivel) {
+    if (no->condicao == NULL) {
+        emitir_nao_suportado(ctx, no, nivel);
+        return;
+    }
+
+    emitir_cabecalho_condicional(ctx, "if (", no->condicao, nivel);
+    emitir_comando(ctx, no->bloco_if, nivel + 1);
+
+    for (int i = 0; i < no->num_argumentos; i++) {
+        NoAST *elif_no = no->argumentos[i];
+        if (elif_no == NULL || elif_no->condicao == NULL) {
+            if (elif_no != NULL) emitir_nao_suportado(ctx, elif_no, nivel + 1);
+            continue;
+        }
+        emitir_cabecalho_condicional(ctx, "} else if (", elif_no->condicao, nivel);
+        emitir_comando(ctx, elif_no->bloco_if, nivel + 1);
+    }
+
+    if (no->bloco_else != NULL) {
+        emitir_indentacao(ctx, nivel);
+        fputs("} else {\n", ctx->saida);
+        emitir_comando(ctx, no->bloco_else, nivel + 1);
+    }
+
+    emitir_indentacao(ctx, nivel);
+    fputs("}\n", ctx->saida);
+}
+
+static void emitir_while(Contexto *ctx, NoAST *no, int nivel) {
+    if (no->condicao == NULL) {
+        emitir_nao_suportado(ctx, no, nivel);
+        return;
+    }
+
+    emitir_cabecalho_condicional(ctx, "while (", no->condicao, nivel);
+    emitir_comando(ctx, no->bloco_if, nivel + 1);
+    emitir_indentacao(ctx, nivel);
+    fputs("}\n", ctx->saida);
+}
+
+static void emitir_for(Contexto *ctx, NoAST *no, int nivel) {
+    NoAST *range = no->esquerda;
+    if (range == NULL || no->nome == NULL) {
+        emitir_nao_suportado(ctx, no, nivel);
+        return;
+    }
+
+    int n_args = (range->tipo == NO_BLOCO) ? range->num_argumentos : 1;
+    NoAST **args = (range->tipo == NO_BLOCO) ? range->argumentos : &range;
+    if (n_args < 1 || n_args > 3) {
+        emitir_nao_suportado(ctx, no, nivel);
+        return;
+    }
+
+    NoAST *inicio = (n_args >= 2) ? args[0] : NULL;
+    NoAST *fim = (n_args >= 2) ? args[1] : args[0];
+    NoAST *passo = (n_args == 3) ? args[2] : NULL;
+
+    int passo_const = 1;
+    bool usar_temp = false;
+    char temp_passo[32] = "";
+    if (n_args == 3 && (!avaliar_int_constante(passo, &passo_const) || passo_const == 0)) {
+        usar_temp = true;
+        gerar_nome_temporario(ctx, "_passo", temp_passo, sizeof(temp_passo));
+
+        Buffer linha_passo;
+        buffer_iniciar(&linha_passo);
+        buffer_anexarf(&linha_passo, "int %s = ", temp_passo);
+        anexar_expressao(&linha_passo, passo, &ctx->nao_suportados);
+        buffer_anexar_char(&linha_passo, ';');
+
+        emitir_linha_buffer(ctx, &linha_passo, nivel);
+
+        emitir_indentacao(ctx, nivel);
+        fprintf(ctx->saida, "if (%s == 0) {\n", temp_passo);
+        emitir_indentacao(ctx, nivel + 1);
+        fputs("throw new ArgumentException(\"range() arg 3 must not be zero\");\n", ctx->saida);
+        emitir_indentacao(ctx, nivel);
+        fputs("}\n", ctx->saida);
+    }
+
+    Buffer fim_buf;
+    buffer_iniciar(&fim_buf);
+    anexar_operando(&fim_buf, fim, PREC_RELACIONAL, true, &ctx->nao_suportados);
+
+    Buffer linha;
+    buffer_iniciar(&linha);
+    buffer_anexar(&linha, "for (");
+    if (!lista_contem(&ctx->declaradas, no->nome)) {
+        buffer_anexar(&linha, "int ");
+        lista_adicionar(&ctx->declaradas, no->nome);
+    }
+    anexar_identificador(&linha, no->nome);
+    buffer_anexar(&linha, " = ");
+    if (inicio != NULL) {
+        anexar_expressao(&linha, inicio, &ctx->nao_suportados);
+    } else {
+        buffer_anexar_char(&linha, '0');
+    }
+    buffer_anexar(&linha, "; ");
+
+    if (usar_temp) {
+        buffer_anexarf(&linha, "%s > 0 ? ", temp_passo);
+        anexar_identificador(&linha, no->nome);
+        buffer_anexarf(&linha, " < %s : ", fim_buf.dados);
+        anexar_identificador(&linha, no->nome);
+        buffer_anexarf(&linha, " > %s", fim_buf.dados);
+    } else {
+        anexar_identificador(&linha, no->nome);
+        buffer_anexar(&linha, passo_const > 0 ? " < " : " > ");
+        buffer_anexar(&linha, fim_buf.dados);
+    }
+    buffer_liberar(&fim_buf);
+
+    buffer_anexar(&linha, "; ");
+    anexar_identificador(&linha, no->nome);
+    if (usar_temp) {
+        buffer_anexarf(&linha, " += %s", temp_passo);
+    } else if (passo_const == 1) {
+        buffer_anexar(&linha, "++");
+    } else if (passo_const == -1) {
+        buffer_anexar(&linha, "--");
+    } else if (passo_const > 1) {
+        buffer_anexarf(&linha, " += %d", passo_const);
+    } else {
+        buffer_anexarf(&linha, " -= %lld", -(long long)passo_const);
+    }
+    buffer_anexar(&linha, ") {");
+
+    emitir_linha_buffer(ctx, &linha, nivel);
+
+    emitir_comando(ctx, no->bloco_if, nivel + 1);
+    emitir_indentacao(ctx, nivel);
+    fputs("}\n", ctx->saida);
+}
+
+/*
+ * Verifica se há input(prompt) usado dentro de uma expressão composta (e não
+ * como comando solto ou atribuído diretamente em x = input(prompt)). Nesse caso
+ * o arquivo precisa do helper static string _input(object prompt).
+ */
+static bool precisa_helper_input(NoAST *no, bool topo_comando_ou_assign) {
+    if (no == NULL) return false;
+    if (no->tipo == NO_INPUT) {
+        if (no->esquerda == NULL) return false;
+        if (!topo_comando_ou_assign) return true;
+        return precisa_helper_input(no->esquerda, false);
+    }
+    if (no->tipo == NO_PROGRAMA || no->tipo == NO_BLOCO) {
+        for (int i = 0; i < no->num_argumentos; i++) {
+            if (precisa_helper_input(no->argumentos[i], true)) return true;
+        }
+        return false;
+    }
+    if (no->tipo == NO_FUNCDEF) {
+        return precisa_helper_input(no->bloco_if, true);
+    }
+    if (no->tipo == NO_ASSIGN) {
+        return precisa_helper_input(no->esquerda, true);
+    }
+    if (no->tipo == NO_IF) {
+        if (precisa_helper_input(no->condicao, false) ||
+            precisa_helper_input(no->bloco_if, true) ||
+            precisa_helper_input(no->bloco_else, true)) return true;
+        for (int i = 0; i < no->num_argumentos; i++) {
+            if (precisa_helper_input(no->argumentos[i], true)) return true;
+        }
+        return false;
+    }
+    if (no->tipo == NO_ELIF || no->tipo == NO_WHILE) {
+        return precisa_helper_input(no->condicao, false) ||
+               precisa_helper_input(no->bloco_if, true);
+    }
+    if (no->tipo == NO_FOR) {
+        return precisa_helper_input(no->esquerda, false) ||
+               precisa_helper_input(no->bloco_if, true);
+    }
+    if (precisa_helper_input(no->esquerda, false) ||
+        precisa_helper_input(no->direita, false) ||
+        precisa_helper_input(no->condicao, false) ||
+        precisa_helper_input(no->bloco_if, false) ||
+        precisa_helper_input(no->bloco_else, false)) return true;
+    for (int i = 0; i < no->num_argumentos; i++) {
+        if (precisa_helper_input(no->argumentos[i], false)) return true;
+    }
+    return false;
+}
+
+static bool bloco_termina_com_return(NoAST *no) {
+    if (no == NULL) return false;
+    if (no->tipo == NO_RETURN) return true;
+    if (no->tipo == NO_BLOCO) {
+        if (no->num_argumentos == 0) return false;
+        return bloco_termina_com_return(no->argumentos[no->num_argumentos - 1]);
+    }
+    if (no->tipo == NO_IF) {
+        if (no->bloco_else == NULL) return false;
+        if (!bloco_termina_com_return(no->bloco_if)) return false;
+        for (int i = 0; i < no->num_argumentos; i++) {
+            NoAST *elif_no = no->argumentos[i];
+            if (elif_no == NULL || !bloco_termina_com_return(elif_no->bloco_if)) return false;
+        }
+        return bloco_termina_com_return(no->bloco_else);
+    }
+    return false;
+}
+
+static void emitir_funcdef(Contexto *ctx, NoAST *no, int nivel) {
+    Contexto fn_ctx = { ctx->saida, 0, { NULL, 0, 0 }, { NULL, 0, 0 }, 0 };
+
+    const char *tipo_ret = (no->tipo_resolvido == TIPO_VOID)
+                           ? "void"
+                           : tipo_csharp_explicito(no->tipo_resolvido);
+
+    Buffer cabecalho;
+    buffer_iniciar(&cabecalho);
+    buffer_anexarf(&cabecalho, "static %s ", tipo_ret);
+    anexar_identificador(&cabecalho, no->nome);
+    buffer_anexar_char(&cabecalho, '(');
+
+    for (int i = 0; i < no->num_argumentos; i++) {
+        NoAST *param = no->argumentos[i];
+        if (i > 0) buffer_anexar(&cabecalho, ", ");
+        TipoDado t_param = param != NULL ? param->tipo_resolvido : TIPO_DESCONHECIDO;
+        buffer_anexar(&cabecalho, tipo_csharp_explicito(t_param));
+        buffer_anexar_char(&cabecalho, ' ');
+        if (param != NULL && param->nome != NULL) {
+            anexar_identificador(&cabecalho, param->nome);
+            if (!lista_contem(&fn_ctx.declaradas, param->nome)) {
+                lista_adicionar(&fn_ctx.declaradas, param->nome);
+            }
+            if (!lista_contem(&fn_ctx.reservadas, param->nome)) {
+                lista_adicionar(&fn_ctx.reservadas, param->nome);
+            }
+        }
+    }
+    buffer_anexar(&cabecalho, ") {");
+    emitir_linha_buffer(&fn_ctx, &cabecalho, nivel);
+
+    ListaHoist hoist;
+    hoist_iniciar(&hoist);
+    coletar_variaveis_hoist(no->bloco_if, &hoist, &fn_ctx.reservadas, false);
+    emitir_variaveis_hoisted(&fn_ctx, &hoist, nivel + 1);
+    hoist_liberar(&hoist);
+
+    emitir_comando(&fn_ctx, no->bloco_if, nivel + 1);
+
+    /* Se a função retorna valor mas nem todos os caminhos terminam em return,
+       adiciona um return default(T); no final para evitar erro CS0161 em C#. */
+    if (no->tipo_resolvido != TIPO_VOID && !bloco_termina_com_return(no->bloco_if)) {
+        emitir_indentacao(&fn_ctx, nivel + 1);
+        fprintf(fn_ctx.saida, "return default(%s);\n", tipo_ret);
+    }
+
+    emitir_indentacao(&fn_ctx, nivel);
+    fputs("}\n", fn_ctx.saida);
+
+    ctx->nao_suportados += fn_ctx.nao_suportados;
+    lista_liberar(&fn_ctx.declaradas);
+    lista_liberar(&fn_ctx.reservadas);
+}
+
 static void emitir_comando(Contexto *ctx, NoAST *no, int nivel) {
     if (no == NULL) return;
 
@@ -489,6 +1018,34 @@ static void emitir_comando(Contexto *ctx, NoAST *no, int nivel) {
 
         case NO_PRINT:
             emitir_print(ctx, no, nivel);
+            break;
+
+        case NO_INPUT:
+            emitir_input_comando(ctx, no, nivel);
+            break;
+
+        case NO_FUNCCALL:
+            emitir_funccall_comando(ctx, no, nivel);
+            break;
+
+        case NO_RETURN:
+            emitir_return(ctx, no, nivel);
+            break;
+
+        case NO_FUNCDEF:
+            emitir_funcdef(ctx, no, nivel);
+            break;
+
+        case NO_IF:
+            emitir_if(ctx, no, nivel);
+            break;
+
+        case NO_WHILE:
+            emitir_while(ctx, no, nivel);
+            break;
+
+        case NO_FOR:
+            emitir_for(ctx, no, nivel);
             break;
 
         case NO_BLOCO:
@@ -506,7 +1063,7 @@ static void emitir_comando(Contexto *ctx, NoAST *no, int nivel) {
 /* ── Estrutura do arquivo ────────────────────────────────────────── */
 
 int codegen_csharp_gerar(NoAST *raiz, FILE *saida) {
-    Contexto ctx = { saida, 0, { NULL, 0, 0 } };
+    Contexto ctx = { saida, 0, { NULL, 0, 0 }, { NULL, 0, 0 }, 0 };
 
     NoAST **comandos = NULL;
     int num_comandos = 0;
@@ -519,11 +1076,19 @@ int codegen_csharp_gerar(NoAST *raiz, FILE *saida) {
     fprintf(saida, "namespace " NAMESPACE_CSHARP " {\n");
     fprintf(saida, INDENTACAO "static class Program {\n");
 
+    if (precisa_helper_input(raiz, true)) {
+        fprintf(saida, INDENTACAO INDENTACAO "static string _input(object prompt) {\n");
+        fprintf(saida, INDENTACAO INDENTACAO INDENTACAO "Console.Write(prompt);\n");
+        fprintf(saida, INDENTACAO INDENTACAO INDENTACAO "return Console.ReadLine();\n");
+        fprintf(saida, INDENTACAO INDENTACAO "}\n\n");
+    }
+
     /* Funções definidas pelo usuário: viram métodos static da classe. */
     bool tem_funcoes = false;
     for (int i = 0; i < num_comandos; i++) {
         if (comandos[i] != NULL && comandos[i]->tipo == NO_FUNCDEF) {
-            emitir_nao_suportado(&ctx, comandos[i], 2);
+            if (tem_funcoes) fprintf(saida, "\n");
+            emitir_funcdef(&ctx, comandos[i], 2);
             tem_funcoes = true;
         }
     }
@@ -537,6 +1102,13 @@ int codegen_csharp_gerar(NoAST *raiz, FILE *saida) {
                 "System.Globalization.CultureInfo.CurrentCulture = "
                 "System.Globalization.CultureInfo.InvariantCulture;\n");
     }
+
+    ListaHoist hoist;
+    hoist_iniciar(&hoist);
+    coletar_variaveis_hoist(raiz, &hoist, &ctx.reservadas, false);
+    emitir_variaveis_hoisted(&ctx, &hoist, 3);
+    hoist_liberar(&hoist);
+
     for (int i = 0; i < num_comandos; i++) {
         if (comandos[i] != NULL && comandos[i]->tipo != NO_FUNCDEF) {
             emitir_comando(&ctx, comandos[i], 3);
@@ -547,5 +1119,6 @@ int codegen_csharp_gerar(NoAST *raiz, FILE *saida) {
     fprintf(saida, "}\n");
 
     lista_liberar(&ctx.declaradas);
+    lista_liberar(&ctx.reservadas);
     return ctx.nao_suportados;
 }

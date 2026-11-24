@@ -45,6 +45,7 @@ Outros alvos úteis (detalhados no [Guia do Makefile](Makefile.md)):
 ```bash
 make CI=1       # compila com -Werror (trata warnings como erro)
 make test       # executa todas as suítes unitárias e os testes de integração
+make test_e2e   # executa os testes ponta a ponta (Python -> C# compilado e executado)
 make clean      # remove executáveis e arquivos gerados
 ```
 
@@ -151,6 +152,8 @@ oi, bia
 media = 2.5
 ```
 
+> Para validar automaticamente múltiplos programas Python traduzidos, compilados e executados em C# contra o `python3`, execute `make test_e2e` (ou `./testes/rodar_testes_e2e.sh`). Consulte o [Relatório de Testes End-to-End (E2E)](Testes_E2E.md).
+
 ### Exemplo 3 — Inspecionar fases intermediárias (AST, Tabela de Símbolos e TAC)
 
 ```bash
@@ -197,14 +200,13 @@ O compilador implementa um subconjunto focado de Python (ver [Especificação da
 - **Condições estritamente booleanas:** `if`, `elif` e `while` exigem expressão do tipo `bool`. Expressões numéricas ou strings como condição (ex.: `if x:`) geram erro (`SEM-12`), diferentemente do *truthiness* implícito do Python.
 - **Redefinição e conflito de nomes:** não é permitido redefinir funções no mesmo escopo (`SEM-15`) nem usar o mesmo identificador como variável e função no mesmo escopo (`SEM-16`).
 
-### Construções ainda pendentes na geração de código C#
+### Construções traduzidas e pendentes na geração de código C#
 
-O analisador léxico, sintático, semântico, o gerador de TAC e o otimizador já suportam toda a linguagem especificada. No módulo de **geração de código C#** (`src/codegen_csharp.c`), o suporte está sendo entregue de forma incremental:
+O analisador léxico, sintático, semântico, o gerador de TAC e o otimizador suportam toda a linguagem especificada. No módulo de **geração de código C#** (`src/codegen_csharp.c`):
 
-- **Já traduzidos para C#:** estrutura base (`namespace CompiladorPython`, `static class Program`, `Main`), variáveis/atribuições (`int`, `double`, `string`, `bool`), expressões aritméticas/lógicas/relacionais (incluindo divisão real `(double)`, comparações de `string` e `bool`, negação e escape de palavras reservadas com `@`) e `print(...)` (`Console.WriteLine`).
-- **Ainda não traduzidos para C# (Issues #30 e #31):** `if`/`elif`/`else`, `while`, `for ... in range(...)`, `def`, `return`, chamadas de função, `input()` e operador `in`. Quando presentes no código-fonte, são emitidos como comentários `// [não traduzido]` ou `default(<tipo>)` com aviso em `stderr`.
+- **Já traduzidos para C#:** estrutura base (`namespace CompiladorPython`, `static class Program`, `Main`), variáveis/atribuições (`int`, `double`, `string`, `bool`) com *hoisting* de variáveis de blocos (`= default(<tipo>)`), expressões aritméticas/lógicas/relacionais (incluindo divisão real `(double)`, comparações de `string` e `bool`, negação e escape de palavras reservadas com `@`), estruturas de controle (`if`/`elif`/`else`, `while` e `for ... in range(...)` com 1, 2 e 3 argumentos, passo negativo/dinâmico e guarda contra passo zero), definições e chamadas de função (`def` como métodos `static`, `return` com e sem valor), `print(...)` (`Console.WriteLine`) e `input(...)` (`Console.ReadLine`, com e sem prompt).
+- **Ainda não traduzidos para C#:** operador `in` fora do cabeçalho do `for` (e listas). Quando presentes no código-fonte, são emitidos como comentários `// [não traduzido]` ou `default(<tipo>)` com aviso em `stderr`.
 
-### Outras pendências documentadas
+### Outras observações de execução
 
-- Atribuição encadeada (`a = b = 0`), validação da quantidade de argumentos em `range(...)` e comentários de bloco `/* ... */` possuem comportamento divergente registrado em [Inconsistências da Documentação](Inconsistencias.md).
 - Na execução do C# gerado, resultados `double` com parte fracionária zero (ex.: `print(4 / 2)`) são impressos como `2` no C#, enquanto o Python imprime `2.0`.

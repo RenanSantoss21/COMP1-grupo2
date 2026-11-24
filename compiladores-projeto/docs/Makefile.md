@@ -47,6 +47,8 @@ Executa toda a suíte de testes unitários (TDD) e de integração na seguinte o
 
 A execução para imediatamente caso qualquer etapa venha a falhar.
 
+> **Nota sobre Testes End-to-End (E2E):** A suíte de ponta a ponta (`make test_e2e`), que compila e executa o C# gerado, é mantida como um alvo separado para não exigir um compilador C# (`dotnet`, `mcs` ou `csc.exe`) ao rodar `make test`.
+
 ---
 
 ### Limpar Arquivos Gerados
@@ -104,3 +106,9 @@ Compila `testes/tdd/teste_codegen_csharp.c` junto com `src/codegen_csharp.c`, `s
 make test_integracao
 ```
 Compila o `compilador` e roda exclusivamente o script `./testes/rodar_testes.sh`, pulando os testes unitários em C.
+
+### Testar Ponta a Ponta (E2E: Python → C#)
+```bash
+make test_e2e
+```
+Compila o `compilador` e executa `./testes/rodar_testes_e2e.sh`, traduzindo os programas de `testes/e2e/` e `TestesCodegenCSharp*.py` para C#, compilando o código C# gerado (`dotnet`, `mcs`, `csc.exe` ou `dotnet.exe`) e validando a saída executada contra os arquivos `.out` esperados e o interpretador `python3`. Veja detalhes em [Relatório de Testes End-to-End (E2E)](Testes_E2E.md).
