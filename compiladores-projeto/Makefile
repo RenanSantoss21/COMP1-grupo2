@@ -20,6 +20,9 @@ test: test_ast test_tabela test_semantica test_tac test_otimizador test_codegen_
 test_integracao: compilador
 	./testes/rodar_testes.sh
 
+test_e2e: compilador
+	./testes/rodar_testes_e2e.sh
+
 test_tabela: testes/tdd/teste_tabela.c src/tabela.c
 	gcc $(CFLAGS) -o testes/tdd/teste_tabela testes/tdd/teste_tabela.c src/tabela.c
 	./testes/tdd/teste_tabela

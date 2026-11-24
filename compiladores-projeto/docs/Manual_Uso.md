@@ -45,6 +45,7 @@ Outros alvos úteis (detalhados no [Guia do Makefile](Makefile.md)):
 ```bash
 make CI=1       # compila com -Werror (trata warnings como erro)
 make test       # executa todas as suítes unitárias e os testes de integração
+make test_e2e   # executa os testes ponta a ponta (Python -> C# compilado e executado)
 make clean      # remove executáveis e arquivos gerados
 ```
 
@@ -150,6 +151,8 @@ Saída esperada:
 oi, bia
 media = 2.5
 ```
+
+> Para validar automaticamente múltiplos programas Python traduzidos, compilados e executados em C# contra o `python3`, execute `make test_e2e` (ou `./testes/rodar_testes_e2e.sh`). Consulte o [Relatório de Testes End-to-End (E2E)](Testes_E2E.md).
 
 ### Exemplo 3 — Inspecionar fases intermediárias (AST, Tabela de Símbolos e TAC)
 

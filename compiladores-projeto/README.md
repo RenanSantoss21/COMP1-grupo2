@@ -18,7 +18,8 @@ Para a visão geral do repositório (incluindo pré-requisitos e materiais de au
   - `otimizador.c` / `otimizador.h` — Otimizações sobre o TAC
   - `codegen_csharp.c` / `codegen_csharp.h` — Geração de Código Alvo (C#)
   - `tipos.h` — Tipos de dados compartilhados
-- `testes/`: Arquivos `.py` de testes de integração (léxicos, sintáticos, semânticos e geração de C#) e o script de automação (`rodar_testes.sh`).
+- `testes/`: Arquivos `.py` de testes de integração (léxicos, sintáticos, semânticos e geração de C#), o script de integração (`rodar_testes.sh`) e o script de automação E2E (`rodar_testes_e2e.sh`).
+- `testes/e2e/`: Programas de teste ponta a ponta (`.py`, `.in` e `.out`) que validam a tradução Mini-Python → C# compilado e executado.
 - `testes/tdd/`: Suítes de testes unitários em C (`teste_ast.c`, `teste_tabela.c`, `teste_semantica.c`, `teste_tac.c`, `teste_otimizador.c` e `teste_codegen_csharp.c`).
 - `docs/`: Documentação técnica em Markdown (publicada via MkDocs + GitHub Pages).
 - `Makefile`: Automação de build, testes e limpeza.
@@ -39,6 +40,7 @@ Consulte a tabela completa de flags de linha de comando (`--ast`, `--dot`, `--ta
 ```bash
 make test                 # Roda todas as suítes unitárias e a integração
 make test_integracao      # Roda apenas ./testes/rodar_testes.sh
+make test_e2e             # Roda os testes ponta a ponta (Python -> C# compilado e executado)
 make test_ast             # Testes unitários da AST
 make test_tabela          # Testes unitários da Tabela de Símbolos
 make test_semantica       # Testes unitários da Análise Semântica

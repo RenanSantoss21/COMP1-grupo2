@@ -1,0 +1,10 @@
+soma: 14
+sub: 6
+mult: 40
+div: 2.5
+expr: 32
+misturado: 12.5
+neg: -10
+pi: 3.14 ativo: True
+lang: Mini-Python -> C#
+reatribuido: 25

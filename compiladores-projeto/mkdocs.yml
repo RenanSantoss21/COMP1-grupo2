@@ -53,4 +53,5 @@ nav:
     - Testes Léxicos: Testes_Lexicos.md
     - Testes Sintáticos: Testes_Sintaticos.md
     - Testes Semânticos: Testes_Semanticos.md
+    - Testes End-to-End (E2E): Testes_E2E.md
 
