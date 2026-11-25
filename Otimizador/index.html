@@ -1,0 +1,1716 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentação oficial do projeto de compiladores (Semestre atual).">
+      
+      
+        <meta name="author" content="Grupo 2">
+      
+      
+      
+        <link rel="prev" href="../CodigoIntermediario/">
+      
+      
+        <link rel="next" href="../CodegenCSharp/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Otimizador TAC - Documentação do Compilador Python-C#</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#otimizador-tac-e-ast-para-codegen-c" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="Documentação do Compilador Python-C#" class="md-header__button md-logo" aria-label="Documentação do Compilador Python-C#" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Documentação do Compilador Python-C#
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Otimizador TAC
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Trocar para modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Trocar para modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Trocar para modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Trocar para modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Início
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Manual_Uso/" class="md-tabs__link">
+          
+  
+  
+  Guias
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Sprints/" class="md-tabs__link">
+          
+  
+  
+  Planejamento
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Especificacao_Linguagem/" class="md-tabs__link">
+          
+  
+  
+  Decisões de Design (ADRs)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../VidaDeUmPrograma/" class="md-tabs__link">
+          
+  
+  
+  Implementação
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Testes_Lexicos/" class="md-tabs__link">
+          
+  
+  
+  Testes
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Documentação do Compilador Python-C#" class="md-nav__button md-logo" aria-label="Documentação do Compilador Python-C#" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Documentação do Compilador Python-C#
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guias
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guias
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Manual_Uso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manual de Uso
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Makefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guia do Makefile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Planejamento
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Planejamento
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Sprints/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprints e Andamento
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões de Design (ADRs)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisões de Design (ADRs)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Especificacao_Linguagem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação da Linguagem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADR/001-reatribuicao-de-tipo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-001: Tipagem Estática na Reatribuição
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementação
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Implementação
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VidaDeUmPrograma/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vida de um Programa
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Lexer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Parser/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parser
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AST/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TabelaSimbolos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tabela de Símbolos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Semantica/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Análise Semântica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ErrosSemanticos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de Erros Semânticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CodigoIntermediario/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Código Intermediário (TAC)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Otimizador TAC
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Otimizador TAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#uso" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uso
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#otimizacoes-implementadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Otimizações Implementadas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Otimizações Implementadas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-constant-folding-dobra-de-constantes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Constant Folding (Dobra de Constantes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-simplificacao-algebrica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Simplificação Algébrica
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-propagacao-de-constantes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Propagação de Constantes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-remocao-de-codigo-morto-dead-code-elimination" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Remoção de Código Morto (Dead Code Elimination)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#loop-de-ponto-fixo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loop de Ponto Fixo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#otimizacao-sobre-a-ast-otimizar_ast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Otimização sobre a AST (otimizar_ast)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CodegenCSharp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geração de Código C#
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Testes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Lexicos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Léxicos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Sintaticos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Sintáticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Semanticos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Semânticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_E2E/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes End-to-End (E2E)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#uso" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uso
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#otimizacoes-implementadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Otimizações Implementadas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Otimizações Implementadas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-constant-folding-dobra-de-constantes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Constant Folding (Dobra de Constantes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-simplificacao-algebrica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Simplificação Algébrica
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-propagacao-de-constantes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Propagação de Constantes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-remocao-de-codigo-morto-dead-code-elimination" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Remoção de Código Morto (Dead Code Elimination)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#loop-de-ponto-fixo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loop de Ponto Fixo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#otimizacao-sobre-a-ast-otimizar_ast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Otimização sobre a AST (otimizar_ast)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="otimizador-tac-e-ast-para-codegen-c">Otimizador (TAC e AST para CodeGen C#)</h1>
+<p>O módulo <code>src/otimizador.c</code> (com cabeçalho em <code>src/otimizador.h</code>) implementa as passadas de otimização tanto sobre o Código de Três Endereços (<code>otimizar_tac</code>, Issues <strong>#27</strong> e <strong>#28</strong>) quanto diretamente sobre a AST antes da geração de código C# (<code>otimizar_ast</code>, Issue <strong>#61</strong>).</p>
+<h2 id="uso">Uso</h2>
+<p>O compilador permite inspecionar o TAC ou emitir código C# já otimizado:</p>
+<pre><code class="language-bash"># Exibe o TAC original gerado a partir da AST:
+./compilador --tac &lt; programa.py
+
+# Exibe o TAC otimizado após as passadas de otimização:
+./compilador --opt &lt; programa.py
+
+# Otimiza a AST e gera código C# otimizado (sem misturar TAC no stdout):
+./compilador --opt --cs &lt; programa.py
+./compilador --opt --cs saida.cs &lt; programa.py
+
+# Exibe o TAC otimizado e também gera o C# otimizado:
+./compilador --tac --opt --cs saida.cs &lt; programa.py
+</code></pre>
+<p>Também é possível executar a suíte de testes unitários específica do otimizador:</p>
+<pre><code class="language-bash">make test_otimizador
+</code></pre>
+<hr />
+<h2 id="otimizacoes-implementadas">Otimizações Implementadas</h2>
+<h3 id="1-constant-folding-dobra-de-constantes">1. Constant Folding (Dobra de Constantes)</h3>
+<p>Avalia em tempo de compilação operações cujos operandos sejam constantes conhecidas, substituindo a instrução binária ou unária por uma atribuição direta (<code>TAC_ASSIGN</code>).</p>
+<p>O folding opera recursivamente dentro de cada bloco básico: ao dobrar um resultado constante, seu valor é registrado na tabela local de constantes e propagado imediatamente para expressões subsequentes que o utilizam.</p>
+<p><strong>Tipos suportados:</strong>
+- <strong>Inteiros</strong>: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code> (com proteção contra divisão por zero), e comparações relacionais (<code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>).
+- <strong>Ponto Flutuante</strong>: operações aritméticas e relacionais quando ao menos um dos operandos é <code>float</code>.
+- <strong>Booleanos</strong>: operadores lógicos <code>and</code> e <code>or</code>.
+- <strong>Textos</strong>: concatenação com <code>+</code> entre literais de string (aspas simples ou duplas) e comparações (<code>==</code>, <code>!=</code>).
+- <strong>Unários</strong>: negação aritmética (<code>-</code>) e lógica (<code>not</code>).</p>
+<p><strong>Exemplo:</strong></p>
+<pre><code class="language-tac">t1 = 3 + 4   -&gt;  t1 = 7
+t2 = 10 * 2  -&gt;  t2 = 20
+t3 = t1 + t2 -&gt;  t3 = 27
+</code></pre>
+<hr />
+<h3 id="2-simplificacao-algebrica">2. Simplificação Algébrica</h3>
+<p>Aplica identidades algébricas para reduzir expressões a formas mais simples e eficientes, sem necessidade de calcular o valor numérico exato:</p>
+<table>
+<thead>
+<tr>
+<th>Expressão Original</th>
+<th>Resultado Otimizado</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>x * 1</code> / <code>1 * x</code></td>
+<td><code>x</code></td>
+<td>Elemento neutro da multiplicação</td>
+</tr>
+<tr>
+<td><code>x + 0</code> / <code>0 + x</code></td>
+<td><code>x</code></td>
+<td>Elemento neutro da adição</td>
+</tr>
+<tr>
+<td><code>x * 0</code> / <code>0 * x</code></td>
+<td><code>0</code></td>
+<td>Elemento absorvente da multiplicação</td>
+</tr>
+<tr>
+<td><code>x - 0</code></td>
+<td><code>x</code></td>
+<td>Subtração de zero</td>
+</tr>
+<tr>
+<td><code>x / 1</code></td>
+<td><code>x</code></td>
+<td>Divisão por 1</td>
+</tr>
+<tr>
+<td><code>x - x</code></td>
+<td><code>0</code></td>
+<td>Subtração de uma variável por si mesma</td>
+</tr>
+<tr>
+<td><code>x and True</code></td>
+<td><code>x</code></td>
+<td>Elemento neutro do operador <code>and</code></td>
+</tr>
+<tr>
+<td><code>True and x</code></td>
+<td><code>x</code></td>
+<td>Comutativa do <code>and</code> com <code>True</code></td>
+</tr>
+<tr>
+<td><code>x and False</code></td>
+<td><code>False</code></td>
+<td>Elemento absorvente do operador <code>and</code></td>
+</tr>
+<tr>
+<td><code>False and x</code></td>
+<td><code>False</code></td>
+<td>Comutativa do <code>and</code> com <code>False</code></td>
+</tr>
+<tr>
+<td><code>x or True</code></td>
+<td><code>True</code></td>
+<td>Elemento absorvente do operador <code>or</code></td>
+</tr>
+<tr>
+<td><code>True or x</code></td>
+<td><code>True</code></td>
+<td>Comutativa do <code>or</code> com <code>True</code></td>
+</tr>
+<tr>
+<td><code>x or False</code></td>
+<td><code>x</code></td>
+<td>Elemento neutro do operador <code>or</code></td>
+</tr>
+<tr>
+<td><code>False or x</code></td>
+<td><code>x</code></td>
+<td>Comutativa do <code>or</code> com <code>False</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="3-propagacao-de-constantes">3. Propagação de Constantes</h3>
+<p>Rastreia atribuições de constantes a variáveis ou temporários dentro do mesmo bloco básico. Sempre que a variável é lida antes de ser reatribuída, seu identificador é substituído pelo valor literal correspondente.</p>
+<ul>
+<li><strong>Fronteiras de Bloco Básico</strong>: encontros com <code>TAC_LABEL</code>, <code>TAC_GOTO</code>, <code>TAC_FUNC_BEGIN</code> ou <code>TAC_FUNC_END</code> invalidam a tabela de constantes local, garantindo que hipóteses sobre constantes não vazem através de saltos ou laços de repetição.</li>
+<li><strong>Invalidação por Reatribuição</strong>: se uma variável recebe novo valor (ou um valor não-constante), sua entrada anterior na tabela é invalidada.</li>
+</ul>
+<hr />
+<h3 id="4-remocao-de-codigo-morto-dead-code-elimination">4. Remoção de Código Morto (Dead Code Elimination)</h3>
+<p>Limpa instruções redundantes ou inalcançáveis:
+1. <strong>Eliminação de Temporários de Uso Único</strong>: contrai cadeias como <code>t1 = a + b; x = t1</code> diretamente para <code>x = a + b</code>, removendo o temporário intermediário.
+2. <strong>Remoção de Temporários Não Utilizados</strong>: instruções cujo resultado é um temporário (<code>t0</code>, <code>t1</code>, ...) que nunca é lido no restante do código são completamente removidas.
+3. <strong>Instruções Inalcançáveis</strong>: elimina instruções posicionadas logo após <code>TAC_RETURN</code> ou <code>TAC_GOTO</code> incondicional até o próximo rótulo ou fim de função.</p>
+<hr />
+<h2 id="loop-de-ponto-fixo">Loop de Ponto Fixo</h2>
+<p>A função principal de otimização, <code>otimizar_tac(TAC *tac)</code>, executa as passadas em um laço iterativo até que nenhuma transformação adicional seja possível (ponto fixo) ou até atingir um limite máximo de segurança (20 iterações):</p>
+<pre><code class="language-c">while (modificou &amp;&amp; iteracoes &lt; 20) {
+    modificou = false;
+    if (otimizar_propagacao_constantes(tac)) modificou = true;
+    if (otimizar_constant_folding(tac))      modificou = true;
+    if (otimizar_remocao_codigo_morto(tac))  modificou = true;
+    iteracoes++;
+}
+</code></pre>
+<hr />
+<h2 id="otimizacao-sobre-a-ast-otimizar_ast">Otimização sobre a AST (<code>otimizar_ast</code>)</h2>
+<p>Para a geração de código C# (<code>--opt --cs</code>), a função pública <code>int otimizar_ast(NoAST *raiz)</code> aplica as mesmas 4 técnicas diretamente sobre a AST antes de <code>codegen_csharp_gerar</code>, preservando a estrutura de alto nível (<code>if/elif/else</code>, <code>while</code>, <code>for</code> e métodos <code>static</code>) e liberando com <code>liberar_ast</code> os nós podados:</p>
+<ol>
+<li><strong>Constant Folding na AST</strong>: dobra <code>NO_BINOP</code> e <code>NO_UNARYOP</code> com operandos literais (<code>int</code>, <code>float</code>, <code>bool</code> e <code>string</code>), preservando <code>tipo_resolvido</code> e <code>linha</code>. Em Python 3, divisão entre dois inteiros (<code>5 / 2</code>) resulta em <code>NO_NUM_FLOAT</code> (<code>TIPO_FLOAT</code>), e divisões por zero são preservadas sem dobrar.</li>
+<li><strong>Simplificação Algébrica Segura</strong>: reduz identidades aritméticas e booleanas respeitando pureza (não descarta subexpressões com <code>NO_FUNCCALL</code>, <code>NO_INPUT</code> ou <code>NO_ASSIGN</code>) e tipos:</li>
+<li><code>x / 1</code> só é simplificado para <code>x</code> quando <code>x</code> já é <code>TIPO_FLOAT</code> (mantendo <code>(double)x / 1</code> quando <code>x</code> é <code>TIPO_INT</code>).</li>
+<li>Operações com literal <code>float</code> (como <code>x + 0.0</code> com <code>x</code> inteiro) não perdem a promoção para <code>double</code>.</li>
+<li><strong>Propagação de Constantes em Bloco Básico</strong>: reutiliza <code>TabelaConstantes</code> para substituir <code>NO_ID</code> por literais conhecidos dentro do mesmo bloco sequencial (preservando <code>double</code> em variáveis promovidas pelo ADR-001), invalidando em reatribuições não-constantes e limpando a tabela em fronteiras de controle (<code>if/elif/else</code>, <code>while</code>, <code>for</code>) e isolando escopos de <code>def</code>.</li>
+<li><strong>Remoção de Código Morto (DCE)</strong>:</li>
+<li>Elimina comandos após <code>NO_RETURN</code> no mesmo <code>NO_BLOCO</code>.</li>
+<li>Remove <code>while False:</code> e <code>if False:</code> sem ramos alternativos.</li>
+<li>Promove <code>elif</code> ou faz <em>splice</em> do <code>bloco_else</code> quando a condição do <code>if</code> reduz para <code>False</code>.</li>
+<li>Faz <em>splice</em> do <code>bloco_if</code> diretamente no bloco pai quando a condição reduz para <code>True</code>.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

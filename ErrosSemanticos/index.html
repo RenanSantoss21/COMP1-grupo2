@@ -1,0 +1,2197 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentação oficial do projeto de compiladores (Semestre atual).">
+      
+      
+        <meta name="author" content="Grupo 2">
+      
+      
+      
+        <link rel="prev" href="../Semantica/">
+      
+      
+        <link rel="next" href="../CodigoIntermediario/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Catálogo de Erros Semânticos - Documentação do Compilador Python-C#</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#catalogo-de-erros-semanticos" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="Documentação do Compilador Python-C#" class="md-header__button md-logo" aria-label="Documentação do Compilador Python-C#" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Documentação do Compilador Python-C#
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Catálogo de Erros Semânticos
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Trocar para modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Trocar para modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Trocar para modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Trocar para modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Início
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Manual_Uso/" class="md-tabs__link">
+          
+  
+  
+  Guias
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Sprints/" class="md-tabs__link">
+          
+  
+  
+  Planejamento
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Especificacao_Linguagem/" class="md-tabs__link">
+          
+  
+  
+  Decisões de Design (ADRs)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../VidaDeUmPrograma/" class="md-tabs__link">
+          
+  
+  
+  Implementação
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Testes_Lexicos/" class="md-tabs__link">
+          
+  
+  
+  Testes
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Documentação do Compilador Python-C#" class="md-nav__button md-logo" aria-label="Documentação do Compilador Python-C#" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Documentação do Compilador Python-C#
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guias
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guias
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Manual_Uso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manual de Uso
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Makefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guia do Makefile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Planejamento
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Planejamento
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Sprints/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprints e Andamento
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões de Design (ADRs)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisões de Design (ADRs)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Especificacao_Linguagem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação da Linguagem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADR/001-reatribuicao-de-tipo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-001: Tipagem Estática na Reatribuição
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementação
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Implementação
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VidaDeUmPrograma/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vida de um Programa
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Lexer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Parser/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parser
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AST/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TabelaSimbolos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tabela de Símbolos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Semantica/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Análise Semântica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de Erros Semânticos
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de Erros Semânticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#sem-01-variavel-nao-declarada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-01 — Variável não declarada
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-02-operacao-aritmetica-com-tipos-incompativeis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-02 — Operação aritmética com tipos incompatíveis.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-03-comparacao-invalida-envolvendo-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-03 — Comparação inválida envolvendo string.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-04-comparacao-invalida-envolvendo-booleano" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-04 — Comparação inválida envolvendo booleano.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-05-operador-logico-exige-booleanos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-05 — Operador lógico exige booleanos.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-06-operador-exige-operando-numerico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-06 — Operador '-' exige operando numérico.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-07-operador-not-exige-booleano" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-07 — Operador 'not' exige booleano.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-08-nao-e-uma-funcao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-08 — não é uma função.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-09-numero-errado-de-argumentos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-09 — Número errado de argumentos.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-10-tipos-dos-argumentos-sao-incompativeis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-10 — Tipos dos argumentos são incompatíveis.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-11-chamada-a-funcao-nao-declarada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-11 — Chamada a função não declarada .
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-12-a-condicao-deve-ser-estritamente-booleana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-12 — A condição deve ser estritamente booleana.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-13-return-fora-de-funcao-gera-erro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-13 — 'return' fora de função gera erro.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-14-tipo-do-retorno-e-inconsistente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-14 — Tipo do retorno é inconsistente.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-15-funcao-ja-declarada-na-linha" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-15 - Função '' já declarada na linha .
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-16-conflito-de-nome-entre-variavel-e-funcao-no-mesmo-escopo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-16 - Conflito de nome entre variável e função no mesmo escopo.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-17-tipos-incompativeis-na-reatribuicao-da-variavel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-17 - Tipos incompatíveis na reatribuição da variável
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CodigoIntermediario/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Código Intermediário (TAC)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Otimizador/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Otimizador TAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CodegenCSharp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geração de Código C#
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Testes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Lexicos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Léxicos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Sintaticos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Sintáticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Semanticos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Semânticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_E2E/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes End-to-End (E2E)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#sem-01-variavel-nao-declarada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-01 — Variável não declarada
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-02-operacao-aritmetica-com-tipos-incompativeis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-02 — Operação aritmética com tipos incompatíveis.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-03-comparacao-invalida-envolvendo-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-03 — Comparação inválida envolvendo string.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-04-comparacao-invalida-envolvendo-booleano" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-04 — Comparação inválida envolvendo booleano.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-05-operador-logico-exige-booleanos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-05 — Operador lógico exige booleanos.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-06-operador-exige-operando-numerico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-06 — Operador '-' exige operando numérico.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-07-operador-not-exige-booleano" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-07 — Operador 'not' exige booleano.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-08-nao-e-uma-funcao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-08 — não é uma função.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-09-numero-errado-de-argumentos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-09 — Número errado de argumentos.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-10-tipos-dos-argumentos-sao-incompativeis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-10 — Tipos dos argumentos são incompatíveis.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-11-chamada-a-funcao-nao-declarada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-11 — Chamada a função não declarada .
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-12-a-condicao-deve-ser-estritamente-booleana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-12 — A condição deve ser estritamente booleana.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-13-return-fora-de-funcao-gera-erro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-13 — 'return' fora de função gera erro.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-14-tipo-do-retorno-e-inconsistente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-14 — Tipo do retorno é inconsistente.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-15-funcao-ja-declarada-na-linha" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-15 - Função '' já declarada na linha .
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-16-conflito-de-nome-entre-variavel-e-funcao-no-mesmo-escopo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-16 - Conflito de nome entre variável e função no mesmo escopo.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sem-17-tipos-incompativeis-na-reatribuicao-da-variavel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEM-17 - Tipos incompatíveis na reatribuição da variável
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="catalogo-de-erros-semanticos">Catálogo de Erros Semânticos</h1>
+<p>Este documento descreve todos os erros semânticos que o compilador pode emitir, com exemplos de código que os disparam, a mensagem exata de saída e o comportamento esperado do analisador.</p>
+<p>Todos os erros seguem o formato:</p>
+<pre><code>Erro semântico na linha &lt;N&gt;: &lt;mensagem&gt;.
+</code></pre>
+<hr />
+<h2 id="sem-01-variavel-nao-declarada">SEM-01 — Variável não declarada</h2>
+<p><strong>Mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Variável '&lt;nome&gt;' não declarada.
+</code></pre>
+<p><strong>Onde é gerado:</strong> <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>inferir_tipo</code> (caso <code>NO_ID</code>, linha 168) e função <code>analisar_semantica</code> (caso <code>NO_ID</code>, linha 403).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o compilador encontra o uso de um identificador que ainda não foi atribuído (declarado) no escopo atual ou em qualquer escopo pai. Como o Mini-Python adota <strong>declaração implícita por atribuição</strong> (<code>x = 10</code> registra <code>x</code> na tabela de símbolos), qualquer leitura de uma variável antes de sua primeira atribuição é considerada um erro.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python"># Uso de uma variável não declarada
+resultado = valor_inexistente + 1
+</code></pre>
+<pre><code class="language-python"># Uso antes de qualquer atribuição
+print(x)
+
+</code></pre>
+<pre><code class="language-python"># Erro de digitação no nome da variável
+total = 10
+print(totla)
+</code></pre>
+<pre><code class="language-python"># Variável local de função usada fora do seu escopo
+def calcular():
+    resultado = 42
+
+print(resultado)
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 2: Variável 'valor_inexistente' não declarada.
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">x = 10
+print(x)
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Após emitir o erro, o analisador continua a análise para reportar outros possíveis erros no mesmo arquivo. O nó <code>NO_ID</code> problemático recebe o tipo <code>TIPO_DESCONHECIDO</code>, que sinaliza para as validações posteriores que a origem do valor é inválida.</p>
+<hr />
+<h2 id="sem-02-operacao-aritmetica-com-tipos-incompativeis">SEM-02 — Operação aritmética com tipos incompatíveis.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Operação aritmética com tipos incompatíveis.
+
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>inferir_tipo</code> (caso <code>NO_BINOP</code>, linhas 191 e 196).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o compilador identifica uma operação aritmética entre tipos incompatíveis. Operações envolvendo valores numéricos (<code>int</code> e <code>float</code>) são permitidas, inclusive entre tipos diferentes. Já operações aritméticas envolvendo <code>string</code> ou <code>bool</code> são inválidas, com exceção da concatenação de duas <code>string</code> usando o operador <code>+</code>.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python"># Uso de tipos incompatíveis
+texto = &quot;hello&quot;
+resultado = texto + 5
+</code></pre>
+<pre><code class="language-python"># input retorna string: somar com inteiro é inválido
+n = input(&quot;n&quot;)
+m = n + 1
+
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 3: Operação aritmética com tipos incompatíveis.
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">texto = 10
+resultado = texto + 5
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Após emitir o erro, o analisador continua a análise para reportar outros possíveis erros no mesmo arquivo. O nó <code>NO_BINOP</code> problemático recebe o tipo <code>TIPO_DESCONHECIDO</code>, que sinaliza para as validações posteriores que a origem do valor é inválida.</p>
+<hr />
+<h2 id="sem-03-comparacao-invalida-envolvendo-string">SEM-03 — Comparação inválida envolvendo string.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Comparação inválida envolvendo string.
+
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>inferir_tipo</code> (caso <code>NO_BINOP</code>, linha 215).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o compilador identifica a utilização de operadores de comparação (<code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>) entre uma <code>string</code> e outro tipo de dado, como <code>int</code> ou <code>float</code>.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python"># Uma comparação incompatível
+idade = &quot;20&quot;
+if idade &gt;= 16:
+    print(&quot;pode votar&quot;)
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 3: Comparação inválida envolvendo string.
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">idade = 20
+if idade &gt;= 16:
+    print(&quot;pode votar&quot;)
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Após emitir o erro, o analisador continua a análise para reportar outros possíveis erros no mesmo arquivo. O nó <code>NO_BINOP</code> recebe o tipo <code>TIPO_BOOL</code>, pois toda comparação produz um resultado booleano.</p>
+<hr />
+<h2 id="sem-04-comparacao-invalida-envolvendo-booleano">SEM-04 — Comparação inválida envolvendo booleano.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Comparação inválida envolvendo booleano.
+
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>inferir_tipo</code> (caso <code>NO_BINOP</code>, linha 220).</p>
+<p><strong>Descrição:</strong><br />
+ Ocorre quando o compilador identifica a utilização de operadores de comparação (<code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>, <code>==</code>, <code>!=</code>) entre um valor booleano (<code>True</code> ou <code>False</code>) e um tipo numérico (<code>int</code> ou <code>float</code>). (Caso o outro operando seja <code>string</code>, a verificação de string precede a de booleano e dispara <code>SEM-03</code>.)</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python"># Uma comparação incompatível entre booleano e inteiro
+print(True &gt; 1)
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 2: Comparação inválida envolvendo booleano.
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">print(True == False)
+print(True != False)
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Após emitir o erro, o analisador continua a análise para reportar outros possíveis erros no mesmo arquivo. O nó <code>NO_BINOP</code> recebe o tipo <code>TIPO_BOOL</code>, pois toda comparação produz um resultado booleano.</p>
+<hr />
+<h2 id="sem-05-operador-logico-exige-booleanos">SEM-05 — Operador lógico exige booleanos.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Operador lógico exige booleanos.
+
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>inferir_tipo</code> (caso <code>NO_BINOP</code>, linha 231).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o compilador identifica a utilização dos operadores lógicos <code>and</code> ou <code>or</code> com pelo menos um operando que não é do tipo <code>bool</code>.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">idade = 18
+resultado = idade and True
+
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 2: Operador lógico exige booleanos.
+
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">idade = 18
+maior_de_idade = idade &gt;= 18
+resultado = True and maior_de_idade
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Após inferir os tipos dos dois operandos, o analisador verifica se ambos são do tipo <code>bool</code>. Se algum tipo for diferente, emite a mensagem de erro e incrementa o contador de erros sem interromper a análise. Em seguida, define o resultado da operação como <code>bool</code> e continua a análise do restante do programa.</p>
+<hr />
+<h2 id="sem-06-operador-exige-operando-numerico">SEM-06 — Operador '-' exige operando numérico.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Operador '-' exige operando numérico.
+
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>inferir_tipo</code> (caso <code>NO_UNARYOP</code>, linha 249).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o compilador identifica o operador unário <code>-</code> sendo usado com uma variável que não possui tipo numérico (<code>int</code> ou <code>float</code>). Se o tipo for <code>string</code> ou <code>bool</code>, o analisador emite a mensagem de erro e incrementa o contador de erros.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">texto = &quot;abc&quot;
+x = -texto
+
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 2: Operador '-' exige operando numérico.
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">x = -10
+y = -3.14
+
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Após identificar um operando do tipo <code>string</code> ou <code>bool</code> com o operador <code>-</code>, o analisador emite a mensagem de erro e incrementa o contador de erros sem interromper a análise. O resultado permanece como <code>TIPO_DESCONHECIDO</code>, e a análise continua para buscar outros possíveis erros.</p>
+<hr />
+<h2 id="sem-07-operador-not-exige-booleano">SEM-07 — Operador 'not' exige booleano.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Operador 'not' exige booleano.
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>inferir_tipo</code> (caso <code>NO_UNARYOP</code>, linha 256).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o compilador identifica o operador <code>not</code> sendo usado com um operando que não é do tipo <code>bool</code>. Operandos com tipo desconhecido não geram uma segunda mensagem de erro.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">idade = 18
+resultado = not idade
+
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 2: Operador 'not' exige booleano.
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">ativo = True
+resultado = not ativo
+
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Após identificar um tipo diferente de <code>bool</code> com o operador <code>not</code>, o analisador emite a mensagem de erro e incrementa o contador de erros sem interromper a análise. O resultado da operação recebe o tipo <code>TIPO_BOOL</code>, e a análise continua para buscar outros possíveis erros.</p>
+<hr />
+<h2 id="sem-08-nao-e-uma-funcao">SEM-08 — <nome> não é uma função.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: &lt;nome&gt; não é uma função.
+
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>inferir_tipo</code> (caso <code>NO_FUNCCALL</code>, linha 297).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o compilador tenta chamar como função uma variável ou outro identificador que não foi declarado como função.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">numero = 10
+resultado = numero()
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 2: 'numero' não é uma função.
+
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">def dobrar(valor):
+    return valor * 2
+
+resultado = dobrar(10)
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Ao encontrar uma chamada para um identificador registrado na tabela de símbolos como variável, e não como função, o analisador emite a mensagem de erro e incrementa o contador de erros. Em seguida, continua a análise do restante do programa. O tipo associado à chamada recebe o tipo armazenado no símbolo.</p>
+<hr />
+<h2 id="sem-09-numero-errado-de-argumentos">SEM-09 — Número errado de argumentos.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Número errado de argumentos.
+
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>inferir_tipo</code> (caso <code>NO_FUNCCALL</code>, linha 300).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o compilador chama uma função com um número de argumentos diferente do número de parâmetros declarados.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">def somar(a, b):
+  return a + b
+
+somar(1, 2, 3)  # Erro: espera 2 argumentos, mas recebeu 3
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 4: Número errado de argumentos.
+
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">def calcular_area(largura, altura):
+    return largura * altura
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Ao encontrar uma chamada para um identificador registrado na tabela de símbolos como função, o analisador compara o número de argumentos com o número de parâmetros. Se os números forem diferentes, emite a mensagem de erro e incrementa o contador de erros. Em seguida, continua a análise do restante do programa. O tipo associado à chamada recebe o tipo armazenado no símbolo.</p>
+<hr />
+<h2 id="sem-10-tipos-dos-argumentos-sao-incompativeis">SEM-10 — Tipos dos argumentos são incompatíveis.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Tipos dos argumentos são incompatíveis.
+
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>inferir_tipo</code> (caso <code>NO_FUNCCALL</code>, linha 286).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando uma função é chamada com argumentos cujos tipos não correspondem aos tipos esperados pelos seus parâmetros.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">def dobrar(numero):
+    return numero * 2
+
+dobrar(&quot;texto&quot;)
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 4: Tipos dos argumentos são incompatíveis.
+
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">def dobrar(numero):
+    return numero * 2
+
+dobrar(10)
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Ao analisar uma chamada de função, o analisador verifica o tipo de cada argumento em relação ao tipo esperado pelo parâmetro correspondente. Quando encontra uma incompatibilidade, emite a mensagem de erro e incrementa o contador de erros. Em seguida, continua analisando o restante do programa. O tipo da chamada recebe o tipo de retorno registrado para a função.</p>
+<p><strong>Observação:</strong><br />
+Atualmente, os tipos dos parâmetros são inicializados como <code>TIPO_DESCONHECIDO</code>. Portanto, o erro só é emitido quando o tipo esperado do parâmetro já estiver registrado na tabela de símbolos.</p>
+<hr />
+<h2 id="sem-11-chamada-a-funcao-nao-declarada">SEM-11 — Chamada a função não declarada <nome>.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Chamada a função não declarada '&lt;nome&gt;'.
+
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>inferir_tipo</code> (caso <code>NO_FUNCCALL</code>, linha 305).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o programa tenta chamar uma função que não foi declarada anteriormente.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">resultado = calcular(10)
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 1: Chamada a função não declarada 'calcular'.
+
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">def calcular(valor):
+    return valor * 2
+
+resultado = calcular(10)
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Ao encontrar uma chamada de função, o analisador procura o nome da função na tabela de símbolos. Caso não encontre o identificador, emite a mensagem de erro, incrementa o contador de erros e atribui <code>TIPO_DESCONHECIDO</code> ao resultado da chamada. Depois, continua analisando o restante do programa.</p>
+<hr />
+<h2 id="sem-12-a-condicao-deve-ser-estritamente-booleana">SEM-12 — A condição deve ser estritamente booleana.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: A condição deve ser estritamente booleana.
+
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>analisar_semantica</code> (casos <code>NO_IF</code>, <code>NO_WHILE</code>, <code>NO_ELIF</code>, linha 435).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o compilador identifica um momento em que uma estrutura condicional recebe um valor que não é <code>booleano</code>.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">idade = 18
+if idade:
+    print(&quot;maior de idade&quot;)
+#A condição do if precisa ser booleana
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 2: A condição deve ser estritamente booleana.
+
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">idade = 18
+
+if idade &gt;= 18:
+    print(&quot;Maior de idade&quot;)
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Após identificar que a condição não possui tipo <code>bool</code>, o analisador emite a mensagem de erro e incrementa o contador de erros sem interromper a análise. Em seguida, continua analisando a condição e os blocos associados ao <code>if</code>, <code>while</code> ou <code>elif</code>, permitindo identificar outros erros no mesmo arquivo. Se a condição tiver tipo <code>TIPO_DESCONHECIDO</code>, o analisador não emite este erro novamente, pois a causa já foi reportada anteriormente.</p>
+<hr />
+<h2 id="sem-13-return-fora-de-funcao-gera-erro">SEM-13 — 'return' fora de função gera erro.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: 'return' fora de função gera erro.
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>analisar_semantica</code> (caso <code>NO_RETURN</code>, linha 527).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o comando <code>return</code> é utilizado no escopo principal do programa, fora da declaração de uma função.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">valor = 10
+return valor
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 2: 'return' fora de função gera erro.
+
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">def obter_valor():
+    return 10
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Ao encontrar um comando <code>return</code>, o analisador verifica se está dentro do escopo de uma função. Caso contrário, emite a mensagem de erro e incrementa o contador de erros. Mesmo após o erro, continua analisando a expressão de retorno e o restante do programa.</p>
+<hr />
+<h2 id="sem-14-tipo-do-retorno-e-inconsistente">SEM-14 — Tipo do retorno é inconsistente.</h2>
+<p><strong>mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Tipo do retorno é inconsistente.
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+ <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>analisar_semantica</code> (caso <code>NO_RETURN</code>, linha 540).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando uma mesma função possui comandos <code>return</code> com tipos diferentes.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">def verificar(valor):
+    if valor &gt; 0:
+        return 1
+    else:
+        return &quot;negativo&quot;
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 5: Tipo do retorno é inconsistente.
+
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">def dobrar(valor):
+    if valor &gt; 0:
+        return valor * 2
+    else:
+        return 0
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Ao analisar o primeiro <code>return</code> da função, o analisador registra o tipo do valor retornado. Nos <code>return</code> seguintes, compara o tipo encontrado com o tipo já registrado. Se os tipos forem diferentes, emite a mensagem de erro e incrementa o contador de erros. A análise continua normalmente para encontrar outros possíveis erros.</p>
+<hr />
+<h2 id="sem-15-funcao-ja-declarada-na-linha">SEM-15 - Função '<nome>' já declarada na linha <M>.</h2>
+<p><strong>Mensagem:</strong>  </p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Função '&lt;nome&gt;' já declarada na linha &lt;M&gt;.
+</code></pre>
+<p><strong>Onde é gerado:</strong><br />
+<a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>analisar_semantica</code> (caso <code>NO_FUNCDEF</code>).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando uma função com o mesmo identificador é declarada mais de uma vez no mesmo escopo.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">def f():
+    return 1
+def f(a):
+    return 2
+f()
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 3: Função 'f' já declarada na linha 1.
+</code></pre>
+<p><strong>Código que NÃO dispara o erro (válido):</strong></p>
+<pre><code class="language-python">def f():
+    return 1
+def g(a):
+    return 2
+f()
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Ao analisar <code>NO_FUNCDEF</code>, o analisador verifica se já existe uma função previamente declarada no escopo corrente (<code>tabela_buscar_escopo_atual</code>). Se existir (e não for apenas o pré-registro da primeira definição), emite a mensagem de erro referenciando a linha da declaração original, incrementa o contador de erros, preserva a assinatura original e continua analisando o corpo em escopo local para reportar eventuais erros adicionais.</p>
+<hr />
+<h2 id="sem-16-conflito-de-nome-entre-variavel-e-funcao-no-mesmo-escopo">SEM-16 - Conflito de nome entre variável e função no mesmo escopo.</h2>
+<p><strong>Mensagens:</strong>  </p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Identificador '&lt;nome&gt;' já declarado como função na linha &lt;M&gt;.
+Erro semântico na linha &lt;N&gt;: Identificador '&lt;nome&gt;' já declarado como variável na linha &lt;M&gt;.
+</code></pre>
+<p><strong>Onde é gerado:</strong><br />
+<a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>analisar_semantica</code> (casos <code>NO_ASSIGN</code>, <code>NO_FOR</code> e <code>NO_FUNCDEF</code>).</p>
+<p><strong>Descrição:</strong><br />
+Ocorre quando o código tenta atribuir um valor (ou usar em <code>for</code>) um identificador que já foi declarado como função no escopo corrente, ou quando tenta declarar uma função (<code>def</code>) usando um identificador que já foi declarado como variável no mesmo escopo.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">def dobro(x):
+    return x * 2
+dobro = 10
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 3: Identificador 'dobro' já declarado como função na linha 1.
+</code></pre>
+<p><strong>Comportamento do analisador:</strong><br />
+Ao encontrar uma atribuição (<code>NO_ASSIGN</code>), laço (<code>NO_FOR</code>) ou definição de função (<code>NO_FUNCDEF</code>), o analisador consulta a tabela no escopo corrente (<code>tabela_buscar_escopo_atual</code>). Se o identificador já existir no mesmo escopo com categoria conflitante (variável vs. função), emite a mensagem de erro correspondente, incrementa o contador de erros e preserva o símbolo original.</p>
+<hr />
+<h2 id="sem-17-tipos-incompativeis-na-reatribuicao-da-variavel">SEM-17 - Tipos incompatíveis na reatribuição da variável</h2>
+<p><strong>Mensagem:</strong></p>
+<pre><code>Erro semântico na linha &lt;N&gt;: Tipos incompatíveis na reatribuição da variável '&lt;nome&gt;'.
+</code></pre>
+<p><strong>Onde é gerado:</strong>
+<a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c"><code>src/semantica.c</code></a>, função <code>analisar_semantica</code> (caso <code>NO_ASSIGN</code>).</p>
+<p><strong>Descrição:</strong>
+Ocorre quando uma variável já declarada recebe um valor de tipo incompatível. A política estática permite o mesmo tipo e a promoção de <code>int</code> para <code>float</code>, mas preserva o tipo original da variável.</p>
+<p><strong>Código que dispara o erro:</strong></p>
+<pre><code class="language-python">x = 10
+x = &quot;texto&quot;
+</code></pre>
+<p><strong>Saída do compilador:</strong></p>
+<pre><code>Erro semântico na linha 2: Tipos incompatíveis na reatribuição da variável 'x'.
+</code></pre>
+<p><strong>Código válido:</strong></p>
+<pre><code class="language-python">x = 10
+x = 20
+
+taxa = 3.14
+taxa = 2
+</code></pre>
+<p><strong>Comportamento do compilador:</strong>
+Ao analisar uma atribuição (<code>NO_ASSIGN</code>), o compilador consulta a variável no escopo atual. Se ela ainda não existir, registra o tipo inferido da expressão na tabela de símbolos. Se já existir, compara o tipo registrado com o tipo da nova expressão: reatribuições do mesmo tipo e a promoção de <code>int</code> para <code>float</code> são aceitas, enquanto tipos incompatíveis geram a mensagem de erro, incrementam o contador de erros e preservam o tipo original da variável. A análise continua normalmente para identificar outros erros no mesmo programa.</p>
+<hr />
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

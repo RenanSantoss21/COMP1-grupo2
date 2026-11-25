@@ -1,0 +1,3285 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentação oficial do projeto de compiladores (Semestre atual).">
+      
+      
+        <meta name="author" content="Grupo 2">
+      
+      
+      
+        <link rel="prev" href="../ADR/001-reatribuicao-de-tipo/">
+      
+      
+        <link rel="next" href="../Lexer/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Vida de um Programa - Documentação do Compilador Python-C#</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#vida-de-um-programa-no-compilador" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="Documentação do Compilador Python-C#" class="md-header__button md-logo" aria-label="Documentação do Compilador Python-C#" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Documentação do Compilador Python-C#
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Vida de um Programa
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Trocar para modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Trocar para modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Trocar para modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Trocar para modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Início
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Manual_Uso/" class="md-tabs__link">
+          
+  
+  
+  Guias
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Sprints/" class="md-tabs__link">
+          
+  
+  
+  Planejamento
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Especificacao_Linguagem/" class="md-tabs__link">
+          
+  
+  
+  Decisões de Design (ADRs)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Implementação
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Testes_Lexicos/" class="md-tabs__link">
+          
+  
+  
+  Testes
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Documentação do Compilador Python-C#" class="md-nav__button md-logo" aria-label="Documentação do Compilador Python-C#" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Documentação do Compilador Python-C#
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guias
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guias
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Manual_Uso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manual de Uso
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Makefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guia do Makefile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Planejamento
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Planejamento
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Sprints/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprints e Andamento
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões de Design (ADRs)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisões de Design (ADRs)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Especificacao_Linguagem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificação da Linguagem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADR/001-reatribuicao-de-tipo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-001: Tipagem Estática na Reatribuição
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementação
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Implementação
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vida de um Programa
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vida de um Programa
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#programa-de-exemplo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Programa de Exemplo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-analise-lexica-lexer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Análise Léxica (Lexer)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Análise Léxica (Lexer)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#leitura-de-caracteres" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leitura de caracteres
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agrupamento-e-classificacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agrupamento e classificação
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reconhecimento-e-classificacao-dos-lexemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reconhecimento e classificação dos lexemas
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conceitos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conceitos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tratamento-de-erros" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tratamento de erros
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-identificacao-de-erros-do-analisador-lexico-e-voltada-principalmente-para-a-presenca-de-caracteres-que-nao-sao-validos-na-linguagem-ao-encontrar-um-caractere-problematico-deve-se-emitir-uma-mensagem-de-erro-contendo-informacoes-sobre-o-caractere-e-a-sua-posicao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A identificação de erros do analisador léxico é voltada principalmente para a presença de caracteres que não são válidos na linguagem. Ao encontrar um caractere problemático, deve-se emitir uma mensagem de erro contendo informações sobre o caractere e a sua posição.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-analise-sintatica-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Análise Sintática (Parser)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Análise Sintática (Parser)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#funcionamento-do-analisador-ascendente-shift-reduce" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Funcionamento do Analisador Ascendente (Shift-Reduce)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#construcao-de-listas-dinamicas-no-bison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Construção de Listas Dinâmicas no Bison
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rastreamento-passo-a-passo-do-programa-de-exemplo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rastreamento Passo a Passo do Programa de Exemplo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rastreamento Passo a Passo do Programa de Exemplo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bloco-1-definicao-da-funcao-dobron-linhas-1-e-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bloco 1: Definição da Função dobro(n) (Linhas 1 e 2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bloco-2-atribuicao-x-3-linha-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bloco 2: Atribuição x = 3 (Linha 3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bloco-3-condicional-if-x-2-e-chamada-y-dobrox-linhas-4-e-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bloco 3: Condicional if x &gt; 2: e Chamada y = dobro(x) (Linhas 4 e 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bloco-4-comando-printy-linha-6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bloco 4: Comando print(y) (Linha 6)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#finalizacao-da-gramatica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finalização da Gramática
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tabela-resumo-das-reducoes-e-construtores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tabela Resumo das Reduções e Construtores
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-arvore-sintatica-abstrata-ast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Árvore Sintática Abstrata (AST)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Árvore Sintática Abstrata (AST)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#saida-textual-ast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Saída Textual (--ast)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualizacao-grafica-dot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualização Gráfica (--dot)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-tabela-de-simbolos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Tabela de Símbolos
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Tabela de Símbolos">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#estado-0-inicializacao-do-escopo-global-escopo_atual-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 0: Inicialização do Escopo Global (escopo_atual = 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-1-pre-registro-de-dobro-e-escopo-de-parametro-escopo_atual-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 1: Pré-registro de dobro e Escopo de Parâmetro (escopo_atual = 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-2-analise-do-corpo-de-dobro-escopo_atual-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 2: Análise do Corpo de dobro (escopo_atual = 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-3-saida-da-funcao-dobro-escopo_atual-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 3: Saída da Função dobro (escopo_atual = 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-4-atribuicao-global-x-3-escopo_atual-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 4: Atribuição Global x = 3 (escopo_atual = 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-5-execucao-do-if-e-atribuicao-de-y-escopo_atual-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 5: Execução do if e Atribuição de y (escopo_atual = 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-6-consulta-e-execucao-do-printy-escopo_atual-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 6: Consulta e Execução do print(y) (escopo_atual = 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rastreio-sintetico-de-chamadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rastreio Sintético de Chamadas
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-analise-semantica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Análise Semântica
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Análise Semântica">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-raiz-programa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Raiz: Programa
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-def-dobron-return-n-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 def dobro(n): return n * 2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-x-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 x = 3
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-if-x-2-y-dobrox" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 if x &gt; 2: y = dobro(x)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-printy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5 print(y)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resultado
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tipo-inferido-de-cada-expressao-tipo_resolvido" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tipo inferido de cada expressão (tipo_resolvido)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#observacoes-do-rastreio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observações do rastreio
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Lexer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Parser/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parser
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AST/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TabelaSimbolos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tabela de Símbolos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Semantica/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Análise Semântica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ErrosSemanticos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catálogo de Erros Semânticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CodigoIntermediario/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Código Intermediário (TAC)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Otimizador/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Otimizador TAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CodegenCSharp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geração de Código C#
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Testes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Lexicos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Léxicos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Sintaticos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Sintáticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_Semanticos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes Semânticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Testes_E2E/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testes End-to-End (E2E)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#programa-de-exemplo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Programa de Exemplo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-analise-lexica-lexer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Análise Léxica (Lexer)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Análise Léxica (Lexer)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#leitura-de-caracteres" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leitura de caracteres
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agrupamento-e-classificacao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agrupamento e classificação
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reconhecimento-e-classificacao-dos-lexemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reconhecimento e classificação dos lexemas
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conceitos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conceitos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tratamento-de-erros" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tratamento de erros
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-identificacao-de-erros-do-analisador-lexico-e-voltada-principalmente-para-a-presenca-de-caracteres-que-nao-sao-validos-na-linguagem-ao-encontrar-um-caractere-problematico-deve-se-emitir-uma-mensagem-de-erro-contendo-informacoes-sobre-o-caractere-e-a-sua-posicao" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A identificação de erros do analisador léxico é voltada principalmente para a presença de caracteres que não são válidos na linguagem. Ao encontrar um caractere problemático, deve-se emitir uma mensagem de erro contendo informações sobre o caractere e a sua posição.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-analise-sintatica-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Análise Sintática (Parser)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Análise Sintática (Parser)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#funcionamento-do-analisador-ascendente-shift-reduce" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Funcionamento do Analisador Ascendente (Shift-Reduce)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#construcao-de-listas-dinamicas-no-bison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Construção de Listas Dinâmicas no Bison
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rastreamento-passo-a-passo-do-programa-de-exemplo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rastreamento Passo a Passo do Programa de Exemplo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rastreamento Passo a Passo do Programa de Exemplo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bloco-1-definicao-da-funcao-dobron-linhas-1-e-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bloco 1: Definição da Função dobro(n) (Linhas 1 e 2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bloco-2-atribuicao-x-3-linha-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bloco 2: Atribuição x = 3 (Linha 3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bloco-3-condicional-if-x-2-e-chamada-y-dobrox-linhas-4-e-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bloco 3: Condicional if x &gt; 2: e Chamada y = dobro(x) (Linhas 4 e 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bloco-4-comando-printy-linha-6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bloco 4: Comando print(y) (Linha 6)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#finalizacao-da-gramatica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finalização da Gramática
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tabela-resumo-das-reducoes-e-construtores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tabela Resumo das Reduções e Construtores
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-arvore-sintatica-abstrata-ast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Árvore Sintática Abstrata (AST)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Árvore Sintática Abstrata (AST)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#saida-textual-ast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Saída Textual (--ast)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualizacao-grafica-dot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualização Gráfica (--dot)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-tabela-de-simbolos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Tabela de Símbolos
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Tabela de Símbolos">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#estado-0-inicializacao-do-escopo-global-escopo_atual-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 0: Inicialização do Escopo Global (escopo_atual = 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-1-pre-registro-de-dobro-e-escopo-de-parametro-escopo_atual-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 1: Pré-registro de dobro e Escopo de Parâmetro (escopo_atual = 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-2-analise-do-corpo-de-dobro-escopo_atual-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 2: Análise do Corpo de dobro (escopo_atual = 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-3-saida-da-funcao-dobro-escopo_atual-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 3: Saída da Função dobro (escopo_atual = 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-4-atribuicao-global-x-3-escopo_atual-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 4: Atribuição Global x = 3 (escopo_atual = 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-5-execucao-do-if-e-atribuicao-de-y-escopo_atual-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 5: Execução do if e Atribuição de y (escopo_atual = 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estado-6-consulta-e-execucao-do-printy-escopo_atual-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado 6: Consulta e Execução do print(y) (escopo_atual = 0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rastreio-sintetico-de-chamadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rastreio Sintético de Chamadas
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-analise-semantica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Análise Semântica
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Análise Semântica">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-raiz-programa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Raiz: Programa
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-def-dobron-return-n-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 def dobro(n): return n * 2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-x-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 x = 3
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-if-x-2-y-dobrox" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 if x &gt; 2: y = dobro(x)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-printy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5 print(y)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resultado
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tipo-inferido-de-cada-expressao-tipo_resolvido" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tipo inferido de cada expressão (tipo_resolvido)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#observacoes-do-rastreio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observações do rastreio
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="vida-de-um-programa-no-compilador">Vida de um Programa no Compilador</h1>
+<p>Este documento acompanha um único programa Python por todas as fases do compilador — da leitura dos caracteres no <strong>Lexer</strong>, passando pela redução das regras no <strong>Parser</strong>, construção da <strong>AST</strong>, gerenciamento de escopos na <strong>Tabela de Símbolos</strong> e validação na <strong>Análise Semântica</strong>.</p>
+<h2 id="programa-de-exemplo">Programa de Exemplo</h2>
+<pre><code class="language-python">def dobro(n):
+    return n * 2
+x = 3
+if x &gt; 2:
+    y = dobro(x)
+print(y)
+</code></pre>
+<hr />
+<h2 id="1-analise-lexica-lexer">1. Análise Léxica (Lexer)</h2>
+<p>A análise léxica é a primeira fase do processo de compilação. Sua função é ler o código-fonte, identificar as sequências de caracteres que formam as unidades léxicas da linguagem e classificá-las em tokens. Esses tokens são enviados ao analisador sintático, responsável por verificar se a sequência obedece às regras gramaticais da linguagem. O componente responsável por essa tarefa é chamado de analisador léxico, também conhecido como lexer ou scanner. Essa tarefa pode ser dividida em algumas etapas:</p>
+<h4 id="leitura-de-caracteres">Leitura de caracteres</h4>
+<ul>
+<li>Ele analisa cada caractere do código-fonte (um fluxo de texto). Nessa leitura, ocorre a remoção de caracteres irrelevantes, como espaços em branco ou comentários. Entretanto, esse comportamento depende das regras da linguagem.</li>
+</ul>
+<h4 id="agrupamento-e-classificacao">Agrupamento e classificação</h4>
+<ul>
+<li>Enquanto ocorre a leitura, o analisador agrupa os caracteres relevantes em lexemas e os classifica, gerando uma lista de tokens, que são os símbolos processados pelas demais etapas.</li>
+</ul>
+<h4 id="reconhecimento-e-classificacao-dos-lexemas">Reconhecimento e classificação dos lexemas</h4>
+<ul>
+<li>Ao receber o código-fonte como um fluxo de caracteres, o analisador léxico identifica as sequências que correspondem aos padrões definidos pela linguagem, classificando-as e gerando os tokens correspondentes. Além disso, pode ignorar elementos que não precisam ser enviados às próximas etapas, como espaços em branco e comentários, dependendo das regras da linguagem. No Python, entretanto, nem todo espaço em branco é irrelevante, pois a indentação determina a estrutura dos blocos de código. Por isso, o analisador léxico pode gerar tokens específicos, como <code>INDENT</code> e <code>DEDENT</code>, que representam, respectivamente, o aumento e a diminuição do nível de indentação.</li>
+</ul>
+<h3 id="conceitos">Conceitos</h3>
+<p>Dessa forma, pode-se definir três tipos de relacionamentos ao implementar um analisador léxico:</p>
+<ul>
+<li><strong>Lexema:</strong> é uma sequência de caracteres de um programa-fonte, como uma palavra. Cada conjunto de caracteres forma um símbolo válido de uma linguagem de programação. O lexema pode ser também um único caractere.</li>
+<li>Por exemplo, em <code>int x = 5</code>, os lexemas encontrados são: <code>int</code>, <code>x</code>, <code>=</code>, <code>5</code>.</li>
+<li><strong>Padrão:</strong> descrição da forma que os lexemas podem assumir, ou seja, a maneira como se pode escrever os lexemas no programa. Funciona como as regras do que é aceito ou não. Dessa forma, uma sequência de caracteres forma uma palavra reservada ou um identificador (os caracteres que formam nomes de variáveis ou funções...).</li>
+<li><strong>Token:</strong> resultado da classificação. Se o lexema segue um padrão válido, ele se torna um token, possuindo um nome e um atributo. É um símbolo que representa uma unidade léxica. A palavra <code>if</code>, por exemplo, segue um padrão formado pelos caracteres <code>i</code> e <code>f</code>. O analisador possui uma regra na qual um lexema que reúne esses caracteres gera um token de palavra reservada que representa uma seleção. Já a variável <code>soma</code> segue um padrão de palavras formadas por um conjunto de caracteres, podendo ser um identificador. Além disso, essa unidade pode ser, por exemplo: palavras reservadas, identificadores, números...</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Token</th>
+<th style="text-align: left;">Padrão</th>
+<th style="text-align: left;">Lexema</th>
+<th style="text-align: center;">Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><code>while</code></td>
+<td style="text-align: left;">sequência: w, h, i, l, e</td>
+<td style="text-align: left;"><code>while</code></td>
+<td style="text-align: center;">Palavra reservada</td>
+</tr>
+<tr>
+<td style="text-align: center;"><code>numero, 18</code></td>
+<td style="text-align: left;">Dígitos numéricos</td>
+<td style="text-align: left;"><code>18</code></td>
+<td style="text-align: center;">Constante numérica</td>
+</tr>
+</tbody>
+</table>
+<p>Os tokens podem ser divididos em dois grupos:</p>
+<ul>
+<li><strong>Tokens simples:</strong> eles possuem um valor associado, já descrito na própria classe, como operadores ou palavras reservadas.</li>
+<li><strong>Tokens com argumentos:</strong> possuem um valor associado, como <code>&lt;numero, 10&gt;</code> ou <code>&lt;id, 3&gt;</code>.</li>
+</ul>
+<p>Possuindo uma estrutura de <code>&lt;nome-token, valor-atributo&gt;</code>.</p>
+<p>Tomando o exemplo principal como base:</p>
+<pre><code class="language-python">def dobro(n):
+    return n * 2
+x = 3
+if x &gt; 2:
+    y = dobro(x)
+print(y)
+</code></pre>
+<p>A análise léxica deste arquivo pode gerar a seguinte sequência de tokens simplificada (omite alguns tokens de estrutura):</p>
+<pre><code class="language-text">&lt;def, def&gt;
+&lt;id, dobro&gt;
+&lt;abre_parentese, (&gt;
+&lt;id, n&gt;
+&lt;fecha_parentese, )&gt;
+&lt;dois_pontos, :&gt;
+
+&lt;return, return&gt;
+&lt;id, n&gt;
+&lt;operador_multiplicacao, *&gt;
+&lt;numero, 2&gt;
+
+&lt;id, x&gt;
+&lt;igual, =&gt;
+&lt;numero, 3&gt;
+
+&lt;if, if&gt;
+&lt;id, x&gt;
+&lt;maior, &gt;&gt;
+&lt;numero, 2&gt;
+&lt;dois_pontos, :&gt;
+
+&lt;id, y&gt;
+&lt;igual, =&gt;
+&lt;id, dobro&gt;
+&lt;abre_parentese, (&gt;
+&lt;id, x&gt;
+&lt;fecha_parentese, )&gt;
+
+&lt;print, print&gt;
+&lt;abre_parentese, (&gt;
+&lt;id, y&gt;
+&lt;fecha_parentese, )&gt;
+</code></pre>
+<p>Dessa forma, ao encontrar o lexema <code>def</code>, por exemplo, o analisador reconhece uma palavra reservada e produz um token correspondente. Essa forma de análise se dá por todo o código, com diferentes categorias. Cada implementação pode gerar a sua própria nomenclatura.</p>
+<h2 id="tratamento-de-erros">Tratamento de erros</h2>
+<hr />
+<h2 id="a-identificacao-de-erros-do-analisador-lexico-e-voltada-principalmente-para-a-presenca-de-caracteres-que-nao-sao-validos-na-linguagem-ao-encontrar-um-caractere-problematico-deve-se-emitir-uma-mensagem-de-erro-contendo-informacoes-sobre-o-caractere-e-a-sua-posicao">A identificação de erros do analisador léxico é voltada principalmente para a presença de caracteres que não são válidos na linguagem. Ao encontrar um caractere problemático, deve-se emitir uma mensagem de erro contendo informações sobre o caractere e a sua posição.</h2>
+<h2 id="2-analise-sintatica-parser">2. Análise Sintática (Parser)</h2>
+<p>A análise sintática é a segunda fase do compilador. Sua função é receber o fluxo contínuo de tokens emitidos pelo analisador léxico (<code>yylex()</code>) e verificar se a ordem dos símbolos respeita as regras da gramática formal livre de contexto da linguagem.</p>
+<p>Nosso compilador utiliza o <strong>GNU Bison</strong> para gerar um analisador sintático ascendente (<em>bottom-up</em>) do tipo <strong>LALR(1)</strong> com resolução de ambiguidades por precedência de operadores e lookahead correction (<strong>LAC</strong> — <em>Lookahead Correction</em>).</p>
+<h3 id="funcionamento-do-analisador-ascendente-shift-reduce">Funcionamento do Analisador Ascendente (Shift-Reduce)</h3>
+<p>Diferente de um analisador descendente, que tenta prever as regras a partir do símbolo inicial, o analisador do Bison opera por <strong>empilhamento e redução</strong> (<em>shift-reduce</em>):
+1. <strong>Shift (Empilhamento):</strong> Lê o próximo token fornecido pelo lexer e empilha seu símbolo e valor semântico (<code>yylval</code>).
+2. <strong>Reduce (Redução):</strong> Quando o topo da pilha coincide com o lado direito de uma regra gramatical, esses elementos são desempilhados e substituídos pelo não-terminal do lado esquerdo da regra, executando a ação semântica associada (<code>{ $$ = ... }</code>).
+3. As ações semânticas em <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/parser/parser.y"><code>parser/parser.y</code></a> chamam as funções construtoras de <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/ast.c"><code>src/ast.c</code></a> (<code>criar_no_*</code>), construindo a árvore sintática abstrata das folhas até a raiz.</p>
+<h3 id="construcao-de-listas-dinamicas-no-bison">Construção de Listas Dinâmicas no Bison</h3>
+<p>Como a análise é ascendente, o tamanho de um bloco indentado ou de uma lista de argumentos/parâmetros só é conhecido após a leitura do último item. Para gerenciar isso sem estruturas intermediárias complexas, o parser emprega duas funções auxiliares:
+- <code>criar_lista(primeiro)</code>: Cria um nó <code>NO_BLOCO</code> com capacidade inicial contendo o primeiro nó.
+- <code>adicionar_lista(lista, novo)</code>: Realoca dinamicamente o vetor <code>argumentos</code> via <code>realloc</code> e insere o novo nó no final.</p>
+<p>Ao concluir uma regra composta, o nó <code>NO_BLOCO</code> temporário tem seus elementos transferidos para o nó definitivo (como <code>NO_FUNCDEF</code>, <code>NO_IF</code> ou <code>NO_PROGRAMA</code>) e sua casca é liberada com <code>free</code>.</p>
+<hr />
+<h3 id="rastreamento-passo-a-passo-do-programa-de-exemplo">Rastreamento Passo a Passo do Programa de Exemplo</h3>
+<p>Abaixo está o acompanhamento cronológico exato das regras acionadas e das chamadas <code>criar_no_*</code> durante a execução de <code>yyparse()</code> sobre o nosso programa de exemplo:</p>
+<pre><code class="language-python">def dobro(n):
+    return n * 2
+x = 3
+if x &gt; 2:
+    y = dobro(x)
+print(y)
+</code></pre>
+<h4 id="bloco-1-definicao-da-funcao-dobron-linhas-1-e-2">Bloco 1: Definição da Função <code>dobro(n)</code> (Linhas 1 e 2)</h4>
+<ol>
+<li><strong>Parâmetro Formal:</strong></li>
+<li>O lexer emite <code>DEF</code>, <code>ID("dobro")</code>, <code>LPAREN</code>, <code>ID("n")</code>.</li>
+<li>Token <code>ID("n")</code> reduz para a regra <code>parametros: ID</code>.</li>
+<li><strong>Ação:</strong> Chama <code>criar_no_id("n", linha)</code> e encapsula em <code>criar_lista(...)</code>.</li>
+<li>Reduz para <code>parametros_opt: parametros</code>.</li>
+<li>Consome <code>RPAREN</code>, <code>COLON</code>, <code>NEWLINE</code>, <code>INDENT</code>.</li>
+<li><strong>Expressão do <code>return</code>:</strong></li>
+<li>O lexer emite <code>RETURN</code>, <code>ID("n")</code>.</li>
+<li><code>ID("n")</code> reduz para <code>expressao: ID</code> $\rightarrow$ <code>criar_no_id("n", linha)</code>.</li>
+<li>O lexer emite <code>TIMES</code>, <code>NUM_INT(2)</code>.</li>
+<li><code>NUM_INT(2)</code> reduz para <code>expressao: NUM_INT</code> $\rightarrow$ <code>criar_no_int(2, linha)</code>.</li>
+<li>Pela regra de precedência, <code>expressao TIMES expressao</code> reduz para <code>expressao</code>.</li>
+<li><strong>Ação:</strong> Dispara <code>criar_no_binop(OP_MULT, no_id_n, no_num_2, linha)</code>.</li>
+<li><strong>Comando <code>return</code> e Bloco da Função:</strong></li>
+<li>A regra <code>comando_simples: RETURN expressao</code> dispara <code>criar_no_return(no_binop, linha)</code>.</li>
+<li>Consome <code>NEWLINE</code>, reduzindo <code>comando: comando_simples NEWLINE</code>.</li>
+<li>Reduz para <code>comandos: comando</code> $\rightarrow$ <code>criar_lista(no_return)</code>.</li>
+<li>O lexer detecta o fim da indentação e emite <code>DEDENT</code>.</li>
+<li>A regra <code>bloco: NEWLINE INDENT comandos DEDENT</code> repassa a lista com o corpo da função.</li>
+<li><strong>Fechamento do <code>def</code>:</strong></li>
+<li>A regra <code>comando_composto: DEF ID LPAREN parametros_opt RPAREN COLON bloco</code> é reduzida.</li>
+<li><strong>Ação:</strong> Dispara <code>criar_no_funcdef("dobro", params, 1, bloco, linha)</code>.</li>
+<li>Reduz para <code>comando: comando_composto</code>, e em seguida para <code>comandos: comando</code> (iniciando a lista do escopo global).</li>
+</ol>
+<h4 id="bloco-2-atribuicao-x-3-linha-3">Bloco 2: Atribuição <code>x = 3</code> (Linha 3)</h4>
+<ol>
+<li>O lexer emite <code>ID("x")</code>, que reduz para <code>expressao: ID</code> $\rightarrow$ <code>criar_no_id("x", linha)</code>.</li>
+<li>O lexer emite <code>ASSIGN</code>, <code>NUM_INT(3)</code>.</li>
+<li><code>NUM_INT(3)</code> reduz para <code>expressao: NUM_INT</code> $\rightarrow$ <code>criar_no_int(3, linha)</code>.</li>
+<li>A regra <code>expressao: expressao ASSIGN expressao</code> é reduzida.</li>
+<li>O parser extrai o nome <code>"x"</code> do nó à esquerda e dispara <code>criar_no_assign("x", no_num_3, linha)</code>.</li>
+<li>Reduz para <code>comando_simples: expressao</code>.</li>
+<li>Consome <code>NEWLINE</code>, reduz para <code>comando: comando_simples NEWLINE</code>.</li>
+<li>A regra recursiva <code>comandos: comandos comando</code> aciona <code>adicionar_lista(lista_global, no_assign_x)</code>.</li>
+</ol>
+<h4 id="bloco-3-condicional-if-x-2-e-chamada-y-dobrox-linhas-4-e-5">Bloco 3: Condicional <code>if x &gt; 2:</code> e Chamada <code>y = dobro(x)</code> (Linhas 4 e 5)</h4>
+<ol>
+<li><strong>Condição do <code>if</code>:</strong></li>
+<li>O lexer emite <code>IF</code>, <code>ID("x")</code>. <code>ID("x")</code> reduz para <code>expressao: ID</code> $\rightarrow$ <code>criar_no_id("x", linha)</code>.</li>
+<li>O lexer emite <code>GT</code>, <code>NUM_INT(2)</code>. <code>NUM_INT(2)</code> reduz para <code>expressao: NUM_INT</code> $\rightarrow$ <code>criar_no_int(2, linha)</code>.</li>
+<li>A regra <code>expressao: expressao GT expressao</code> reduz disparando <code>criar_no_binop(OP_GT, no_x, no_2, linha)</code>.</li>
+<li>Consome <code>COLON</code>, <code>NEWLINE</code>, <code>INDENT</code>.</li>
+<li><strong>Corpo do <code>if</code> (<code>y = dobro(x)</code>):</strong></li>
+<li>O lexer emite <code>ID("y")</code> $\rightarrow$ reduz para <code>expressao: ID</code> (<code>criar_no_id("y", linha)</code>).</li>
+<li>O lexer emite <code>ASSIGN</code>, <code>ID("dobro")</code>, <code>LPAREN</code>, <code>ID("x")</code>.</li>
+<li><code>ID("x")</code> reduz para <code>expressao: ID</code> $\rightarrow$ <code>criar_no_id("x", linha)</code>, e em seguida para <code>argumentos_opt</code>.</li>
+<li>A regra <code>expressao: ID LPAREN argumentos_opt RPAREN</code> reconhece a chamada de função e dispara:
+     <code>criar_no_funccall("dobro", args, 1, linha)</code>.</li>
+<li>A regra <code>expressao: expressao ASSIGN expressao</code> dispara:
+     <code>criar_no_assign("y", no_funccall, linha)</code>.</li>
+<li>Consome <code>NEWLINE</code>, reduz para <code>comando_simples</code>, depois <code>comando</code>, <code>comandos: comando</code> e finalmente <code>bloco</code> ao receber <code>DEDENT</code>.</li>
+<li><strong>Fechamento do <code>if</code>:</strong></li>
+<li>Não há cláusulas <code>elif</code> nem <code>else</code>, logo <code>lista_elif</code> e <code>senao_opt</code> reduzem pela regra <code>%empty</code> (retornando <code>NULL</code>).</li>
+<li>A regra <code>comando_composto: IF expressao COLON bloco lista_elif senao_opt</code> dispara:
+     <code>criar_no_if(no_cond, bloco_then, NULL, 0, NULL, linha)</code>.</li>
+<li>Reduz para <code>comando</code>, e <code>comandos: comandos comando</code> anexa o nó <code>NO_IF</code> à lista global.</li>
+</ol>
+<h4 id="bloco-4-comando-printy-linha-6">Bloco 4: Comando <code>print(y)</code> (Linha 6)</h4>
+<ol>
+<li>O lexer emite <code>PRINT</code>, <code>LPAREN</code>, <code>ID("y")</code>.</li>
+<li><code>ID("y")</code> reduz para <code>expressao: ID</code> $\rightarrow$ <code>criar_no_id("y", linha)</code>, e depois para <code>argumentos_opt</code>.</li>
+<li>Consome <code>RPAREN</code>. A regra <code>comando_simples: PRINT LPAREN argumentos_opt RPAREN</code> dispara:
+   <code>criar_no_print(args, 1, linha)</code>.</li>
+<li>Consome <code>NEWLINE</code> (ou EOF), reduz para <code>comando</code>, e <code>comandos: comandos comando</code> anexa o nó <code>NO_PRINT</code> como o 4º comando global.</li>
+</ol>
+<h4 id="finalizacao-da-gramatica">Finalização da Gramática</h4>
+<ol>
+<li>O lexer alcança o final do arquivo (<code>EOF</code>).</li>
+<li>A regra inicial <code>programa: comandos</code> é acionada:</li>
+<li>Extrai o vetor de 4 comandos contido no bloco temporário.</li>
+<li>Dispara <code>criar_no_programa($1-&gt;argumentos, 4)</code>.</li>
+<li>Atribui o nó resultante à variável global <code>raiz_ast</code>.</li>
+<li>Executa <code>free($1)</code> liberando o invólucro do bloco temporário.</li>
+<li><code>yyparse()</code> retorna <code>0</code> com sucesso, repassando <code>raiz_ast</code> para as etapas subsequentes.</li>
+</ol>
+<hr />
+<h3 id="tabela-resumo-das-reducoes-e-construtores">Tabela Resumo das Reduções e Construtores</h3>
+<table>
+<thead>
+<tr>
+<th>Etapa</th>
+<th>Token / Lookahead</th>
+<th>Regra do <code>parser.y</code> Disparada</th>
+<th>Construtor em <code>src/ast.c</code> Invocado</th>
+<th>Tipo de Nó Resultante</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><code>ID("n")</code></td>
+<td><code>parametros: ID</code></td>
+<td><code>criar_no_id("n", linha)</code></td>
+<td><code>NO_ID</code> (parâmetro)</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><code>ID("n")</code></td>
+<td><code>expressao: ID</code></td>
+<td><code>criar_no_id("n", linha)</code></td>
+<td><code>NO_ID</code></td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><code>NUM_INT(2)</code></td>
+<td><code>expressao: NUM_INT</code></td>
+<td><code>criar_no_int(2, linha)</code></td>
+<td><code>NO_NUM_INT</code></td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><code>TIMES</code></td>
+<td><code>expressao: expressao TIMES expressao</code></td>
+<td><code>criar_no_binop(OP_MULT, esq, dir, linha)</code></td>
+<td><code>NO_BINOP (*)</code></td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><code>RETURN</code></td>
+<td><code>comando_simples: RETURN expressao</code></td>
+<td><code>criar_no_return(expr, linha)</code></td>
+<td><code>NO_RETURN</code></td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><code>NEWLINE</code> / <code>DEDENT</code></td>
+<td><code>bloco: NEWLINE INDENT comandos DEDENT</code></td>
+<td><em>(repassa lista de comandos)</em></td>
+<td><code>NO_BLOCO</code> (corpo)</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td><code>DEF</code> ... <code>bloco</code></td>
+<td><code>comando_composto: DEF ID (...) COLON bloco</code></td>
+<td><code>criar_no_funcdef("dobro", params, 1, bloco, linha)</code></td>
+<td><code>NO_FUNCDEF</code></td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td><code>ID("x")</code></td>
+<td><code>expressao: ID</code></td>
+<td><code>criar_no_id("x", linha)</code></td>
+<td><code>NO_ID</code></td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td><code>NUM_INT(3)</code></td>
+<td><code>expressao: NUM_INT</code></td>
+<td><code>criar_no_int(3, linha)</code></td>
+<td><code>NO_NUM_INT</code></td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td><code>ASSIGN</code></td>
+<td><code>expressao: expressao ASSIGN expressao</code></td>
+<td><code>criar_no_assign("x", expr, linha)</code></td>
+<td><code>NO_ASSIGN</code></td>
+</tr>
+<tr>
+<td><strong>11</strong></td>
+<td><code>ID("x")</code></td>
+<td><code>expressao: ID</code></td>
+<td><code>criar_no_id("x", linha)</code></td>
+<td><code>NO_ID</code></td>
+</tr>
+<tr>
+<td><strong>12</strong></td>
+<td><code>NUM_INT(2)</code></td>
+<td><code>expressao: NUM_INT</code></td>
+<td><code>criar_no_int(2, linha)</code></td>
+<td><code>NO_NUM_INT</code></td>
+</tr>
+<tr>
+<td><strong>13</strong></td>
+<td><code>GT</code></td>
+<td><code>expressao: expressao GT expressao</code></td>
+<td><code>criar_no_binop(OP_GT, esq, dir, linha)</code></td>
+<td><code>NO_BINOP (&gt;)</code></td>
+</tr>
+<tr>
+<td><strong>14</strong></td>
+<td><code>ID("x")</code></td>
+<td><code>expressao: ID</code></td>
+<td><code>criar_no_id("x", linha)</code></td>
+<td><code>NO_ID</code></td>
+</tr>
+<tr>
+<td><strong>15</strong></td>
+<td><code>ID("dobro")</code></td>
+<td><code>expressao: ID LPAREN args RPAREN</code></td>
+<td><code>criar_no_funccall("dobro", args, 1, linha)</code></td>
+<td><code>NO_FUNCCALL</code></td>
+</tr>
+<tr>
+<td><strong>16</strong></td>
+<td><code>ASSIGN</code></td>
+<td><code>expressao: expressao ASSIGN expressao</code></td>
+<td><code>criar_no_assign("y", expr, linha)</code></td>
+<td><code>NO_ASSIGN</code></td>
+</tr>
+<tr>
+<td><strong>17</strong></td>
+<td><code>IF</code> ... <code>bloco</code></td>
+<td><code>comando_composto: IF expr COLON bloco ...</code></td>
+<td><code>criar_no_if(cond, bloco, NULL, 0, NULL, linha)</code></td>
+<td><code>NO_IF</code></td>
+</tr>
+<tr>
+<td><strong>18</strong></td>
+<td><code>PRINT</code></td>
+<td><code>comando_simples: PRINT LPAREN args RPAREN</code></td>
+<td><code>criar_no_print(args, 1, linha)</code></td>
+<td><code>NO_PRINT</code></td>
+</tr>
+<tr>
+<td><strong>19</strong></td>
+<td><code>EOF</code></td>
+<td><code>programa: comandos</code></td>
+<td><code>criar_no_programa(cmds, 4)</code></td>
+<td><code>NO_PROGRAMA</code> (Raiz)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-arvore-sintatica-abstrata-ast">3. Árvore Sintática Abstrata (AST)</h2>
+<p>Após o <code>yyparse()</code> concluir as reduções sintáticas de baixo para cima (<em>bottom-up</em>), a variável global <code>raiz_ast</code> aponta para o nó raiz <code>NO_PROGRAMA</code>, que reúne os <strong>4 comandos de topo</strong> no vetor <code>raiz_ast-&gt;argumentos</code> (<code>num_argumentos = 4</code>):</p>
+<ol>
+<li><strong><code>argumentos[0]</code> — Definição de função (<code>NO_FUNCDEF: dobro</code>)</strong>:</li>
+<li><code>nome</code>: <code>"dobro"</code></li>
+<li><code>argumentos[0]</code> (parâmetro): <code>NO_ID ("n")</code>, anotado com <code>TIPO_INT</code> (tipo inferido pelo uso no corpo).</li>
+<li><code>bloco_if</code> (corpo da função): <code>NO_BLOCO</code> contendo um único comando <code>NO_RETURN</code>, cujo filho <code>esquerda</code> é a expressão binária <code>NO_BINOP (OP_MULT: *)</code> (<code>[int]</code>) ligando <code>NO_ID ("n")</code> (à esquerda) e <code>NO_NUM_INT (2)</code> (à direita).</li>
+<li><strong><code>argumentos[1]</code> — Atribuição (<code>NO_ASSIGN: x</code>)</strong>:</li>
+<li><code>nome</code>: <code>"x"</code></li>
+<li><code>esquerda</code>: literal <code>NO_NUM_INT (3)</code> anotado pela semântica com <code>tipo_resolvido = TIPO_INT</code>.</li>
+<li><strong><code>argumentos[2]</code> — Condicional (<code>NO_IF</code>)</strong>:</li>
+<li><code>condicao</code>: <code>NO_BINOP (OP_GT: &gt;)</code> comparando <code>NO_ID ("x")</code> (<code>[int]</code>) e <code>NO_NUM_INT (2)</code> (<code>[int]</code>), anotado com <code>tipo_resolvido = TIPO_BOOL</code>.</li>
+<li><code>bloco_if</code> (ramo <code>entao</code>): <code>NO_BLOCO</code> contendo <code>NO_ASSIGN ("y")</code>, cujo filho <code>esquerda</code> é a chamada <code>NO_FUNCCALL ("dobro")</code> (<code>[int]</code>, o tipo de retorno de <code>dobro</code>) passando <code>NO_ID ("x")</code> (<code>[int]</code>) em <code>argumentos[0]</code>.</li>
+<li><code>bloco_else</code>: <code>NULL</code> (e <code>num_argumentos = 0</code>, pois não há cláusulas <code>elif</code>).</li>
+<li><strong><code>argumentos[3]</code> — Comando de saída (<code>NO_PRINT</code>)</strong>:</li>
+<li><code>argumentos[0]</code>: <code>NO_ID ("y")</code> (<code>[int]</code>).</li>
+</ol>
+<h3 id="saida-textual-ast">Saída Textual (<code>--ast</code>)</h3>
+<p>Executando o compilador com a flag <code>--ast</code>:</p>
+<pre><code class="language-bash">./compilador --ast &lt; exemplo.py
+</code></pre>
+<p>Obtemos a árvore indentada com os tipos resolvidos anotados entre colchetes (<code>[int]</code>, <code>[bool]</code>):</p>
+<pre><code class="language-text">Programa
+  FuncDef: dobro [int]
+    Params:
+      Id: n [int]
+    Corpo:
+      Bloco
+        Return [int]
+          BinOp: * [int]
+            Id: n [int]
+            NumInt: 2 [int]
+  Assign: x
+    NumInt: 3 [int]
+  If
+    Cond:
+      BinOp: &gt; [bool]
+        Id: x [int]
+        NumInt: 2 [int]
+    Entao:
+      Bloco
+        Assign: y
+          FuncCall: dobro [int]
+            Id: x [int]
+  Print
+    Id: y [int]
+</code></pre>
+<h3 id="visualizacao-grafica-dot">Visualização Gráfica (<code>--dot</code>)</h3>
+<p>Executando o compilador com a flag <code>--dot</code>:</p>
+<pre><code class="language-bash">./compilador --dot &lt; exemplo.py &gt; exemplo.dot &amp;&amp; dot -Tpng exemplo.dot -o docs/img/ast_vida_programa.png
+</code></pre>
+<p>O módulo <a href="https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/ast.c"><code>src/ast.c</code></a> exporta os 20 nós (<code>n0</code> a <code>n19</code>) no formato Graphviz DOT e renderiza a árvore final abaixo:</p>
+<p><img alt="AST completa do programa de exemplo" src="../img/ast_vida_programa.png" /></p>
+<details>
+<summary>Ver código Graphviz DOT gerado por <code>ast_para_dot</code></summary>
+
+
+<pre><code class="language-dot">digraph AST {
+    node [shape=box, style=&quot;rounded,filled&quot;, fillcolor=&quot;#f8f9fa&quot;, fontname=&quot;monospace&quot;];
+    edge [fontname=&quot;monospace&quot;, fontsize=10];
+    n0 [label=&quot;Programa&quot;];
+    n1 [label=&quot;FuncDef: dobro [int]&quot;];
+    n2 [label=&quot;Id: n [int]&quot;];
+    n1 -&gt; n2 [label=&quot;param&quot;];
+    n3 [label=&quot;Bloco&quot;];
+    n4 [label=&quot;Return [int]&quot;];
+    n5 [label=&quot;BinOp: * [int]&quot;];
+    n6 [label=&quot;Id: n [int]&quot;];
+    n7 [label=&quot;NumInt: 2 [int]&quot;];
+    n5 -&gt; n6;
+    n5 -&gt; n7;
+    n4 -&gt; n5;
+    n3 -&gt; n4;
+    n1 -&gt; n3 [label=&quot;corpo&quot;];
+    n0 -&gt; n1;
+    n8 [label=&quot;Assign: x&quot;];
+    n9 [label=&quot;NumInt: 3 [int]&quot;];
+    n8 -&gt; n9;
+    n0 -&gt; n8;
+    n10 [label=&quot;If&quot;];
+    n11 [label=&quot;BinOp: &gt; [bool]&quot;];
+    n12 [label=&quot;Id: x [int]&quot;];
+    n13 [label=&quot;NumInt: 2 [int]&quot;];
+    n11 -&gt; n12;
+    n11 -&gt; n13;
+    n10 -&gt; n11 [label=&quot;cond&quot;];
+    n14 [label=&quot;Bloco&quot;];
+    n15 [label=&quot;Assign: y&quot;];
+    n16 [label=&quot;FuncCall: dobro [int]&quot;];
+    n17 [label=&quot;Id: x [int]&quot;];
+    n16 -&gt; n17;
+    n15 -&gt; n16;
+    n14 -&gt; n15;
+    n10 -&gt; n14 [label=&quot;entao&quot;];
+    n0 -&gt; n10;
+    n18 [label=&quot;Print&quot;];
+    n19 [label=&quot;Id: y [int]&quot;];
+    n18 -&gt; n19;
+    n0 -&gt; n18;
+}
+</code></pre>
+
+</details>
+
+<hr />
+<h2 id="4-tabela-de-simbolos">4. Tabela de Símbolos</h2>
+<p>A Tabela de Símbolos gerencia os identificadores (variáveis e funções) e assegura a visibilidade e compatibilidade de tipos durante a Análise Semântica.</p>
+<p>Ela é mantida em um <strong>array dinâmico contíguo</strong> (<code>Simbolo* array_simbolos</code>) operado como pilha. A busca de nomes (<code>tabela_buscar</code>) é feita por <strong>varredura reversa</strong> (<code>i = tamanho - 1</code> até <code>0</code>). Conforme definido na resolução da <strong>Issue #45</strong>, para respeitar a semântica do Python, blocos de controle de fluxo (<code>if</code>, <code>for</code>, <code>while</code>) <strong>não criam novos escopos</strong>. Portanto, chamadas a <code>tabela_entrar_escopo()</code> e <code>tabela_sair_escopo()</code> ocorrem exclusivamente na definição de funções (<code>NO_FUNCDEF</code>).</p>
+<p>Abaixo é apresentado o rastreio do estado do <code>array_simbolos</code> ao longo do programa de exemplo.</p>
+<hr />
+<h3 id="estado-0-inicializacao-do-escopo-global-escopo_atual-0">Estado 0: Inicialização do Escopo Global (<code>escopo_atual = 0</code>)</h3>
+<p>O compilador inicializa a tabela alocando capacidade para 10 símbolos.</p>
+<ul>
+<li><strong>Ação:</strong> <code>tabela_criar()</code></li>
+<li><strong>Estado Interno:</strong> <code>escopo_atual = 0</code>, <code>tamanho = 0</code>, <code>capacidade = 10</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Índice</th>
+<th style="text-align: left;">Nome</th>
+<th style="text-align: left;">Tipo</th>
+<th style="text-align: center;">Escopo</th>
+<th style="text-align: center;">Linha</th>
+<th style="text-align: center;">É Função?</th>
+<th style="text-align: left;">Detalhes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">-</td>
+<td style="text-align: left;"><em>(vazia)</em></td>
+<td style="text-align: left;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: left;">Nenhum símbolo registrado</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="estado-1-pre-registro-de-dobro-e-escopo-de-parametro-escopo_atual-1">Estado 1: Pré-registro de <code>dobro</code> e Escopo de Parâmetro (<code>escopo_atual = 1</code>)</h3>
+<p>Ao processar o programa:
+1. Antes de visitar qualquer comando, <code>pre_registrar_funcoes</code> insere <code>dobro</code> no <strong>escopo 0</strong> como função (por isso uma chamada pode vir antes do <code>def</code>, Issue #49).
+2. Ao chegar no <code>def dobro(n):</code>, <code>tabela_entrar_escopo()</code> incrementa <code>escopo_atual</code> para <code>1</code>.
+3. O parâmetro <code>n</code> é registrado no <strong>escopo 1</strong>, ainda sem tipo.</p>
+<ul>
+<li><strong>Ação:</strong> <code>tabela_inserir("dobro")</code> -&gt; <code>tabela_entrar_escopo()</code> -&gt; <code>tabela_inserir("n")</code></li>
+<li><strong>Estado Interno:</strong> <code>escopo_atual = 1</code>, <code>tamanho = 2</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Índice</th>
+<th style="text-align: left;">Nome</th>
+<th style="text-align: left;">Tipo</th>
+<th style="text-align: center;">Escopo</th>
+<th style="text-align: center;">Linha</th>
+<th style="text-align: center;">É Função?</th>
+<th style="text-align: left;">Detalhes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong><code>[0]</code></strong></td>
+<td style="text-align: left;"><code>dobro</code></td>
+<td style="text-align: left;"><code>TIPO_DESCONHECIDO</code></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;"><code>true</code></td>
+<td style="text-align: left;"><code>num_parametros = 1</code>, parâmetros <code>(desconhecido)</code></td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong><code>[1]</code></strong></td>
+<td style="text-align: left;"><code>n</code></td>
+<td style="text-align: left;"><code>TIPO_DESCONHECIDO</code></td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;"><code>false</code></td>
+<td style="text-align: left;">Parâmetro formal de <code>dobro</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="estado-2-analise-do-corpo-de-dobro-escopo_atual-1">Estado 2: Análise do Corpo de <code>dobro</code> (<code>escopo_atual = 1</code>)</h3>
+<p>O corpo da função é um <code>NO_BLOCO</code>, que <strong>não</strong> abre escopo (Issue #45): o <code>return n * 2</code> é analisado no próprio escopo 1. Na expressão <code>n * 2</code>, o operando <code>2</code> é <code>TIPO_INT</code>, e o parâmetro <code>n</code>, que estava sem tipo, passa a ser <code>TIPO_INT</code> (Issue #52). O retorno da função também fica <code>TIPO_INT</code>.</p>
+<ul>
+<li><strong>Ação:</strong> nenhuma inserção; <code>n</code> tem o tipo atualizado</li>
+<li><strong>Estado Interno:</strong> <code>escopo_atual = 1</code>, <code>tamanho = 2</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Índice</th>
+<th style="text-align: left;">Nome</th>
+<th style="text-align: left;">Tipo</th>
+<th style="text-align: center;">Escopo</th>
+<th style="text-align: center;">Linha</th>
+<th style="text-align: center;">É Função?</th>
+<th style="text-align: left;">Detalhes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong><code>[0]</code></strong></td>
+<td style="text-align: left;"><code>dobro</code></td>
+<td style="text-align: left;"><code>TIPO_DESCONHECIDO</code></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;"><code>true</code></td>
+<td style="text-align: left;">Visível via busca reversa</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong><code>[1]</code></strong></td>
+<td style="text-align: left;"><code>n</code></td>
+<td style="text-align: left;"><code>TIPO_INT</code></td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;"><code>false</code></td>
+<td style="text-align: left;">Tipo inferido pelo uso em <code>n * 2</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="estado-3-saida-da-funcao-dobro-escopo_atual-0">Estado 3: Saída da Função <code>dobro</code> (<code>escopo_atual = 0</code>)</h3>
+<p>Ao término do corpo da função:
+1. O tipo de <code>n</code> é copiado para a assinatura de <code>dobro</code>: parâmetros <code>(int)</code>.
+2. <code>tabela_sair_escopo()</code> desempilha <code>n</code> do índice <code>1</code> (<code>free</code>) e retorna ao <code>escopo_atual = 0</code>.
+3. <code>dobro</code> recebe o tipo de retorno inferido: <code>TIPO_INT</code>.</p>
+<ul>
+<li><strong>Ação:</strong> <code>tabela_sair_escopo()</code></li>
+<li><strong>Estado Interno:</strong> <code>escopo_atual = 0</code>, <code>tamanho = 1</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Índice</th>
+<th style="text-align: left;">Nome</th>
+<th style="text-align: left;">Tipo</th>
+<th style="text-align: center;">Escopo</th>
+<th style="text-align: center;">Linha</th>
+<th style="text-align: center;">É Função?</th>
+<th style="text-align: left;">Detalhes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong><code>[0]</code></strong></td>
+<td style="text-align: left;"><code>dobro</code></td>
+<td style="text-align: left;"><code>TIPO_INT</code></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;"><code>true</code></td>
+<td style="text-align: left;">Mantido no escopo global, parâmetros <code>(int)</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="estado-4-atribuicao-global-x-3-escopo_atual-0">Estado 4: Atribuição Global <code>x = 3</code> (<code>escopo_atual = 0</code>)</h3>
+<p>O compilador registra <code>x</code> no escopo global.</p>
+<ul>
+<li><strong>Ação:</strong> <code>tabela_inserir("x", TIPO_INT, linha 3)</code></li>
+<li><strong>Estado Interno:</strong> <code>escopo_atual = 0</code>, <code>tamanho = 2</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Índice</th>
+<th style="text-align: left;">Nome</th>
+<th style="text-align: left;">Tipo</th>
+<th style="text-align: center;">Escopo</th>
+<th style="text-align: center;">Linha</th>
+<th style="text-align: center;">É Função?</th>
+<th style="text-align: left;">Detalhes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong><code>[0]</code></strong></td>
+<td style="text-align: left;"><code>dobro</code></td>
+<td style="text-align: left;"><code>TIPO_INT</code></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;"><code>true</code></td>
+<td style="text-align: left;"><code>num_parametros = 1</code></td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong><code>[1]</code></strong></td>
+<td style="text-align: left;"><code>x</code></td>
+<td style="text-align: left;"><code>TIPO_INT</code></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;"><code>false</code></td>
+<td style="text-align: left;">Literal <code>3</code> inferido como <code>TIPO_INT</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="estado-5-execucao-do-if-e-atribuicao-de-y-escopo_atual-0">Estado 5: Execução do <code>if</code> e Atribuição de <code>y</code> (<code>escopo_atual = 0</code>)</h3>
+<p>Ao processar <code>if x &gt; 2:</code>, a condição consulta <code>x</code> no índice <code>1</code>. Como o <code>if</code> <strong>não abre novo escopo</strong>, o comando <code>y = dobro(x)</code> insere <code>y</code> diretamente no <strong>escopo 0</strong>, com o tipo de retorno de <code>dobro</code> (<code>TIPO_INT</code>).</p>
+<ul>
+<li><strong>Ação:</strong> <code>tabela_inserir("y", TIPO_INT, linha 5)</code></li>
+<li><strong>Estado Interno:</strong> <code>escopo_atual = 0</code>, <code>tamanho = 3</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Índice</th>
+<th style="text-align: left;">Nome</th>
+<th style="text-align: left;">Tipo</th>
+<th style="text-align: center;">Escopo</th>
+<th style="text-align: center;">Linha</th>
+<th style="text-align: center;">É Função?</th>
+<th style="text-align: left;">Detalhes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong><code>[0]</code></strong></td>
+<td style="text-align: left;"><code>dobro</code></td>
+<td style="text-align: left;"><code>TIPO_INT</code></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;"><code>true</code></td>
+<td style="text-align: left;">Escopo Global</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong><code>[1]</code></strong></td>
+<td style="text-align: left;"><code>x</code></td>
+<td style="text-align: left;"><code>TIPO_INT</code></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;"><code>false</code></td>
+<td style="text-align: left;">Escopo Global</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong><code>[2]</code></strong></td>
+<td style="text-align: left;"><code>y</code></td>
+<td style="text-align: left;"><code>TIPO_INT</code></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;"><code>false</code></td>
+<td style="text-align: left;">Inserida no escopo global (vazamento de escopo)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="estado-6-consulta-e-execucao-do-printy-escopo_atual-0">Estado 6: Consulta e Execução do <code>print(y)</code> (<code>escopo_atual = 0</code>)</h3>
+<p>No comando final <code>print(y)</code>:</p>
+<ol>
+<li>O compilador executa <code>tabela_buscar(tab, "y")</code>.</li>
+<li>A varredura reversa inicia no índice <code>2</code> (<code>tamanho - 1</code>).</li>
+<li>Localiza <code>y</code> no índice <code>2</code> com tipo <code>TIPO_INT</code>.</li>
+<li>
+<p>A verificação semântica é concluída <strong>sem erros</strong>.</p>
+</li>
+<li>
+<p><strong>Resultado:</strong> O programa compila com sucesso e a execução gera o resultado esperado: <code>6</code>.</p>
+</li>
+</ol>
+<hr />
+<h3 id="rastreio-sintetico-de-chamadas">Rastreio Sintético de Chamadas</h3>
+<pre><code class="language-text">tabela_criar()                          -&gt; tamanho = 0, escopo_atual = 0
+  tabela_inserir(&quot;dobro&quot;, ..., 1)       -&gt; array[0] = { &quot;dobro&quot;, esc: 0 }  (pré-registro)
+  tabela_entrar_escopo()                -&gt; escopo_atual = 1
+    tabela_inserir(&quot;n&quot;, ..., 1)         -&gt; array[1] = { &quot;n&quot;, esc: 1 }
+    (n * 2)                             -&gt; n.tipo = TIPO_INT
+  tabela_sair_escopo()                  -&gt; free(&quot;n&quot;), tamanho = 1, escopo_atual = 0
+                                           dobro: tipo TIPO_INT, parâmetros (int)
+  tabela_inserir(&quot;x&quot;, TIPO_INT, 3)      -&gt; array[1] = { &quot;x&quot;, esc: 0 }
+  tabela_inserir(&quot;y&quot;, TIPO_INT, 5)      -&gt; array[2] = { &quot;y&quot;, esc: 0 }
+  tabela_buscar(&quot;y&quot;)                    -&gt; Encontra 'y' no índice 2 -&gt; Sucesso!
+</code></pre>
+<hr />
+<h2 id="5-analise-semantica">5. Análise Semântica</h2>
+<p>A análise semântica começa no <code>main</code> (<code>parser/parser.y</code>), depois que <code>yyparse()</code> termina sem erros sintáticos:</p>
+<pre><code class="language-c">TabelaSimbolos *tabela = tabela_criar();
+int erros_semanticos = analisar_semantica(raiz_ast, tabela);
+</code></pre>
+<p>Ela recebe a AST pronta (<code>raiz_ast</code>) e uma tabela de símbolos vazia (escopo 0). Duas funções de <code>src/semantica.c</code> fazem o trabalho:</p>
+<ul>
+<li><strong><code>analisar_semantica(no, tabela)</code></strong> percorre os <strong>comandos</strong>: declara variáveis e funções na tabela, abre e fecha o escopo das funções, valida <code>return</code> e condições. Retorna o número de erros.</li>
+<li><strong><code>inferir_tipo(no, tabela, &amp;erros)</code></strong> avalia uma <strong>expressão</strong> de baixo para cima, devolve o <code>TipoDado</code> dela e grava o resultado em <code>no-&gt;tipo_resolvido</code>.</li>
+</ul>
+<p>A sequência abaixo é a ordem real das chamadas para o programa de exemplo. A indentação mostra quem chamou quem, e <code>[esc=N]</code> é o <code>escopo_atual</code> da tabela no momento da chamada.</p>
+<h3 id="51-raiz-programa">5.1 Raiz: <code>Programa</code></h3>
+<pre><code class="language-text">analisar_semantica(Programa) [esc=0]
+  pre_registrar_funcoes(Programa)
+    tabela_inserir(dobro, DESCONHECIDO, escopo 0)   e_funcao = true, num_parametros = 1
+</code></pre>
+<p>O ramo <code>NO_PROGRAMA</code> faz duas passadas:</p>
+<ol>
+<li><code>pre_registrar_funcoes</code> percorre os comandos de topo e insere cada <code>def</code> na tabela antes de qualquer análise. Assim uma chamada pode aparecer antes da definição (issue #49). <code>dobro</code> entra com <code>pre_registrada = true</code> e <code>tipos_parametros = {DESCONHECIDO}</code>.</li>
+<li>Depois, cada comando em <code>argumentos[]</code> é analisado em ordem: <code>FuncDef</code>, <code>Assign</code>, <code>If</code>, <code>Print</code>.</li>
+</ol>
+<blockquote>
+<p><code>NO_PROGRAMA</code> <strong>não</strong> abre escopo: o nível global é o escopo 0, criado por <code>tabela_criar()</code>.</p>
+</blockquote>
+<h3 id="52-def-dobron-return-n-2">5.2 <code>def dobro(n): return n * 2</code></h3>
+<pre><code class="language-text">analisar_semantica(FuncDef(dobro)) [esc=0]
+  tabela_buscar_escopo_atual(dobro) -&gt; pré-registrada   pre_registrada = false
+  tabela_entrar_escopo -&gt; 1
+  tabela_inserir(n, DESCONHECIDO, escopo 1)
+  pre_registrar_funcoes(Bloco)                          nenhum def aninhado
+  analisar_semantica(Bloco) [esc=1]
+    analisar_semantica(Return) [esc=1]
+      inferir_tipo(BinOp *)        -&gt; INT
+        inferir_tipo(Id n)         -&gt; DESCONHECIDO
+        inferir_tipo(NumInt 2)     -&gt; INT
+        n.tipo = INT                                    inferido pelo outro operando
+  dobro.tipos_parametros = {INT}
+  tabela_sair_escopo (1)            remove n
+  dobro.tipo = tipo_retorno_atual = INT
+</code></pre>
+<p>O que acontece no ramo <code>NO_FUNCDEF</code>:</p>
+<ol>
+<li><code>dobro</code> já está na tabela por causa do pré-registro, então só é desmarcada como pré-registrada. Se o nome já existisse como função ou variável não pré-registrada, seria erro de redeclaração (issue #50).</li>
+<li>As flags de contexto são salvas e trocadas: <code>dentro_de_funcao = true</code> e <code>tipo_retorno_atual = VOID</code>.</li>
+<li>Abre-se o escopo 1 e os parâmetros são inseridos nele. Como o parâmetro não tem anotação de tipo, <code>n</code> entra como <code>DESCONHECIDO</code>.</li>
+<li>O corpo é um <code>NO_BLOCO</code>, que <strong>não</strong> abre escopo (issue #45). Uma função ocupa um único nível de escopo, o 1.</li>
+<li>No <code>NO_RETURN</code>, <code>dentro_de_funcao</code> é verdadeiro, então não há erro de "return fora de função". O tipo da expressão é inferido:</li>
+<li><code>n</code> → <code>DESCONHECIDO</code> (o tipo que está na tabela);</li>
+<li><code>2</code> → <code>INT</code>;</li>
+<li>em <code>n * 2</code>, o operando conhecido (<code>INT</code>) define o tipo do parâmetro sem tipo: <code>n</code> passa a <code>INT</code> na tabela e no nó (issue #52). Com dois <code>INT</code>, o resultado é <code>INT</code>.</li>
+<li>Como <code>tipo_retorno_atual</code> ainda era <code>VOID</code>, ele passa a ser o tipo deste <code>return</code> (<code>INT</code>).</li>
+<li>O tipo final de <code>n</code> é copiado para <code>tipos_parametros</code> e para o nó do parâmetro. Depois o escopo 1 é fechado (<code>n</code> sai da tabela), <code>dobro.tipo</code> recebe o tipo de retorno e as flags voltam aos valores salvos.</li>
+</ol>
+<p>Tabela ao fim do <code>def</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Nome</th>
+<th>Tipo</th>
+<th>Escopo</th>
+<th>Função?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dobro</code></td>
+<td>INT</td>
+<td>0</td>
+<td>sim (parâmetros <code>(int)</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-x-3">5.3 <code>x = 3</code></h3>
+<pre><code class="language-text">analisar_semantica(Assign x) [esc=0]
+  inferir_tipo(NumInt 3) -&gt; INT
+  tabela_inserir(x, INT, escopo 0)
+</code></pre>
+<p>No ramo <code>NO_ASSIGN</code>, a expressão do lado direito fica em <code>esquerda</code> (é assim que <code>criar_no_assign</code> monta o nó). O tipo dela é inferido (<code>INT</code>). Como não existe <code>x</code> no escopo atual, <code>x</code> é inserido. Se já existisse, valeria a política de reatribuição da ADR-001.</p>
+<table>
+<thead>
+<tr>
+<th>Nome</th>
+<th>Tipo</th>
+<th>Escopo</th>
+<th>Função?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dobro</code></td>
+<td>INT</td>
+<td>0</td>
+<td>sim</td>
+</tr>
+<tr>
+<td><code>x</code></td>
+<td>INT</td>
+<td>0</td>
+<td>não</td>
+</tr>
+</tbody>
+</table>
+<h3 id="54-if-x-2-y-dobrox">5.4 <code>if x &gt; 2: y = dobro(x)</code></h3>
+<pre><code class="language-text">analisar_semantica(If) [esc=0]
+  inferir_tipo(BinOp &gt;)        -&gt; BOOL
+    inferir_tipo(Id x)         -&gt; INT
+    inferir_tipo(NumInt 2)     -&gt; INT
+  analisar_semantica(Bloco) [esc=0]
+    analisar_semantica(Assign y) [esc=0]
+      inferir_tipo(FuncCall dobro) -&gt; INT
+        inferir_tipo(Id x)         -&gt; INT
+      tabela_inserir(y, INT, escopo 0)
+</code></pre>
+<ul>
+<li><strong>Condição:</strong> <code>x &gt; 2</code> é uma comparação, então o resultado é sempre <code>BOOL</code>. Os operandos <code>INT</code>/<code>INT</code> não disparam nenhum erro de comparação. Como o tipo é <code>BOOL</code>, a regra "a condição deve ser estritamente booleana" é satisfeita.</li>
+<li><strong>Bloco do <code>if</code>:</strong> o <code>NO_BLOCO</code> <strong>não</strong> abre escopo (issue #45). O <code>y = dobro(x)</code> é analisado no escopo 0, como em Python.</li>
+<li><strong><code>y = dobro(x)</code>:</strong> no ramo <code>NO_FUNCCALL</code> de <code>inferir_tipo</code>:</li>
+<li><code>dobro</code> existe na tabela e é função;</li>
+<li>1 argumento para 1 parâmetro: a quantidade confere;</li>
+<li>o argumento <code>x</code> é <code>INT</code>, igual ao parâmetro (<code>INT</code>). Nenhum erro;</li>
+<li>o tipo da chamada é o tipo de retorno da função: <code>INT</code>.</li>
+<li><code>y</code> é inserido com tipo <code>INT</code> <strong>no escopo 0</strong> e continua visível depois do <code>if</code>.</li>
+</ul>
+<p>Tabela ao fim do <code>if</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Nome</th>
+<th>Tipo</th>
+<th>Escopo</th>
+<th>Função?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dobro</code></td>
+<td>INT</td>
+<td>0</td>
+<td>sim</td>
+</tr>
+<tr>
+<td><code>x</code></td>
+<td>INT</td>
+<td>0</td>
+<td>não</td>
+</tr>
+<tr>
+<td><code>y</code></td>
+<td>INT</td>
+<td>0</td>
+<td>não</td>
+</tr>
+</tbody>
+</table>
+<h3 id="55-printy">5.5 <code>print(y)</code></h3>
+<pre><code class="language-text">analisar_semantica(Print) [esc=0]
+  inferir_tipo(Id y) -&gt; INT
+</code></pre>
+<p><code>NO_PRINT</code> tem ramo próprio em <code>analisar_semantica</code>, que chama <code>inferir_tipo</code> em cada argumento. No caso <code>NO_ID</code>, <code>tabela_buscar(y)</code> encontra o <code>y</code> inserido no passo 5.4, então não há erro, e o nó recebe o tipo do símbolo (<code>INT</code>) em <code>tipo_resolvido</code>. É esse tipo que o gerador C# usa para traduzir o <code>print</code> em <code>Console.WriteLine</code>.</p>
+<p>Como os argumentos passam por <code>inferir_tipo</code>, uma expressão com tipos incompatíveis dentro do <code>print</code> também é reportada. Por exemplo, <code>print("a" + 1)</code> gera <code>Erro semântico na linha 1: Operação aritmética com tipos incompatíveis.</code> (coberto por <code>TestesSemanticaErros12.py</code>).</p>
+<h3 id="resultado">Resultado</h3>
+<pre><code class="language-text">$ ./compilador &lt; exemplo.py
+$ echo $?
+0
+</code></pre>
+<p>Nenhuma mensagem e código de saída <code>0</code>: o programa é aceito. Em Python, ele imprime <code>6</code>.</p>
+<h3 id="tipo-inferido-de-cada-expressao-tipo_resolvido">Tipo inferido de cada expressão (<code>tipo_resolvido</code>)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Linha</th>
+<th>Expressão</th>
+<th>Tipo</th>
+<th>Por quê</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td><code>n</code> (parâmetro)</td>
+<td>INT</td>
+<td>tipo copiado do parâmetro ao fim do <code>def</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>n</code></td>
+<td>INT</td>
+<td>inferido pelo outro operando de <code>n * 2</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>2</code></td>
+<td>INT</td>
+<td>literal inteiro</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>n * 2</code></td>
+<td>INT</td>
+<td><code>INT * INT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td><code>3</code></td>
+<td>INT</td>
+<td>literal inteiro</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td><code>x</code></td>
+<td>INT</td>
+<td>tipo de <code>x</code> na tabela</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td><code>2</code></td>
+<td>INT</td>
+<td>literal inteiro</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td><code>x &gt; 2</code></td>
+<td>BOOL</td>
+<td>toda comparação é BOOL</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td><code>x</code> (argumento)</td>
+<td>INT</td>
+<td>tipo de <code>x</code> na tabela</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td><code>dobro(x)</code></td>
+<td>INT</td>
+<td>tipo de retorno de <code>dobro</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td><code>y</code> (em <code>print</code>)</td>
+<td>INT</td>
+<td>tipo de <code>y</code> na tabela (<code>inferir_tipo</code>, caso <code>NO_ID</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>São esses valores que aparecem entre colchetes na saída de <code>--ast</code> da <a href="#3-arvore-sintatica-abstrata-ast">seção 3</a>.</p>
+<h3 id="observacoes-do-rastreio">Observações do rastreio</h3>
+<ul>
+<li><strong>Cada expressão é visitada uma vez:</strong> neste exemplo, os ramos <code>Assign</code>, <code>Return</code>, <code>If</code> e <code>Print</code> de <code>analisar_semantica</code> chamam só <code>inferir_tipo</code> nas expressões, que verifica os tipos e a existência das variáveis e anota o <code>tipo_resolvido</code> usado pelo gerador C#. Por isso uma variável não declarada gera um único erro (issue #39), e um erro de tipo dentro de <code>print(...)</code> também é reportado.</li>
+<li><strong>Parâmetros ganham tipo pelo uso:</strong> <code>n</code> começa <code>DESCONHECIDO</code> e vira <code>INT</code> por causa de <code>n * 2</code>. A partir daí, o retorno de <code>dobro</code> e <code>y</code> também ficam <code>INT</code> (issue #52).</li>
+<li><strong>Linha do <code>If</code>:</strong> os erros da condição apontam a linha do <code>if</code> (linha 4), não o fim do bloco (issue #46).</li>
+<li><strong>Variante com <code>y = 0</code> antes do <code>if</code>:</strong> o <code>y = dobro(x)</code> de dentro do bloco reatribui o mesmo <code>y</code> do escopo 0, sem criar um segundo símbolo, porque o <code>if</code> não abre escopo.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>
