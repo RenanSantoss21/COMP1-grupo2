@@ -36,5 +36,14 @@ jobs:
       - name: Rodar testes unitários (Semântica)
         run: make CI=1 test_semantica
 
+      - name: Rodar testes unitários (Código Intermediário TAC)
+        run: make CI=1 test_tac
+
+      - name: Rodar testes unitários (Otimizador TAC)
+        run: make CI=1 test_otimizador
+
+      - name: Rodar testes unitários (Gerador C#)
+        run: make CI=1 test_codegen_csharp
+
       - name: Rodar testes de integração
         run: make CI=1 test_integracao

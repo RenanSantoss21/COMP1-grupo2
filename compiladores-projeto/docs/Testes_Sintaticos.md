@@ -8,7 +8,7 @@ por `INDENT`/`DEDENT`, cadeias `if/elif/else`, laços, funções com parâmetros
 | Construção testada | Exemplo no arquivo |
 |---|---|
 | Atribuições simples em linhas separadas | `x = 1`, `y = 2`, `z = 3` |
-| Atribuição múltipla encadeada | `a = b = c = 0` |
+| Atribuição múltipla encadeada (apenas sintaxe; não suportada na semântica/codegen) | `a = b = c = 0` |
 | Literais de todos os tipos | `"Beatriz"`, `'bia'`, `3.14`, `1e10`, `True`, `False` |
 | Operadores aritméticos | `x + y`, `x - y`, `x * y`, `x / y` |
 | Menos unário | `-x` |

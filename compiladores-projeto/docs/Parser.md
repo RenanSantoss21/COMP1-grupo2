@@ -98,7 +98,7 @@ A lista de argumentos é apenas uma `expressao` opcional porque a própria regra
 Expressões suportam:
 
 - **Operações aritméticas**: `+`, `-`, `*`, `/` e menos unário (`-x`)
-- **Atribuição**: `=` (atribuição simples; encadeamento como `a = b = 0` não é suportado)
+- **Atribuição**: `=` (atribuição simples; encadeamento como `a = b = 0` é aceito sintaticamente pela associatividade à direita, mas não é suportado pela análise semântica nem pelos geradores de código)
 - **Comparações**: `==`, `!=`, `>`, `<`, `>=`, `<=`
 - **Operadores lógicos**: `and`, `or`, `not`, `in`
 - **Agrupamento**: `( )`
