@@ -16,7 +16,7 @@ Erro semântico na linha <N>: <mensagem>.
 Erro semântico na linha <N>: Variável '<nome>' não declarada.
 ```
 
-**Onde é gerado:** [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_ID`, linha 28) e função `analisar_semantica` (caso `NO_ID`, linha 199).
+**Onde é gerado:** [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_ID`, linha 168) e função `analisar_semantica` (caso `NO_ID`, linha 403).
 
 **Descrição:**  
 Ocorre quando o compilador encontra o uso de um identificador que ainda não foi atribuído (declarado) no escopo atual ou em qualquer escopo pai. Como o Mini-Python adota **declaração implícita por atribuição** (`x = 10` registra `x` na tabela de símbolos), qualquer leitura de uma variável antes de sua primeira atribuição é considerada um erro.
@@ -74,7 +74,7 @@ Erro semântico na linha <N>: Operação aritmética com tipos incompatíveis.
 
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_BINOP`, linha 45).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_BINOP`, linhas 191 e 196).
 
  **Descrição:**  
 Ocorre quando o compilador identifica uma operação aritmética entre tipos incompatíveis. Operações envolvendo valores numéricos (`int` e `float`) são permitidas, inclusive entre tipos diferentes. Já operações aritméticas envolvendo `string` ou `bool` são inválidas, com exceção da concatenação de duas `string` usando o operador `+`.
@@ -116,7 +116,7 @@ Erro semântico na linha <N>: Comparação inválida envolvendo string.
 
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_BINOP`, linha 67).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_BINOP`, linha 215).
 
  **Descrição:**  
 Ocorre quando o compilador identifica a utilização de operadores de comparação (`<`, `>`, `<=`, `>=`) entre uma `string` e outro tipo de dado, como `int` ou `float`.
@@ -155,16 +155,16 @@ Erro semântico na linha <N>: Comparação inválida envolvendo booleano.
 
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_BINOP`, linha 72).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_BINOP`, linha 220).
 
  **Descrição:**  
- Ocorre quando o compilador identifica a utilização de operadores de comparação (`<`, `>`, `<=`, `>=` etc.) entre um valor booleano (`True` ou `False`) e outro tipo de dado, como `string`.
+ Ocorre quando o compilador identifica a utilização de operadores de comparação (`<`, `>`, `<=`, `>=`, `==`, `!=`) entre um valor booleano (`True` ou `False`) e um tipo numérico (`int` ou `float`). (Caso o outro operando seja `string`, a verificação de string precede a de booleano e dispara `SEM-03`.)
 
 **Código que dispara o erro:**
 
 ```python
-# Uma comparação incompatível
-print(True > "1") 
+# Uma comparação incompatível entre booleano e inteiro
+print(True > 1)
 ```
 
 **Saída do compilador:**
@@ -191,7 +191,7 @@ Erro semântico na linha <N>: Operador lógico exige booleanos.
 
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função   `inferir_tipo` (caso `NO_BINOP`, linha 80).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_BINOP`, linha 231).
 
  **Descrição:**  
 Ocorre quando o compilador identifica a utilização dos operadores lógicos `and` ou `or` com pelo menos um operando que não é do tipo `bool`.
@@ -230,7 +230,7 @@ Erro semântico na linha <N>: Operador '-' exige operando numérico.
 
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_UNARYOP`, linha 96).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_UNARYOP`, linha 249).
 
  **Descrição:**  
 Ocorre quando o compilador identifica o operador unário `-` sendo usado com uma variável que não possui tipo numérico (`int` ou `float`). Se o tipo for `string` ou `bool`, o analisador emite a mensagem de erro e incrementa o contador de erros.
@@ -268,7 +268,7 @@ Após identificar um operando do tipo `string` ou `bool` com o operador `-`, o a
 Erro semântico na linha <N>: Operador 'not' exige booleano.
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_UNARYOP`, linha 101).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_UNARYOP`, linha 256).
 
  **Descrição:**  
 Ocorre quando o compilador identifica o operador `not` sendo usado com um operando que não é do tipo `bool`. Operandos com tipo desconhecido não geram uma segunda mensagem de erro.
@@ -306,7 +306,7 @@ Erro semântico na linha <N>: <nome> não é uma função.
 
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função  `analisar_semantica` (caso `NO_FUNCCALL`, linha 116).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_FUNCCALL`, linha 297).
 
  **Descrição:**  
 Ocorre quando o compilador tenta chamar como função uma variável ou outro identificador que não foi declarado como função.
@@ -345,7 +345,7 @@ Erro semântico na linha <N>: Número errado de argumentos.
 
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função  `analisar_semantica` (caso `NO_FUNCCALL`, linha 119).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_FUNCCALL`, linha 300).
 
  **Descrição:**  
 Ocorre quando o compilador chama uma função com um número de argumentos diferente do número de parâmetros declarados.
@@ -361,7 +361,7 @@ somar(1, 2, 3)  # Erro: espera 2 argumentos, mas recebeu 3
 
 **Saída do compilador:**
 ```
-Erro semântico na linha 3: Número errado de argumentos.
+Erro semântico na linha 4: Número errado de argumentos.
 
 ```
 
@@ -384,7 +384,7 @@ Erro semântico na linha <N>: Tipos dos argumentos são incompatíveis.
 
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função  `analisar_semantica` (caso `NO_FUNCCALL`, linha 125).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_FUNCCALL`, linha 286).
 
  **Descrição:**  
 Ocorre quando uma função é chamada com argumentos cujos tipos não correspondem aos tipos esperados pelos seus parâmetros.
@@ -429,7 +429,7 @@ Erro semântico na linha <N>: Chamada a função não declarada '<nome>'.
 
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função  `analisar_semantica` (caso `NO_FUNCCALL`, linha 132).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `inferir_tipo` (caso `NO_FUNCCALL`, linha 305).
 
  **Descrição:**  
 Ocorre quando o programa tenta chamar uma função que não foi declarada anteriormente.
@@ -468,7 +468,7 @@ Erro semântico na linha <N>: A condição deve ser estritamente booleana.
 
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função  `analisar_semantica` (casos `NO_IF`, `NO_WHILE`, `NO_ELIF`, linha 230).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `analisar_semantica` (casos `NO_IF`, `NO_WHILE`, `NO_ELIF`, linha 435).
 
  **Descrição:**  
 Ocorre quando o compilador identifica um momento em que uma estrutura condicional recebe um valor que não é `booleano`.
@@ -509,7 +509,7 @@ Após identificar que a condição não possui tipo `bool`, o analisador emite a
 Erro semântico na linha <N>: 'return' fora de função gera erro.
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função  `analisar_semantica` (casos `NO_RETURN`, linha 288).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `analisar_semantica` (caso `NO_RETURN`, linha 527).
 
  **Descrição:**  
 Ocorre quando o comando `return` é utilizado no escopo principal do programa, fora da declaração de uma função.
@@ -546,7 +546,7 @@ Ao encontrar um comando `return`, o analisador verifica se está dentro do escop
 Erro semântico na linha <N>: Tipo do retorno é inconsistente.
 ```
 **Onde é gerado:**
- [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `analisar_semantica` (caso `NO_RETURN`, linha 302).
+ [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c), função `analisar_semantica` (caso `NO_RETURN`, linha 540).
 
  **Descrição:**  
 Ocorre quando uma mesma função possui comandos `return` com tipos diferentes.

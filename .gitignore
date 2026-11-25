@@ -7,11 +7,17 @@ AGENTS.md
 lex.yy.c
 parser.tab.c
 parser.tab.h
+ast.dot
+ast.png
 
 compilador
+compilador.exe
 
-testes/tdd/teste_tabela
-testes/tdd/teste_ast
-testes/tdd/teste_semantica
-testes/tdd/_ast_test_output.tmp
-testes/tdd/teste_ast.exe
+**/testes/tdd/teste_tabela
+**/testes/tdd/teste_ast
+**/testes/tdd/teste_semantica
+**/testes/tdd/teste_tac
+**/testes/tdd/teste_otimizador
+**/testes/tdd/teste_codegen_csharp
+**/testes/tdd/*.tmp
+**/testes/tdd/*.exe

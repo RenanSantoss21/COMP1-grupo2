@@ -82,8 +82,10 @@ namespace CompiladorPython {
         }
 
         static void Main(string[] args) {
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+            int i = default(int);
             int limite = 5;
-            for (int i = 0; i < limite; i++) {
+            for (i = 0; i < limite; i++) {
                 if (i == 3) {
                     saudacao("Visitante");
                 } else {

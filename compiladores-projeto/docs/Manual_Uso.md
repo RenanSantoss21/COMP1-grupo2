@@ -198,11 +198,15 @@ O compilador retorna código de saída `1` e não gera código C#. A lista compl
 O compilador implementa um subconjunto focado de Python (ver [Especificação da Linguagem](Especificacao_Linguagem.md)):
 
 - **Não suportados pela gramática/lexer:** classes (`class`), exceções (`try`/`except`), módulos (`import`), dicionários, tuplas, conjuntos, f-strings, fatiamento (*slicing*), *list comprehensions*, `break`/`continue`, `pass`, operadores `//`, `%`, `**`, atribuição composta (`+=`, `-=`) e parâmetros com valor padrão.
+- **Atribuição múltipla encadeada (`a = b = c = 0`):** embora o parser aceite a sintaxe pela associatividade à direita do operador `=`, a análise semântica e os geradores de código suportam apenas atribuições simples (`variavel = expressao`, onde o lado direito não é outra atribuição).
+- **Precedência do menos unário (`-x`):** na gramática do parser (`parser/parser.y`), a regra `MINUS expressao %prec NOT` compartilha a precedência do operador `not` (menor que os operadores aritméticos e relacionais). Por isso, quando o menos unário for combinado como operando esquerdo de expressões aritméticas ou em comparações (ex.: `(-a) + b` ou `(-a) == (-b)`), deve-se utilizar parênteses explícitos em torno de `(-x)`.
 - **Listas (`[1, 2, 3]`):** são reconhecidas sintaticamente pelo parser, mas ainda não possuem nó dedicado nem tipagem/tradução para `List<T>` no gerador C#.
 
 ### Diferenças semânticas em relação ao Python padrão
 
 - **Tipagem estática por variável ([ADR-001](ADR/001-reatribuicao-de-tipo.md)):** uma variável assume o tipo inferido na primeira atribuição. Reatribuições só são permitidas com o mesmo tipo ou promoção `int` → `float`; trocar para tipo incompatível (ex.: `int` para `string`) gera erro semântico (`SEM-17`).
+- **Igualdade estrita de tipos em parâmetros e `return` de função:** diferentemente da reatribuição de variáveis, chamadas de função (`SEM-10`) e múltiplos comandos `return` dentro da mesma função (`SEM-14`) exigem correspondência exata de tipo (sem conversão implícita `int` → `float`). Além disso, os parâmetros de uma função precisam ter seus tipos inferidos pelo uso dentro do corpo ou por ao menos uma chamada no programa.
+- **Validação de `range(...)` no `for`:** a análise semântica infere o tipo das expressões passadas a `range(...)`, mas a validação da aridade (1, 2 ou 3 argumentos) e do tipo inteiro dos limites ocorre na etapa de geração/compilação C# (argumentos fora de 1..3 são marcados como `// [não traduzido] for`).
 - **Condições estritamente booleanas:** `if`, `elif` e `while` exigem expressão do tipo `bool`. Expressões numéricas ou strings como condição (ex.: `if x:`) geram erro (`SEM-12`), diferentemente do *truthiness* implícito do Python.
 - **Redefinição e conflito de nomes:** não é permitido redefinir funções no mesmo escopo (`SEM-15`) nem usar o mesmo identificador como variável e função no mesmo escopo (`SEM-16`).
 
@@ -211,8 +215,10 @@ O compilador implementa um subconjunto focado de Python (ver [Especificação da
 O analisador léxico, sintático, semântico, o gerador de TAC e o otimizador suportam toda a linguagem especificada. No módulo de **geração de código C#** (`src/codegen_csharp.c`):
 
 - **Já traduzidos para C#:** estrutura base (`namespace CompiladorPython`, `static class Program`, `Main`), variáveis/atribuições (`int`, `double`, `string`, `bool`) com *hoisting* de variáveis de blocos (`= default(<tipo>)`), expressões aritméticas/lógicas/relacionais (incluindo divisão real `(double)`, comparações de `string` e `bool`, negação e escape de palavras reservadas com `@`), estruturas de controle (`if`/`elif`/`else`, `while` e `for ... in range(...)` com 1, 2 e 3 argumentos, passo negativo/dinâmico e guarda contra passo zero), definições e chamadas de função (`def` como métodos `static`, `return` com e sem valor), `print(...)` (`Console.WriteLine`) e `input(...)` (`Console.ReadLine`, com e sem prompt).
+- **Escopo de funções no C# gerado:** como as variáveis do nível global do Python são emitidas como variáveis locais de `static void Main(string[] args)` e as funções `def` são emitidas como métodos `static` da classe `Program`, funções em C# devem ser declaradas no nível global (sem `def` aninhado dentro de outro `def`) e devem receber dados externos via parâmetros (sem acessar variáveis globais diretamente).
 - **Ainda não traduzidos para C#:** operador `in` fora do cabeçalho do `for` (e listas). Quando presentes no código-fonte, são emitidos como comentários `// [não traduzido]` ou `default(<tipo>)` com aviso em `stderr`.
 
-### Outras observações de execução
+### Outras observações de execução e inspeção (`--tac` / `--opt`)
 
 - Na execução do C# gerado, resultados `double` com parte fracionária zero (ex.: `print(4 / 2)`) são impressos como `2` no C#, enquanto o Python imprime `2.0`.
+- Na inspeção do código intermediário (`--tac` e `--opt` sem `--cs`), expressões `input()` não geram instrução TAC intermediária, e o *constant folding* do TAC (`otimizar_tac`) entre dois literais inteiros (`5 / 2`) aplica divisão inteira; já a otimização da AST para C# (`--opt --cs`, via `otimizar_ast`) preserva a divisão real (`2.5`).

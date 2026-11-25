@@ -124,6 +124,9 @@ Definições de funções (`NO_FUNCDEF`) são emitidas como métodos `static` da
 
 - Cada função possui seu próprio contexto de variáveis declaradas e seu próprio **hoisting** de variáveis criadas dentro de blocos (`if`, `while`, `for`) no início do corpo do método, sem interferir nas variáveis de `Main`.
 - Se uma função com tipo de retorno não-`void` tiver caminhos que não terminam em `return` (ex.: `return` apenas dentro de um `if` sem `else`), o gerador acrescenta `return default(<tipo>);` ao final do método para satisfazer a verificação de fluxo do C# (`CS0161`).
+- **Restrições do modelo estático em C#:**
+  - Como as variáveis globais do script são emitidas como variáveis locais de `Main`, os métodos `static` gerados para `def` não têm acesso direto às variáveis globais de `Main` (os valores devem ser passados via parâmetros).
+  - As funções `def` devem ser declaradas no nível global do programa (funções aninhadas dentro de outro `def` não são suportadas na emissão para C#) e seus parâmetros devem ter tipo inferível pelo uso no corpo ou por ao menos uma chamada no programa (caso contrário, recebem o fallback `object`).
 
 ## Estruturas de controle
 
