@@ -43,6 +43,6 @@ test_otimizador: testes/tdd/teste_otimizador.c src/otimizador.c src/codegen_inte
 	gcc $(CFLAGS) -o testes/tdd/teste_otimizador testes/tdd/teste_otimizador.c src/otimizador.c src/codegen_intermediario.c src/ast.c
 	./testes/tdd/teste_otimizador
 
-test_codegen_csharp: testes/tdd/teste_codegen_csharp.c src/codegen_csharp.c src/semantica.c src/ast.c src/tabela.c
-	gcc $(CFLAGS) -o testes/tdd/teste_codegen_csharp testes/tdd/teste_codegen_csharp.c src/codegen_csharp.c src/semantica.c src/ast.c src/tabela.c
+test_codegen_csharp: testes/tdd/teste_codegen_csharp.c src/codegen_csharp.c src/semantica.c src/ast.c src/tabela.c src/otimizador.c src/codegen_intermediario.c
+	gcc $(CFLAGS) -o testes/tdd/teste_codegen_csharp testes/tdd/teste_codegen_csharp.c src/codegen_csharp.c src/semantica.c src/ast.c src/tabela.c src/otimizador.c src/codegen_intermediario.c
 	./testes/tdd/teste_codegen_csharp

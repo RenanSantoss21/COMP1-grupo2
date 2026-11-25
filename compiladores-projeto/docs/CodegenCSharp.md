@@ -5,11 +5,13 @@ O módulo `src/codegen_csharp.c` percorre a AST já validada pela análise semâ
 ## Uso
 
 ```bash
-./compilador --cs saida.cs < programa.py   # grava em saida.cs
-./compilador --cs < programa.py            # imprime no stdout
+./compilador --cs saida.cs < programa.py        # grava em saida.cs
+./compilador --cs < programa.py                 # imprime no stdout
+./compilador --opt --cs saida.cs < programa.py  # otimiza a AST e grava em saida.cs
+./compilador --opt --cs < programa.py           # otimiza a AST e imprime C# no stdout
 ```
 
-O C# só é gerado quando não há erros léxicos, sintáticos ou semânticos.
+O C# só é gerado quando não há erros léxicos, sintáticos ou semânticos. Quando `--opt` acompanha `--cs`, o compilador executa `otimizar_ast(raiz_ast)` antes de `codegen_csharp_gerar` (sem misturar TAC no `stdout`, salvo se `--tac` também for passado), preservando a estrutura de alto nível (`if/elif/else`, `while`, `for` e métodos `static`) com *constant folding*, simplificação algébrica, propagação de constantes e remoção de código morto aplicados.
 
 ## Estrutura do arquivo gerado
 
@@ -147,6 +149,6 @@ O operador `in` fora do cabeçalho do `for` (e listas) é marcado com comentári
 
 ## Testes
 
-- Unitários: `make test_codegen_csharp` (`testes/tdd/teste_codegen_csharp.c`).
-- Integração: seção "Geracao de codigo C#" de `testes/rodar_testes.sh`, com os programas `testes/TestesCodegenCSharp1.py` a `testes/TestesCodegenCSharp6.py` e `testes/TestesCodegenCSharpErroPassoZero.py`.
-- End-to-End (E2E): `make test_e2e` ou `./testes/rodar_testes_e2e.sh` (com atalho de compatibilidade em `testes/rodar_e2e.sh`), executando a suíte dedicada em `testes/e2e/` (`01_hello_world.py` a `07_entrada_interativa.py`), os testes `TestesCodegenCSharp1.py` a `TestesCodegenCSharp6.py`, a validação de pipeline completo (`--ast`/`--tabela`/`--tac`/`--opt`/`--cs`) e a guarda de passo zero em runtime, com compilação C# real e comparação contra `.out` e `python3`. Veja o relatório completo em [Relatório de Testes End-to-End (E2E)](Testes_E2E.md).
+- Unitários: `make test_codegen_csharp` (`testes/tdd/teste_codegen_csharp.c`) e `make test_otimizador` (`testes/tdd/teste_otimizador.c`), cobrindo também a geração de C# com `otimizar_ast`.
+- Integração: seção "Geracao de codigo C#" e "Geracao de codigo C# otimizado (`--opt --cs`)" de `testes/rodar_testes.sh`, com os programas `testes/TestesCodegenCSharp1.py` a `testes/TestesCodegenCSharp6.py`, `testes/TestesCodegenCSharpErroPassoZero.py` e `testes/TestesOtimizacaoCSharp.py`.
+- End-to-End (E2E): `make test_e2e` ou `./testes/rodar_testes_e2e.sh` (com atalho de compatibilidade em `testes/rodar_e2e.sh`), executando a suíte dedicada em `testes/e2e/` (`01_hello_world.py` a `07_entrada_interativa.py`), os testes `TestesCodegenCSharp1.py` a `TestesCodegenCSharp6.py`, a comparação `--cs` vs `--opt --cs` em `TestesOtimizacaoCSharp.py`, a validação de pipeline completo (`--ast`/`--tabela`/`--tac`/`--opt`/`--cs`) e a guarda de passo zero em runtime, com compilação C# real e comparação contra `.out` e `python3`. Veja o relatório completo em [Relatório de Testes End-to-End (E2E)](Testes_E2E.md).

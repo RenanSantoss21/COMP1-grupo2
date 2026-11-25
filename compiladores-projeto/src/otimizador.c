@@ -1,4 +1,5 @@
 #include "otimizador.h"
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -806,6 +807,786 @@ int otimizar_tac(TAC *tac) {
         if (otimizar_propagacao_constantes(tac)) modificou = true;
         if (otimizar_constant_folding(tac))      modificou = true;
         if (otimizar_remocao_codigo_morto(tac))  modificou = true;
+        iteracoes++;
+    }
+
+    return iteracoes;
+}
+
+/* ── Otimização direta sobre a AST (para CodeGen C#) ─────────────── */
+
+static NoAST *criar_literal_int_tipado(int valor, int linha) {
+    NoAST *novo = criar_no_int(valor, linha);
+    novo->tipo_resolvido = TIPO_INT;
+    return novo;
+}
+
+static NoAST *criar_literal_float_tipado(double valor, int linha) {
+    NoAST *novo = criar_no_float(valor, linha);
+    novo->tipo_resolvido = TIPO_FLOAT;
+    return novo;
+}
+
+static NoAST *criar_literal_bool_tipado(int valor, int linha) {
+    NoAST *novo = criar_no_bool(valor ? 1 : 0, linha);
+    novo->tipo_resolvido = TIPO_BOOL;
+    return novo;
+}
+
+static bool ast_e_literal(const NoAST *no) {
+    if (no == NULL) return false;
+    return no->tipo == NO_NUM_INT || no->tipo == NO_NUM_FLOAT ||
+           no->tipo == NO_BOOL || no->tipo == NO_STRING;
+}
+
+static char *ast_literal_para_texto_alocado(const NoAST *no) {
+    if (no == NULL) return NULL;
+    char buf[64];
+    switch (no->tipo) {
+        case NO_NUM_INT:
+            snprintf(buf, sizeof(buf), "%d", no->valor_int);
+            return strdup(buf);
+        case NO_NUM_FLOAT:
+            snprintf(buf, sizeof(buf), "%.17g", no->valor_float);
+            if (strpbrk(buf, ".eE") == NULL) strcat(buf, ".0");
+            return strdup(buf);
+        case NO_BOOL:
+            return strdup(no->valor_int ? "True" : "False");
+        case NO_STRING:
+            return no->valor_string ? strdup(no->valor_string) : NULL;
+        default:
+            return NULL;
+    }
+}
+
+static NoAST *ast_criar_literal_de_texto(const char *val, TipoDado tipo_esperado, int linha) {
+    if (val == NULL) return NULL;
+
+    bool b = false;
+    if (e_booleano(val, &b)) {
+        return criar_literal_bool_tipado(b ? 1 : 0, linha);
+    }
+
+    long v_long = 0;
+    if (e_inteiro(val, &v_long)) {
+        if (tipo_esperado == TIPO_FLOAT) {
+            return criar_literal_float_tipado((double)v_long, linha);
+        }
+        if (v_long >= INT_MIN && v_long <= INT_MAX) {
+            return criar_literal_int_tipado((int)v_long, linha);
+        }
+        return NULL;
+    }
+
+    if (e_string_literal(val)) {
+        NoAST *n = criar_no_string((char *)val, linha);
+        n->tipo_resolvido = TIPO_STRING;
+        return n;
+    }
+
+    double d = 0.0;
+    if (e_flutuante(val, &d)) {
+        return criar_literal_float_tipado(d, linha);
+    }
+
+    return NULL;
+}
+
+static bool ast_expressao_pura(const NoAST *no) {
+    if (no == NULL) return true;
+    if (no->tipo == NO_FUNCCALL || no->tipo == NO_INPUT || no->tipo == NO_ASSIGN) {
+        return false;
+    }
+    if (!ast_expressao_pura(no->esquerda) ||
+        !ast_expressao_pura(no->direita) ||
+        !ast_expressao_pura(no->condicao) ||
+        !ast_expressao_pura(no->bloco_if) ||
+        !ast_expressao_pura(no->bloco_else)) {
+        return false;
+    }
+    for (int i = 0; i < no->num_argumentos; i++) {
+        if (!ast_expressao_pura(no->argumentos[i])) return false;
+    }
+    return true;
+}
+
+static bool ast_e_zero_num(const NoAST *no) {
+    if (no == NULL) return false;
+    if (no->tipo == NO_NUM_INT) return no->valor_int == 0;
+    if (no->tipo == NO_NUM_FLOAT) return no->valor_float == 0.0;
+    return false;
+}
+
+static bool ast_e_um_num(const NoAST *no) {
+    if (no == NULL) return false;
+    if (no->tipo == NO_NUM_INT) return no->valor_int == 1;
+    if (no->tipo == NO_NUM_FLOAT) return no->valor_float == 1.0;
+    return false;
+}
+
+static NoAST *promover_filho_ast(NoAST *pai, bool manter_esquerda, bool *mudou) {
+    NoAST *sobrevivente;
+    if (manter_esquerda) {
+        sobrevivente = pai->esquerda;
+        pai->esquerda = NULL;
+    } else {
+        sobrevivente = pai->direita;
+        pai->direita = NULL;
+    }
+    liberar_ast(pai);
+    *mudou = true;
+    return sobrevivente;
+}
+
+/*
+ * Converte o conteúdo interno de um literal de string Python ('...' ou "...")
+ * para uma forma normalizada segura dentro de aspas duplas ("...").
+ * Se out == NULL, apenas calcula o tamanho necessário.
+ */
+static size_t normalizar_conteudo_string(const char *lit, char *out) {
+    if (!lit) return 0;
+    size_t len = strlen(lit);
+    if (len < 2) return 0;
+
+    char aspa = lit[0];
+    size_t pos = 0;
+    for (size_t i = 1; i + 1 < len; i++) {
+        char c = lit[i];
+        if (c == '\\' && i + 2 < len) {
+            char e = lit[++i];
+            if (aspa == '\'' && e == '\'') {
+                if (out) out[pos] = '\'';
+                pos++;
+            } else {
+                if (out) {
+                    out[pos] = '\\';
+                    out[pos + 1] = e;
+                }
+                pos += 2;
+            }
+        } else if (c == '"') {
+            if (out) {
+                out[pos] = '\\';
+                out[pos + 1] = '"';
+            }
+            pos += 2;
+        } else {
+            if (out) out[pos] = c;
+            pos++;
+        }
+    }
+    if (out) out[pos] = '\0';
+    return pos;
+}
+
+static char *normalizar_string_alocada(const char *lit) {
+    size_t tam = normalizar_conteudo_string(lit, NULL);
+    char *buf = malloc(tam + 1);
+    if (!buf) {
+        fprintf(stderr, "Erro: falha ao alocar memória no otimizador.\n");
+        exit(1);
+    }
+    normalizar_conteudo_string(lit, buf);
+    return buf;
+}
+
+static NoAST *otimizar_folding_numerico_e_unario_ast(NoAST *no, bool *mudou) {
+    if (no->tipo == NO_UNARYOP && no->esquerda != NULL) {
+        NoAST *op = no->esquerda;
+        if (no->operador == OP_NEG && op->tipo == NO_NUM_INT && op->valor_int != INT_MIN) {
+            NoAST *novo = criar_literal_int_tipado(-op->valor_int, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+        if (no->operador == OP_NEG && op->tipo == NO_NUM_FLOAT) {
+            NoAST *novo = criar_literal_float_tipado(-op->valor_float, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+        if (no->operador == OP_NOT && op->tipo == NO_BOOL) {
+            NoAST *novo = criar_literal_bool_tipado(!op->valor_int, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+        return no;
+    }
+
+    if (no->tipo != NO_BINOP || no->esquerda == NULL || no->direita == NULL) {
+        return no;
+    }
+
+    NoAST *esq = no->esquerda;
+    NoAST *dir = no->direita;
+
+    if (esq->tipo == NO_NUM_INT && dir->tipo == NO_NUM_INT) {
+        long long v1 = esq->valor_int;
+        long long v2 = dir->valor_int;
+        if (no->operador == OP_SOMA || no->operador == OP_SUB || no->operador == OP_MULT) {
+            long long res = 0;
+            if (no->operador == OP_SOMA) res = v1 + v2;
+            else if (no->operador == OP_SUB) res = v1 - v2;
+            else res = v1 * v2;
+
+            if (res >= INT_MIN && res <= INT_MAX) {
+                NoAST *novo = criar_literal_int_tipado((int)res, no->linha);
+                liberar_ast(no);
+                *mudou = true;
+                return novo;
+            }
+        } else if (no->operador == OP_DIV && v2 != 0) {
+            NoAST *novo = criar_literal_float_tipado((double)v1 / (double)v2, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        } else if (no->operador == OP_EQ || no->operador == OP_NEQ ||
+                   no->operador == OP_LT || no->operador == OP_LTE ||
+                   no->operador == OP_GT || no->operador == OP_GTE) {
+            int res = 0;
+            switch (no->operador) {
+                case OP_EQ:  res = (v1 == v2); break;
+                case OP_NEQ: res = (v1 != v2); break;
+                case OP_LT:  res = (v1 < v2);  break;
+                case OP_LTE: res = (v1 <= v2); break;
+                case OP_GT:  res = (v1 > v2);  break;
+                case OP_GTE: res = (v1 >= v2); break;
+            }
+            NoAST *novo = criar_literal_bool_tipado(res, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+    }
+
+    bool esq_num = (esq->tipo == NO_NUM_INT || esq->tipo == NO_NUM_FLOAT);
+    bool dir_num = (dir->tipo == NO_NUM_INT || dir->tipo == NO_NUM_FLOAT);
+    if (esq_num && dir_num && (esq->tipo == NO_NUM_FLOAT || dir->tipo == NO_NUM_FLOAT)) {
+        double f1 = (esq->tipo == NO_NUM_FLOAT) ? esq->valor_float : (double)esq->valor_int;
+        double f2 = (dir->tipo == NO_NUM_FLOAT) ? dir->valor_float : (double)dir->valor_int;
+        if (no->operador == OP_SOMA || no->operador == OP_SUB ||
+            no->operador == OP_MULT || (no->operador == OP_DIV && f2 != 0.0)) {
+            double res = 0.0;
+            switch (no->operador) {
+                case OP_SOMA: res = f1 + f2; break;
+                case OP_SUB:  res = f1 - f2; break;
+                case OP_MULT: res = f1 * f2; break;
+                case OP_DIV:  res = f1 / f2; break;
+            }
+            NoAST *novo = criar_literal_float_tipado(res, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        } else if (no->operador == OP_EQ || no->operador == OP_NEQ ||
+                   no->operador == OP_LT || no->operador == OP_LTE ||
+                   no->operador == OP_GT || no->operador == OP_GTE) {
+            int res = 0;
+            switch (no->operador) {
+                case OP_EQ:  res = (f1 == f2); break;
+                case OP_NEQ: res = (f1 != f2); break;
+                case OP_LT:  res = (f1 < f2);  break;
+                case OP_LTE: res = (f1 <= f2); break;
+                case OP_GT:  res = (f1 > f2);  break;
+                case OP_GTE: res = (f1 >= f2); break;
+            }
+            NoAST *novo = criar_literal_bool_tipado(res, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+    }
+
+    if (esq->tipo == NO_BOOL && dir->tipo == NO_BOOL) {
+        int b1 = esq->valor_int ? 1 : 0;
+        int b2 = dir->valor_int ? 1 : 0;
+        int res = 0;
+        bool calculado = true;
+        switch (no->operador) {
+            case OP_AND: res = (b1 && b2); break;
+            case OP_OR:  res = (b1 || b2); break;
+            case OP_EQ:  res = (b1 == b2); break;
+            case OP_NEQ: res = (b1 != b2); break;
+            case OP_LT:  res = (b1 < b2);  break;
+            case OP_LTE: res = (b1 <= b2); break;
+            case OP_GT:  res = (b1 > b2);  break;
+            case OP_GTE: res = (b1 >= b2); break;
+            default:     calculado = false; break;
+        }
+        if (calculado) {
+            NoAST *novo = criar_literal_bool_tipado(res, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+    }
+
+    if (esq->tipo == NO_STRING && dir->tipo == NO_STRING &&
+        esq->valor_string != NULL && dir->valor_string != NULL) {
+        if (no->operador == OP_SOMA) {
+            char *n1 = normalizar_string_alocada(esq->valor_string);
+            char *n2 = normalizar_string_alocada(dir->valor_string);
+            size_t len1 = strlen(n1);
+            size_t len2 = strlen(n2);
+            char *concat = malloc(len1 + len2 + 3);
+            if (!concat) {
+                fprintf(stderr, "Erro: falha ao alocar memória no otimizador.\n");
+                exit(1);
+            }
+            concat[0] = '"';
+            memcpy(concat + 1, n1, len1);
+            memcpy(concat + 1 + len1, n2, len2);
+            concat[1 + len1 + len2] = '"';
+            concat[2 + len1 + len2] = '\0';
+
+            NoAST *novo = criar_no_string(concat, no->linha);
+            novo->tipo_resolvido = TIPO_STRING;
+            free(n1);
+            free(n2);
+            free(concat);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+        if (no->operador == OP_EQ || no->operador == OP_NEQ) {
+            char *n1 = normalizar_string_alocada(esq->valor_string);
+            char *n2 = normalizar_string_alocada(dir->valor_string);
+            bool iguais = (strcmp(n1, n2) == 0);
+            int res = (no->operador == OP_EQ) ? iguais : !iguais;
+            free(n1);
+            free(n2);
+
+            NoAST *novo = criar_literal_bool_tipado(res, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+    }
+
+    return no;
+}
+
+static NoAST *otimizar_simplificacao_algebrica_ast(NoAST *no, bool *mudou) {
+    if (no == NULL || no->tipo != NO_BINOP || no->esquerda == NULL || no->direita == NULL) {
+        return no;
+    }
+
+    NoAST *esq = no->esquerda;
+    NoAST *dir = no->direita;
+
+    /* Identidades aditivas e multiplicativas (preservando promocao para float) */
+    if (no->operador == OP_SOMA) {
+        if (ast_e_zero_num(dir) && (dir->tipo == NO_NUM_INT || esq->tipo_resolvido == TIPO_FLOAT)) {
+            return promover_filho_ast(no, true, mudou);
+        }
+        if (ast_e_zero_num(esq) && (esq->tipo == NO_NUM_INT || dir->tipo_resolvido == TIPO_FLOAT)) {
+            return promover_filho_ast(no, false, mudou);
+        }
+    } else if (no->operador == OP_SUB) {
+        if (ast_e_zero_num(dir) && (dir->tipo == NO_NUM_INT || esq->tipo_resolvido == TIPO_FLOAT)) {
+            return promover_filho_ast(no, true, mudou);
+        }
+        if (esq->tipo == NO_ID && dir->tipo == NO_ID &&
+            esq->nome != NULL && dir->nome != NULL && strcmp(esq->nome, dir->nome) == 0) {
+            NoAST *novo = (esq->tipo_resolvido == TIPO_FLOAT)
+                          ? criar_literal_float_tipado(0.0, no->linha)
+                          : criar_literal_int_tipado(0, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+    } else if (no->operador == OP_MULT) {
+        if (ast_e_um_num(dir) && (dir->tipo == NO_NUM_INT || esq->tipo_resolvido == TIPO_FLOAT)) {
+            return promover_filho_ast(no, true, mudou);
+        }
+        if (ast_e_um_num(esq) && (esq->tipo == NO_NUM_INT || dir->tipo_resolvido == TIPO_FLOAT)) {
+            return promover_filho_ast(no, false, mudou);
+        }
+        if (ast_e_zero_num(dir) && esq->tipo_resolvido != TIPO_STRING && ast_expressao_pura(esq)) {
+            bool e_float = (dir->tipo == NO_NUM_FLOAT || esq->tipo_resolvido == TIPO_FLOAT);
+            NoAST *novo = e_float ? criar_literal_float_tipado(0.0, no->linha)
+                                  : criar_literal_int_tipado(0, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+        if (ast_e_zero_num(esq) && dir->tipo_resolvido != TIPO_STRING && ast_expressao_pura(dir)) {
+            bool e_float = (esq->tipo == NO_NUM_FLOAT || dir->tipo_resolvido == TIPO_FLOAT);
+            NoAST *novo = e_float ? criar_literal_float_tipado(0.0, no->linha)
+                                  : criar_literal_int_tipado(0, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+    } else if (no->operador == OP_DIV) {
+        /* x / 1 so simplifica para x quando x ja e float (Python 3: int / int -> float) */
+        if (ast_e_um_num(dir) && esq->tipo_resolvido == TIPO_FLOAT) {
+            return promover_filho_ast(no, true, mudou);
+        }
+    } else if (no->operador == OP_AND) {
+        if (dir->tipo == NO_BOOL && dir->valor_int) {
+            return promover_filho_ast(no, true, mudou);
+        }
+        if (esq->tipo == NO_BOOL && esq->valor_int) {
+            return promover_filho_ast(no, false, mudou);
+        }
+        if (esq->tipo == NO_BOOL && !esq->valor_int) {
+            NoAST *novo = criar_literal_bool_tipado(0, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+        if (dir->tipo == NO_BOOL && !dir->valor_int && ast_expressao_pura(esq)) {
+            NoAST *novo = criar_literal_bool_tipado(0, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+    } else if (no->operador == OP_OR) {
+        if (dir->tipo == NO_BOOL && !dir->valor_int) {
+            return promover_filho_ast(no, true, mudou);
+        }
+        if (esq->tipo == NO_BOOL && !esq->valor_int) {
+            return promover_filho_ast(no, false, mudou);
+        }
+        if (esq->tipo == NO_BOOL && esq->valor_int) {
+            NoAST *novo = criar_literal_bool_tipado(1, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+        if (dir->tipo == NO_BOOL && dir->valor_int && ast_expressao_pura(esq)) {
+            NoAST *novo = criar_literal_bool_tipado(1, no->linha);
+            liberar_ast(no);
+            *mudou = true;
+            return novo;
+        }
+    }
+
+    return no;
+}
+
+static NoAST *otimizar_expr_ast(NoAST *no, TabelaConstantes *tab, bool *mudou) {
+    if (no == NULL) return NULL;
+
+    if (no->tipo == NO_ID) {
+        if (tab != NULL && no->nome != NULL) {
+            const char *val = const_tab_obter(tab, no->nome);
+            if (val != NULL) {
+                NoAST *lit = ast_criar_literal_de_texto(val, no->tipo_resolvido, no->linha);
+                if (lit != NULL) {
+                    liberar_ast(no);
+                    *mudou = true;
+                    return lit;
+                }
+            }
+        }
+        return no;
+    }
+
+    if (no->esquerda != NULL) no->esquerda = otimizar_expr_ast(no->esquerda, tab, mudou);
+    if (no->direita != NULL)  no->direita = otimizar_expr_ast(no->direita, tab, mudou);
+
+    if (no->tipo == NO_FUNCCALL || no->tipo == NO_BLOCO) {
+        for (int i = 0; i < no->num_argumentos; i++) {
+            no->argumentos[i] = otimizar_expr_ast(no->argumentos[i], tab, mudou);
+        }
+    }
+
+    if (no->tipo == NO_BINOP || no->tipo == NO_UNARYOP) {
+        no = otimizar_folding_numerico_e_unario_ast(no, mudou);
+        if (no->tipo == NO_BINOP) {
+            no = otimizar_simplificacao_algebrica_ast(no, mudou);
+        }
+        return no;
+    }
+
+    return no;
+}
+
+static void otimizar_comando_ast(NoAST *no, TabelaConstantes *tab, bool *mudou);
+
+static void remover_comando_bloco(NoAST *bloco, int idx) {
+    if (bloco == NULL || idx < 0 || idx >= bloco->num_argumentos) return;
+    liberar_ast(bloco->argumentos[idx]);
+    for (int j = idx; j < bloco->num_argumentos - 1; j++) {
+        bloco->argumentos[j] = bloco->argumentos[j + 1];
+    }
+    bloco->num_argumentos--;
+}
+
+static void substituir_comando_por_bloco(NoAST *container, int idx, NoAST *bloco_origem) {
+    NoAST *antigo = container->argumentos[idx];
+
+    if (bloco_origem == NULL) {
+        remover_comando_bloco(container, idx);
+        return;
+    }
+
+    if (bloco_origem->tipo != NO_BLOCO) {
+        container->argumentos[idx] = bloco_origem;
+        liberar_ast(antigo);
+        return;
+    }
+
+    int k = bloco_origem->num_argumentos;
+    if (k <= 0) {
+        remover_comando_bloco(container, idx);
+        return;
+    }
+
+    int n_antigo = container->num_argumentos;
+    int n_novo = n_antigo - 1 + k;
+    if (k > 1) {
+        NoAST **novo_arr = realloc(container->argumentos, sizeof(NoAST *) * n_novo);
+        if (!novo_arr) {
+            fprintf(stderr, "Erro: falha ao alocar memória no otimizador.\n");
+            exit(1);
+        }
+        container->argumentos = novo_arr;
+    }
+    if (n_antigo - 1 - idx > 0) {
+        memmove(&container->argumentos[idx + k],
+                &container->argumentos[idx + 1],
+                sizeof(NoAST *) * (n_antigo - 1 - idx));
+    }
+    memcpy(&container->argumentos[idx], bloco_origem->argumentos, sizeof(NoAST *) * k);
+    container->num_argumentos = n_novo;
+
+    free(bloco_origem->argumentos);
+    bloco_origem->argumentos = NULL;
+    bloco_origem->num_argumentos = 0;
+
+    liberar_ast(antigo);
+}
+
+static void otimizar_bloco_ast(NoAST *bloco, TabelaConstantes *tab, bool *mudou) {
+    if (bloco == NULL) return;
+
+    for (int i = 0; i < bloco->num_argumentos; i++) {
+        NoAST *cmd = bloco->argumentos[i];
+        if (cmd == NULL) {
+            remover_comando_bloco(bloco, i);
+            i--;
+            continue;
+        }
+
+        if (cmd->tipo == NO_WHILE) {
+            if (tab) const_tab_limpar(tab);
+            cmd->condicao = otimizar_expr_ast(cmd->condicao, tab, mudou);
+            if (tab) const_tab_limpar(tab);
+
+            if (cmd->condicao != NULL && cmd->condicao->tipo == NO_BOOL && !cmd->condicao->valor_int) {
+                remover_comando_bloco(bloco, i);
+                *mudou = true;
+                i--;
+                continue;
+            }
+
+            otimizar_comando_ast(cmd->bloco_if, tab, mudou);
+            if (tab) const_tab_limpar(tab);
+            continue;
+        }
+
+        if (cmd->tipo == NO_IF) {
+            cmd->condicao = otimizar_expr_ast(cmd->condicao, tab, mudou);
+
+            if (cmd->condicao != NULL && cmd->condicao->tipo == NO_BOOL && cmd->condicao->valor_int) {
+                NoAST *bloco_vivo = cmd->bloco_if;
+                if (bloco_vivo != NULL && bloco_vivo->tipo != NO_BLOCO) {
+                    cmd->bloco_if = NULL;
+                }
+                substituir_comando_por_bloco(bloco, i, bloco_vivo);
+                *mudou = true;
+                i--;
+                continue;
+            }
+
+            if (cmd->condicao != NULL && cmd->condicao->tipo == NO_BOOL && !cmd->condicao->valor_int) {
+                if (cmd->num_argumentos > 0) {
+                    NoAST *primeiro_elif = cmd->argumentos[0];
+                    liberar_ast(cmd->condicao);
+                    liberar_ast(cmd->bloco_if);
+                    cmd->condicao = primeiro_elif->condicao;
+                    cmd->bloco_if = primeiro_elif->bloco_if;
+                    cmd->linha = primeiro_elif->linha;
+                    primeiro_elif->condicao = NULL;
+                    primeiro_elif->bloco_if = NULL;
+                    liberar_ast(primeiro_elif);
+
+                    for (int j = 0; j < cmd->num_argumentos - 1; j++) {
+                        cmd->argumentos[j] = cmd->argumentos[j + 1];
+                    }
+                    cmd->num_argumentos--;
+                    if (cmd->num_argumentos == 0) {
+                        free(cmd->argumentos);
+                        cmd->argumentos = NULL;
+                    }
+                    *mudou = true;
+                    i--;
+                    continue;
+                }
+
+                if (cmd->bloco_else != NULL) {
+                    NoAST *bloco_vivo = cmd->bloco_else;
+                    if (bloco_vivo->tipo != NO_BLOCO) {
+                        cmd->bloco_else = NULL;
+                    }
+                    substituir_comando_por_bloco(bloco, i, bloco_vivo);
+                    *mudou = true;
+                    i--;
+                    continue;
+                }
+
+                remover_comando_bloco(bloco, i);
+                *mudou = true;
+                i--;
+                continue;
+            }
+
+            if (tab) const_tab_limpar(tab);
+            otimizar_comando_ast(cmd->bloco_if, tab, mudou);
+            if (tab) const_tab_limpar(tab);
+
+            for (int e = 0; e < cmd->num_argumentos; e++) {
+                NoAST *elif_no = cmd->argumentos[e];
+                if (elif_no == NULL) continue;
+                elif_no->condicao = otimizar_expr_ast(elif_no->condicao, tab, mudou);
+                if (tab) const_tab_limpar(tab);
+
+                if (elif_no->condicao != NULL && elif_no->condicao->tipo == NO_BOOL && !elif_no->condicao->valor_int) {
+                    liberar_ast(elif_no);
+                    for (int j = e; j < cmd->num_argumentos - 1; j++) {
+                        cmd->argumentos[j] = cmd->argumentos[j + 1];
+                    }
+                    cmd->num_argumentos--;
+                    if (cmd->num_argumentos == 0) {
+                        free(cmd->argumentos);
+                        cmd->argumentos = NULL;
+                    }
+                    *mudou = true;
+                    e--;
+                    continue;
+                }
+
+                otimizar_comando_ast(elif_no->bloco_if, tab, mudou);
+                if (tab) const_tab_limpar(tab);
+            }
+
+            otimizar_comando_ast(cmd->bloco_else, tab, mudou);
+            if (tab) const_tab_limpar(tab);
+            continue;
+        }
+
+        if (cmd->tipo == NO_RETURN) {
+            cmd->esquerda = otimizar_expr_ast(cmd->esquerda, tab, mudou);
+            if (i + 1 < bloco->num_argumentos) {
+                for (int j = i + 1; j < bloco->num_argumentos; j++) {
+                    liberar_ast(bloco->argumentos[j]);
+                }
+                bloco->num_argumentos = i + 1;
+                *mudou = true;
+            }
+            break;
+        }
+
+        otimizar_comando_ast(cmd, tab, mudou);
+    }
+}
+
+static void otimizar_comando_ast(NoAST *no, TabelaConstantes *tab, bool *mudou) {
+    if (no == NULL) return;
+
+    switch (no->tipo) {
+        case NO_PROGRAMA:
+        case NO_BLOCO:
+            otimizar_bloco_ast(no, tab, mudou);
+            break;
+
+        case NO_ASSIGN:
+            no->esquerda = otimizar_expr_ast(no->esquerda, tab, mudou);
+            if (tab != NULL && no->nome != NULL) {
+                if (ast_e_literal(no->esquerda)) {
+                    char *val = ast_literal_para_texto_alocado(no->esquerda);
+                    if (val != NULL) {
+                        const_tab_definir(tab, no->nome, val);
+                        free(val);
+                    }
+                } else {
+                    const_tab_invalidar(tab, no->nome);
+                }
+            }
+            break;
+
+        case NO_RETURN:
+        case NO_INPUT:
+            no->esquerda = otimizar_expr_ast(no->esquerda, tab, mudou);
+            break;
+
+        case NO_PRINT:
+        case NO_FUNCCALL:
+            for (int i = 0; i < no->num_argumentos; i++) {
+                no->argumentos[i] = otimizar_expr_ast(no->argumentos[i], tab, mudou);
+            }
+            break;
+
+        case NO_IF:
+            no->condicao = otimizar_expr_ast(no->condicao, tab, mudou);
+            if (tab) const_tab_limpar(tab);
+            otimizar_comando_ast(no->bloco_if, tab, mudou);
+            if (tab) const_tab_limpar(tab);
+            for (int i = 0; i < no->num_argumentos; i++) {
+                NoAST *elif_no = no->argumentos[i];
+                if (elif_no != NULL) {
+                    elif_no->condicao = otimizar_expr_ast(elif_no->condicao, tab, mudou);
+                    if (tab) const_tab_limpar(tab);
+                    otimizar_comando_ast(elif_no->bloco_if, tab, mudou);
+                    if (tab) const_tab_limpar(tab);
+                }
+            }
+            otimizar_comando_ast(no->bloco_else, tab, mudou);
+            if (tab) const_tab_limpar(tab);
+            break;
+
+        case NO_WHILE:
+            if (tab) const_tab_limpar(tab);
+            no->condicao = otimizar_expr_ast(no->condicao, tab, mudou);
+            if (tab) const_tab_limpar(tab);
+            otimizar_comando_ast(no->bloco_if, tab, mudou);
+            if (tab) const_tab_limpar(tab);
+            break;
+
+        case NO_FOR:
+            no->esquerda = otimizar_expr_ast(no->esquerda, tab, mudou);
+            if (tab) const_tab_limpar(tab);
+            otimizar_comando_ast(no->bloco_if, tab, mudou);
+            if (tab) const_tab_limpar(tab);
+            break;
+
+        case NO_FUNCDEF: {
+            TabelaConstantes fn_tab;
+            const_tab_init(&fn_tab);
+            otimizar_comando_ast(no->bloco_if, &fn_tab, mudou);
+            const_tab_destruir(&fn_tab);
+            break;
+        }
+
+        default:
+            break;
+    }
+}
+
+int otimizar_ast(NoAST *raiz) {
+    if (raiz == NULL) return 0;
+
+    int iteracoes = 0;
+    while (iteracoes < 20) {
+        bool modificou = false;
+        TabelaConstantes tab;
+        const_tab_init(&tab);
+        otimizar_comando_ast(raiz, &tab, &modificou);
+        const_tab_destruir(&tab);
+        if (!modificou) break;
         iteracoes++;
     }
 

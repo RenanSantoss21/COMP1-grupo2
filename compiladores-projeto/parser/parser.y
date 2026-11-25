@@ -361,7 +361,7 @@ int main(int argc, char *argv[]) {
             tabela_imprimir(tabela);
         }
 
-        if (mostrar_tac || otimizar) {
+        if (mostrar_tac || (otimizar && !gerar_csharp)) {
             codegen_gerar_tac(raiz_ast);
             if (otimizar) {
                 otimizar_tac(obter_tac());
@@ -378,6 +378,10 @@ int main(int argc, char *argv[]) {
         }
 
         if (gerar_csharp) {
+            if (otimizar) {
+                otimizar_ast(raiz_ast);
+            }
+
             FILE *saida_cs = stdout;
             if (arquivo_csharp != NULL) {
                 saida_cs = fopen(arquivo_csharp, "w");

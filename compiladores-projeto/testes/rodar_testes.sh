@@ -362,6 +362,56 @@ rodar_teste_csharp "$CS6" "string nome = Console.ReadLine();" "nome = input(prom
 rodar_teste_csharp "$CS6" "Console.ReadLine();" "input() solto"
 
 echo ""
+echo "--- Geracao de codigo C# otimizado (--opt --cs) ---"
+CS_OPT="testes/TestesOtimizacaoCSharp.py"
+rodar_teste "$CS_OPT" "nao"
+
+opt_cs_stdout=$(mktemp)
+opt_cs_file=$(mktemp)
+tr -d '\r' < "$CS_OPT" | ./compilador --opt --cs > "$opt_cs_stdout" 2>/dev/null
+rc_opt_cs_out=$?
+tr -d '\r' < "$CS_OPT" | ./compilador --opt --cs "$opt_cs_file" >/dev/null 2>&1
+rc_opt_cs_file=$?
+
+if [ "$rc_opt_cs_out" -eq 0 ] && [ "$rc_opt_cs_file" -eq 0 ] &&
+   diff -q "$opt_cs_stdout" "$opt_cs_file" >/dev/null 2>&1 &&
+   grep -Fq "int x = 14;" "$opt_cs_stdout" &&
+   grep -Fq "double div_real = 2.5;" "$opt_cs_stdout" &&
+   grep -Fq 'string msg = "compilador";' "$opt_cs_stdout" &&
+   grep -Fq "double g = 2.0;" "$opt_cs_stdout" &&
+   grep -Fq "double r_div_i = (double)n / 1;" "$opt_cs_stdout" &&
+   grep -Fq "double r_div_f1 = r_div_f;" "$opt_cs_stdout" &&
+   ! grep -Fq "morto_apos_return" "$opt_cs_stdout" &&
+   ! grep -Fq "morto_while" "$opt_cs_stdout" &&
+   ! grep -Fq "morto_if" "$opt_cs_stdout" &&
+   ! grep -Fq "TAC" "$opt_cs_stdout"; then
+    echo "[OK]    TestesOtimizacaoCSharp.py (--opt --cs) - C# otimizado sem TAC misturado"
+    PASSOU=$((PASSOU + 1))
+else
+    echo "[FALHA] TestesOtimizacaoCSharp.py (--opt --cs) - C# nao otimizado ou TAC misturado"
+    FALHOU=$((FALHOU + 1))
+fi
+rm -f "$opt_cs_stdout" "$opt_cs_file"
+
+cs_sem_opt=$(tr -d '\r' < "$CS_OPT" | ./compilador --cs 2>/dev/null)
+if echo "$cs_sem_opt" | grep -Fq "int x = 2 + 3 * 4;"; then
+    echo "[OK]    TestesOtimizacaoCSharp.py (--cs isolado) - preserva AST nao otimizada"
+    PASSOU=$((PASSOU + 1))
+else
+    echo "[FALHA] TestesOtimizacaoCSharp.py (--cs isolado) - alterou saida sem --opt"
+    FALHOU=$((FALHOU + 1))
+fi
+
+tac_opt_only=$(tr -d '\r' < "$CS_OPT" | ./compilador --opt 2>/dev/null)
+if ! echo "$tac_opt_only" | grep -Fq "namespace CompiladorPython"; then
+    echo "[OK]    TestesOtimizacaoCSharp.py (--opt isolado) - continua emitindo apenas TAC"
+    PASSOU=$((PASSOU + 1))
+else
+    echo "[FALHA] TestesOtimizacaoCSharp.py (--opt isolado) - emitiu C# indevidamente"
+    FALHOU=$((FALHOU + 1))
+fi
+
+echo ""
 echo "========================================="
 echo "   Resultado: $PASSOU passaram, $FALHOU falharam"
 echo "========================================="

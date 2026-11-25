@@ -74,6 +74,9 @@ Para emitir o código-alvo em C#, passe a flag `--cs`. Há duas formas equivalen
 
 # Ou informando o arquivo de saída diretamente na flag:
 ./compilador --cs saida.cs < entrada.py
+
+# Gerar C# aplicando as otimizações diretamente na AST:
+./compilador --opt --cs saida.cs < entrada.py
 ```
 
 > O código C# só é gerado quando o programa passa sem erros nas fases léxica, sintática e semântica.
@@ -88,7 +91,7 @@ As flags abaixo podem ser usadas isoladamente ou combinadas:
 | `--dot` | Exporta a AST em formato Graphviz DOT para `stdout` e `ast.dot` (gera `ast.png` se `dot` estiver instalado). |
 | `--tabela` | Exibe a Tabela de Símbolos a cada mudança de escopo durante a análise semântica. |
 | `--tac` | Gera e imprime o Código Intermediário de Três Endereços (TAC). |
-| `--opt` | Gera o TAC, executa as otimizações (*constant folding*, simplificação algébrica, propagação e remoção de código morto) e imprime o TAC otimizado. |
+| `--opt` | Sem `--cs`, gera o TAC, executa as otimizações (*constant folding*, simplificação algébrica, propagação e remoção de código morto) e imprime o TAC otimizado. Combinada com `--cs`, otimiza a AST via `otimizar_ast` antes de gerar o C# (sem imprimir TAC, salvo se `--tac` também for informada). |
 | `--cs [arquivo]` | Gera o código-alvo em C# em `arquivo` (ou em `stdout` se nenhum nome for informado). |
 
 ---
@@ -163,6 +166,9 @@ media = 2.5
 # Comparar o TAC original com o TAC otimizado:
 ./compilador --tac < entrada.py
 ./compilador --opt < entrada.py
+
+# Gerar C# com otimizações aplicadas na AST (sem imprimir TAC):
+./compilador --opt --cs Program.cs < entrada.py
 ```
 
 ### Exemplo 4 — Diagnóstico de erros

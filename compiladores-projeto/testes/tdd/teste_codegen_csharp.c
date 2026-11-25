@@ -14,6 +14,7 @@
 #include "../../src/ast.h"
 #include "../../src/tabela.h"
 #include "../../src/semantica.h"
+#include "../../src/otimizador.h"
 #include "../../src/codegen_csharp.h"
 
 static int passed = 0;
@@ -39,6 +40,27 @@ static NoAST *programa(int n, NoAST **cmds_estaticos) {
 static char *gerar_csharp(NoAST *raiz, int *erros_semanticos, int *nao_traduzidos) {
     TabelaSimbolos *tab = tabela_criar();
     *erros_semanticos = analisar_semantica(raiz, tab);
+
+    FILE *tmp = tmpfile();
+    *nao_traduzidos = codegen_csharp_gerar(raiz, tmp);
+
+    long tamanho = ftell(tmp);
+    rewind(tmp);
+    char *texto = malloc(tamanho + 1);
+    size_t lidos = fread(texto, 1, tamanho, tmp);
+    texto[lidos] = '\0';
+    fclose(tmp);
+
+    tabela_liberar(tab);
+    return texto;
+}
+
+static char *gerar_csharp_otimizado(NoAST *raiz, int *erros_semanticos, int *nao_traduzidos) {
+    TabelaSimbolos *tab = tabela_criar();
+    *erros_semanticos = analisar_semantica(raiz, tab);
+    if (*erros_semanticos == 0) {
+        otimizar_ast(raiz);
+    }
 
     FILE *tmp = tmpfile();
     *nao_traduzidos = codegen_csharp_gerar(raiz, tmp);
@@ -1621,6 +1643,292 @@ static int test_exemplo_especificacao(void) {
     return 1;
 }
 
+static int test_otimizador_constant_folding_numerico_e_unario(void) {
+    printf("Running test_otimizador_constant_folding_numerico_e_unario...\n");
+
+    NoAST *cmds[] = {
+        criar_no_assign("x", criar_no_binop(OP_SOMA, criar_no_int(2, 1),
+            criar_no_binop(OP_MULT, criar_no_int(3, 1), criar_no_int(4, 1), 1), 1), 1),
+        criar_no_assign("y", criar_no_binop(OP_DIV, criar_no_int(5, 2), criar_no_int(2, 2), 2), 2),
+        criar_no_assign("z", criar_no_binop(OP_DIV, criar_no_int(4, 3), criar_no_int(2, 3), 3), 3),
+        criar_no_assign("w", criar_no_binop(OP_SOMA, criar_no_float(1.5, 4), criar_no_float(2.5, 4), 4), 4),
+        criar_no_assign("b", criar_no_binop(OP_GT, criar_no_int(10, 5), criar_no_int(5, 5), 5), 5),
+        criar_no_assign("n", criar_no_unaryop(OP_NEG, criar_no_int(7, 6), 6), 6),
+        criar_no_assign("nf", criar_no_unaryop(OP_NEG, criar_no_float(1.5, 7), 7), 7),
+        criar_no_assign("nb", criar_no_unaryop(OP_NOT, criar_no_bool(1, 8), 8), 8),
+        criar_no_assign("dz", criar_no_binop(OP_DIV, criar_no_int(5, 9), criar_no_int(0, 9), 9), 9),
+    };
+    NoAST *raiz = programa(9, cmds);
+
+    int erros = 0, nao_traduzidos = 0;
+    char *cs = gerar_csharp_otimizado(raiz, &erros, &nao_traduzidos);
+
+    ASSERT(erros == 0, "sem erros semanticos");
+    ASSERT(nao_traduzidos == 0, "sem construcoes pendentes");
+    ASSERT(strstr(cs, "int x = 14;\n") != NULL, "x dobrado para 14");
+    ASSERT(strstr(cs, "double y = 2.5;\n") != NULL, "5 / 2 dobrado para 2.5");
+    ASSERT(strstr(cs, "double z = 2.0;\n") != NULL, "4 / 2 dobrado para 2.0");
+    ASSERT(strstr(cs, "double w = 4.0;\n") != NULL, "1.5 + 2.5 dobrado para 4.0");
+    ASSERT(strstr(cs, "bool b = true;\n") != NULL, "10 > 5 dobrado para true");
+    ASSERT(strstr(cs, "int n = -7;\n") != NULL, "-7 dobrado");
+    ASSERT(strstr(cs, "double nf = -1.5;\n") != NULL, "-1.5 dobrado");
+    ASSERT(strstr(cs, "bool nb = false;\n") != NULL, "not True dobrado");
+    ASSERT(strstr(cs, "double dz = (double)5 / 0;\n") != NULL, "divisao por zero preservada");
+
+    free(cs);
+    liberar_ast(raiz);
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_otimizador_constant_folding_booleano_e_strings(void) {
+    printf("Running test_otimizador_constant_folding_booleano_e_strings...\n");
+
+    NoAST *cmds[] = {
+        criar_no_assign("b1", criar_no_binop(OP_AND, criar_no_bool(1, 1), criar_no_bool(0, 1), 1), 1),
+        criar_no_assign("b2", criar_no_binop(OP_OR, criar_no_bool(0, 2), criar_no_bool(1, 2), 2), 2),
+        criar_no_assign("b3", criar_no_binop(OP_EQ, criar_no_bool(1, 3), criar_no_bool(1, 3), 3), 3),
+        criar_no_assign("b4", criar_no_binop(OP_GT, criar_no_bool(1, 4), criar_no_bool(0, 4), 4), 4),
+        criar_no_assign("s1", criar_no_binop(OP_SOMA, criar_no_string("\"hello \"", 5), criar_no_string("\"world\"", 5), 5), 5),
+        criar_no_assign("s2", criar_no_binop(OP_SOMA, criar_no_string("'diz \"oi\"'", 6), criar_no_string("\" !\"", 6), 6), 6),
+        criar_no_assign("eq1", criar_no_binop(OP_EQ, criar_no_string("'abc'", 7), criar_no_string("\"abc\"", 7), 7), 7),
+        criar_no_assign("neq", criar_no_binop(OP_NEQ, criar_no_string("\"abc\"", 8), criar_no_string("\"def\"", 8), 8), 8),
+    };
+    NoAST *raiz = programa(8, cmds);
+
+    int erros = 0, nao_traduzidos = 0;
+    char *cs = gerar_csharp_otimizado(raiz, &erros, &nao_traduzidos);
+
+    ASSERT(erros == 0, "sem erros semanticos");
+    ASSERT(nao_traduzidos == 0, "sem construcoes pendentes");
+    ASSERT(strstr(cs, "bool b1 = false;\n") != NULL, "True and False -> false");
+    ASSERT(strstr(cs, "bool b2 = true;\n") != NULL, "False or True -> true");
+    ASSERT(strstr(cs, "bool b3 = true;\n") != NULL, "True == True -> true");
+    ASSERT(strstr(cs, "bool b4 = true;\n") != NULL, "True > False -> true");
+    ASSERT(strstr(cs, "string s1 = \"hello world\";\n") != NULL, "concatenacao de strings dobrada");
+    ASSERT(strstr(cs, "string s2 = \"diz \\\"oi\\\" !\";\n") != NULL, "concatenacao escapa aspas duplas em C#");
+    ASSERT(strstr(cs, "bool eq1 = true;\n") != NULL, "'abc' == \"abc\" -> true");
+    ASSERT(strstr(cs, "bool neq = true;\n") != NULL, "\"abc\" != \"def\" -> true");
+
+    free(cs);
+    liberar_ast(raiz);
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_otimizador_simplificacao_algebrica_csharp(void) {
+    printf("Running test_otimizador_simplificacao_algebrica_csharp...\n");
+
+    NoAST **params_ef = malloc(sizeof(NoAST *));
+    params_ef[0] = criar_no_id("v", 1);
+    NoAST **corpo_ef = malloc(sizeof(NoAST *));
+    corpo_ef[0] = criar_no_return(criar_no_binop(OP_SOMA, criar_no_id("v", 2), criar_no_int(1, 2), 2), 2);
+    NoAST *fn_ef = criar_no_funcdef("efeito", params_ef, 1, criar_no_bloco(corpo_ef, 1), 1);
+
+    NoAST **params_b = malloc(sizeof(NoAST *));
+    params_b[0] = criar_no_id("x", 4);
+    NoAST **corpo_b = malloc(sizeof(NoAST *));
+    corpo_b[0] = criar_no_return(criar_no_binop(OP_GT, criar_no_id("x", 5), criar_no_int(0, 5), 5), 5);
+    NoAST *fn_b = criar_no_funcdef("positivo", params_b, 1, criar_no_bloco(corpo_b, 1), 4);
+
+    NoAST **params_alg = malloc(sizeof(NoAST *) * 3);
+    params_alg[0] = criar_no_id("x", 7);
+    params_alg[1] = criar_no_id("f", 7);
+    params_alg[2] = criar_no_id("p", 7);
+
+    NoAST **args_ef1 = malloc(sizeof(NoAST *));
+    args_ef1[0] = criar_no_int(1, 14);
+    NoAST **args_b1 = malloc(sizeof(NoAST *));
+    args_b1[0] = criar_no_int(1, 15);
+    NoAST **args_b2 = malloc(sizeof(NoAST *));
+    args_b2[0] = criar_no_int(1, 16);
+
+    NoAST **corpo_alg = malloc(sizeof(NoAST *) * 11);
+    corpo_alg[0] = criar_no_assign("f_ref", criar_no_binop(OP_SOMA, criar_no_id("f", 8), criar_no_float(1.5, 8), 8), 8);
+    corpo_alg[1] = criar_no_assign("r1", criar_no_binop(OP_SOMA, criar_no_id("x", 9), criar_no_int(0, 9), 9), 9);
+    corpo_alg[2] = criar_no_assign("r2", criar_no_binop(OP_MULT, criar_no_id("x", 10), criar_no_int(0, 10), 10), 10);
+    corpo_alg[3] = criar_no_assign("r3", criar_no_binop(OP_SUB, criar_no_id("x", 11), criar_no_id("x", 11), 11), 11);
+    corpo_alg[4] = criar_no_assign("r4", criar_no_binop(OP_DIV, criar_no_id("x", 12), criar_no_int(1, 12), 12), 12);
+    corpo_alg[5] = criar_no_assign("r5", criar_no_binop(OP_DIV, criar_no_id("f", 13), criar_no_int(1, 13), 13), 13);
+    corpo_alg[6] = criar_no_assign("r6", criar_no_binop(OP_SOMA, criar_no_id("x", 14), criar_no_float(0.0, 14), 14), 14);
+    corpo_alg[7] = criar_no_assign("r7", criar_no_binop(OP_MULT, criar_no_funccall("efeito", args_ef1, 1, 15), criar_no_int(0, 15), 15), 15);
+    corpo_alg[8] = criar_no_assign("b1", criar_no_binop(OP_AND, criar_no_id("p", 16), criar_no_bool(0, 16), 16), 16);
+    corpo_alg[9] = criar_no_assign("b2", criar_no_binop(OP_AND, criar_no_funccall("positivo", args_b1, 1, 17), criar_no_bool(0, 17), 17), 17);
+    corpo_alg[10] = criar_no_assign("b3", criar_no_binop(OP_AND, criar_no_bool(0, 18), criar_no_funccall("positivo", args_b2, 1, 18), 18), 18);
+    NoAST *fn_alg = criar_no_funcdef("testar", params_alg, 3, criar_no_bloco(corpo_alg, 11), 7);
+
+    NoAST **args_call = malloc(sizeof(NoAST *) * 3);
+    args_call[0] = criar_no_int(5, 19);
+    args_call[1] = criar_no_float(2.5, 19);
+    args_call[2] = criar_no_bool(1, 19);
+
+    NoAST *cmds[] = {
+        fn_ef,
+        fn_b,
+        fn_alg,
+        criar_no_funccall("testar", args_call, 3, 19),
+    };
+    NoAST *raiz = programa(4, cmds);
+
+    int erros = 0, nao_traduzidos = 0;
+    char *cs = gerar_csharp_otimizado(raiz, &erros, &nao_traduzidos);
+
+    ASSERT(erros == 0, "sem erros semanticos");
+    ASSERT(nao_traduzidos == 0, "sem construcoes pendentes");
+    ASSERT(strstr(cs, "int r1 = x;\n") != NULL, "x + 0 -> x");
+    ASSERT(strstr(cs, "int r2 = 0;\n") != NULL, "x * 0 -> 0");
+    ASSERT(strstr(cs, "int r3 = 0;\n") != NULL, "x - x -> 0");
+    ASSERT(strstr(cs, "double r4 = (double)x / 1;\n") != NULL, "x / 1 int preserva divisao float");
+    ASSERT(strstr(cs, "double r5 = f;\n") != NULL, "f / 1 float -> f");
+    ASSERT(strstr(cs, "double r6 = x + 0.0;\n") != NULL, "x + 0.0 preserva double");
+    ASSERT(strstr(cs, "int r7 = efeito(1) * 0;\n") != NULL, "efeito(1) * 0 preservado");
+    ASSERT(strstr(cs, "bool b1 = false;\n") != NULL, "p and False -> false");
+    ASSERT(strstr(cs, "bool b2 = positivo(1) && false;\n") != NULL, "positivo(1) and False preservado");
+    ASSERT(strstr(cs, "bool b3 = false;\n") != NULL, "False and positivo(1) -> false");
+
+    free(cs);
+    liberar_ast(raiz);
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_otimizador_propagacao_constantes_csharp(void) {
+    printf("Running test_otimizador_propagacao_constantes_csharp...\n");
+
+    NoAST **b_fn = malloc(sizeof(NoAST *) * 2);
+    b_fn[0] = criar_no_assign("a", criar_no_int(99, 2), 2);
+    b_fn[1] = criar_no_return(criar_no_binop(OP_SOMA, criar_no_id("a", 3), criar_no_int(1, 3), 3), 3);
+    NoAST *fn = criar_no_funcdef("calcula", NULL, 0, criar_no_bloco(b_fn, 2), 1);
+
+    NoAST **p_b = malloc(sizeof(NoAST *));
+    p_b[0] = criar_no_id("b", 7);
+
+    NoAST **b_while = malloc(sizeof(NoAST *) * 2);
+    NoAST **pw = malloc(sizeof(NoAST *));
+    pw[0] = criar_no_id("i", 13);
+    b_while[0] = criar_no_print(pw, 1, 13);
+    b_while[1] = criar_no_assign("i", criar_no_binop(OP_SOMA, criar_no_id("i", 14), criar_no_int(1, 14), 14), 14);
+
+    NoAST **b_for = malloc(sizeof(NoAST *));
+    NoAST **pf = malloc(sizeof(NoAST *));
+    pf[0] = criar_no_id("j", 17);
+    b_for[0] = criar_no_print(pf, 1, 17);
+
+    NoAST **b_if = malloc(sizeof(NoAST *));
+    b_if[0] = criar_no_assign("x", criar_no_int(2, 20), 20);
+    NoAST **px = malloc(sizeof(NoAST *));
+    px[0] = criar_no_id("x", 21);
+
+    NoAST *cmds[] = {
+        fn,
+        criar_no_assign("a", criar_no_int(5, 5), 5),
+        criar_no_assign("b", criar_no_binop(OP_SOMA, criar_no_id("a", 6), criar_no_int(3, 6), 6), 6),
+        criar_no_print(p_b, 1, 7),
+        criar_no_assign("a", criar_no_funccall("calcula", NULL, 0, 8), 8),
+        criar_no_assign("c", criar_no_binop(OP_SOMA, criar_no_id("a", 9), criar_no_int(1, 9), 9), 9),
+        criar_no_assign("f", criar_no_float(1.5, 10), 10),
+        criar_no_assign("f", criar_no_int(2, 11), 11),
+        criar_no_assign("g", criar_no_id("f", 11), 11),
+        criar_no_assign("i", criar_no_int(0, 12), 12),
+        criar_no_while(criar_no_binop(OP_LT, criar_no_id("i", 12), criar_no_int(2, 12), 12),
+                       criar_no_bloco(b_while, 2), 12),
+        criar_no_assign("n", criar_no_int(3, 15), 15),
+        criar_no_for("j", criar_no_id("n", 16), criar_no_bloco(b_for, 1), 16),
+        criar_no_assign("x", criar_no_int(1, 18), 18),
+        criar_no_if(criar_no_binop(OP_GT, criar_no_id("c", 19), criar_no_int(0, 19), 19),
+                    criar_no_bloco(b_if, 1), NULL, 0, NULL, 19),
+        criar_no_print(px, 1, 21),
+    };
+    NoAST *raiz = programa(16, cmds);
+
+    int erros = 0, nao_traduzidos = 0;
+    char *cs = gerar_csharp_otimizado(raiz, &erros, &nao_traduzidos);
+
+    ASSERT(erros == 0, "sem erros semanticos");
+    ASSERT(nao_traduzidos == 0, "sem construcoes pendentes");
+    ASSERT(strstr(cs, "return 100;\n") != NULL, "funcao propaga a=99 -> return 100");
+    ASSERT(strstr(cs, "int b = 8;\n") != NULL, "a=5 propaga em b");
+    ASSERT(strstr(cs, "Console.WriteLine(8);\n") != NULL, "b=8 propaga no print");
+    ASSERT(strstr(cs, "int c = a + 1;\n") != NULL, "calcula() invalida a");
+    ASSERT(strstr(cs, "double g = 2.0;\n") != NULL, "ADR-001 preserva double na propagacao de f");
+    ASSERT(strstr(cs, "while (i < 2) {\n") != NULL, "while nao congela i");
+    ASSERT(strstr(cs, "for (j = 0; j < 3; j++) {\n") != NULL, "for propaga n=3 em range(n)");
+    ASSERT(strstr(cs, "Console.WriteLine(x);\n") != NULL, "if limpa tabela para x apos bloco");
+
+    free(cs);
+    liberar_ast(raiz);
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_otimizador_remocao_codigo_morto_csharp(void) {
+    printf("Running test_otimizador_remocao_codigo_morto_csharp...\n");
+
+    NoAST **b_if_true = malloc(sizeof(NoAST *));
+    b_if_true[0] = criar_no_return(criar_no_int(42, 2), 2);
+    NoAST **b_else_morto = malloc(sizeof(NoAST *));
+    b_else_morto[0] = criar_no_return(criar_no_int(0, 3), 3);
+
+    NoAST **p_dead_print = malloc(sizeof(NoAST *));
+    p_dead_print[0] = criar_no_string("\"inalcancavel\"", 5);
+    NoAST **b_fn = malloc(sizeof(NoAST *) * 3);
+    b_fn[0] = criar_no_if(criar_no_bool(1, 2), criar_no_bloco(b_if_true, 1), NULL, 0, criar_no_bloco(b_else_morto, 1), 2);
+    b_fn[1] = criar_no_assign("x_morto", criar_no_int(1, 4), 4);
+    b_fn[2] = criar_no_print(p_dead_print, 1, 5);
+    NoAST *fn = criar_no_funcdef("responder", NULL, 0, criar_no_bloco(b_fn, 3), 1);
+
+    NoAST **p_while_dead = malloc(sizeof(NoAST *));
+    p_while_dead[0] = criar_no_string("\"nunca_executa\"", 7);
+    NoAST **bw = malloc(sizeof(NoAST *));
+    bw[0] = criar_no_print(p_while_dead, 1, 7);
+    NoAST *w = criar_no_while(criar_no_binop(OP_GT, criar_no_int(1, 6), criar_no_int(2, 6), 6),
+                              criar_no_bloco(bw, 1), 6);
+
+    NoAST **p_if_dead = malloc(sizeof(NoAST *));
+    p_if_dead[0] = criar_no_string("\"ramo_falso\"", 8);
+    NoAST **b_if_f = malloc(sizeof(NoAST *));
+    b_if_f[0] = criar_no_print(p_if_dead, 1, 8);
+    NoAST **p_else_vivo = malloc(sizeof(NoAST *));
+    p_else_vivo[0] = criar_no_string("\"ramo_else_vivo\"", 9);
+    NoAST **b_else_v = malloc(sizeof(NoAST *));
+    b_else_v[0] = criar_no_print(p_else_vivo, 1, 9);
+    NoAST *if_f_else = criar_no_if(criar_no_bool(0, 8), criar_no_bloco(b_if_f, 1), NULL, 0, criar_no_bloco(b_else_v, 1), 8);
+
+    NoAST **p_elif_vivo = malloc(sizeof(NoAST *));
+    p_elif_vivo[0] = criar_no_string("\"ramo_elif_vivo\"", 12);
+    NoAST **b_elif_v = malloc(sizeof(NoAST *));
+    b_elif_v[0] = criar_no_print(p_elif_vivo, 1, 12);
+    NoAST **b_if_f2 = malloc(sizeof(NoAST *));
+    b_if_f2[0] = criar_no_assign("descartado", criar_no_int(1, 11), 11);
+    NoAST **elifs = malloc(sizeof(NoAST *));
+    elifs[0] = criar_no_elif(criar_no_binop(OP_GT, criar_no_funccall("responder", NULL, 0, 12), criar_no_int(10, 12), 12),
+                             criar_no_bloco(b_elif_v, 1), 12);
+    NoAST *if_f_elif = criar_no_if(criar_no_bool(0, 11), criar_no_bloco(b_if_f2, 1), elifs, 1, NULL, 11);
+
+    NoAST *cmds[] = { fn, w, if_f_else, if_f_elif };
+    NoAST *raiz = programa(4, cmds);
+
+    int erros = 0, nao_traduzidos = 0;
+    char *cs = gerar_csharp_otimizado(raiz, &erros, &nao_traduzidos);
+
+    ASSERT(erros == 0, "sem erros semanticos");
+    ASSERT(nao_traduzidos == 0, "sem construcoes pendentes");
+    ASSERT(strstr(cs, "return 42;") != NULL, "return 42 preservado");
+    ASSERT(strstr(cs, "x_morto") == NULL, "codigo pos-return eliminado");
+    ASSERT(strstr(cs, "inalcancavel") == NULL, "print pos-return eliminado");
+    ASSERT(strstr(cs, "while (") == NULL, "while False eliminado");
+    ASSERT(strstr(cs, "nunca_executa") == NULL, "corpo do while False eliminado");
+    ASSERT(strstr(cs, "ramo_falso") == NULL, "ramo if False eliminado");
+    ASSERT(strstr(cs, "Console.WriteLine(\"ramo_else_vivo\");") != NULL, "else promovido sem if");
+    ASSERT(strstr(cs, "if (responder() > 10) {\n") != NULL, "elif promovido a if");
+    ASSERT(strstr(cs, "descartado") == NULL, "if False antes de elif descartado");
+
+    free(cs);
+    liberar_ast(raiz);
+    printf("  PASSED\n");
+    return 1;
+}
+
 int main(void) {
     printf("=======================================\n");
     printf(" TESTES DO GERADOR DE CÓDIGO C#\n");
@@ -1651,7 +1959,12 @@ int main(void) {
         test_nao_suportado_em_estruturas_controle(),
         test_input(),
         test_funcoes_chamadas_e_return(),
-        test_exemplo_especificacao()
+        test_exemplo_especificacao(),
+        test_otimizador_constant_folding_numerico_e_unario(),
+        test_otimizador_constant_folding_booleano_e_strings(),
+        test_otimizador_simplificacao_algebrica_csharp(),
+        test_otimizador_propagacao_constantes_csharp(),
+        test_otimizador_remocao_codigo_morto_csharp()
     };
 
     int n_tests = sizeof(test_results) / sizeof(test_results[0]);

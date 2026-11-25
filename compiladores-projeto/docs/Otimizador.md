@@ -1,10 +1,10 @@
-# Otimizações de Código Intermediário (TAC)
+# Otimizador (TAC e AST para CodeGen C#)
 
-O módulo `src/otimizador.c` (com cabeçalho em `src/otimizador.h`) implementa as passadas de otimização sobre a estrutura linear de Código de Três Endereços (TAC), correspondendo às Issues **#27** (*Constant folding* e simplificação algébrica) e **#28** (Propagação de constantes e remoção de código morto).
+O módulo `src/otimizador.c` (com cabeçalho em `src/otimizador.h`) implementa as passadas de otimização tanto sobre o Código de Três Endereços (`otimizar_tac`, Issues **#27** e **#28**) quanto diretamente sobre a AST antes da geração de código C# (`otimizar_ast`, Issue **#61**).
 
 ## Uso
 
-O compilador suporta a inspeção do código intermediário antes e depois da otimização:
+O compilador permite inspecionar o TAC ou emitir código C# já otimizado:
 
 ```bash
 # Exibe o TAC original gerado a partir da AST:
@@ -12,6 +12,13 @@ O compilador suporta a inspeção do código intermediário antes e depois da ot
 
 # Exibe o TAC otimizado após as passadas de otimização:
 ./compilador --opt < programa.py
+
+# Otimiza a AST e gera código C# otimizado (sem misturar TAC no stdout):
+./compilador --opt --cs < programa.py
+./compilador --opt --cs saida.cs < programa.py
+
+# Exibe o TAC otimizado e também gera o C# otimizado:
+./compilador --tac --opt --cs saida.cs < programa.py
 ```
 
 Também é possível executar a suíte de testes unitários específica do otimizador:
@@ -96,3 +103,20 @@ while (modificou && iteracoes < 20) {
     iteracoes++;
 }
 ```
+
+---
+
+## Otimização sobre a AST (`otimizar_ast`)
+
+Para a geração de código C# (`--opt --cs`), a função pública `int otimizar_ast(NoAST *raiz)` aplica as mesmas 4 técnicas diretamente sobre a AST antes de `codegen_csharp_gerar`, preservando a estrutura de alto nível (`if/elif/else`, `while`, `for` e métodos `static`) e liberando com `liberar_ast` os nós podados:
+
+1. **Constant Folding na AST**: dobra `NO_BINOP` e `NO_UNARYOP` com operandos literais (`int`, `float`, `bool` e `string`), preservando `tipo_resolvido` e `linha`. Em Python 3, divisão entre dois inteiros (`5 / 2`) resulta em `NO_NUM_FLOAT` (`TIPO_FLOAT`), e divisões por zero são preservadas sem dobrar.
+2. **Simplificação Algébrica Segura**: reduz identidades aritméticas e booleanas respeitando pureza (não descarta subexpressões com `NO_FUNCCALL`, `NO_INPUT` ou `NO_ASSIGN`) e tipos:
+   - `x / 1` só é simplificado para `x` quando `x` já é `TIPO_FLOAT` (mantendo `(double)x / 1` quando `x` é `TIPO_INT`).
+   - Operações com literal `float` (como `x + 0.0` com `x` inteiro) não perdem a promoção para `double`.
+3. **Propagação de Constantes em Bloco Básico**: reutiliza `TabelaConstantes` para substituir `NO_ID` por literais conhecidos dentro do mesmo bloco sequencial (preservando `double` em variáveis promovidas pelo ADR-001), invalidando em reatribuições não-constantes e limpando a tabela em fronteiras de controle (`if/elif/else`, `while`, `for`) e isolando escopos de `def`.
+4. **Remoção de Código Morto (DCE)**:
+   - Elimina comandos após `NO_RETURN` no mesmo `NO_BLOCO`.
+   - Remove `while False:` e `if False:` sem ramos alternativos.
+   - Promove `elif` ou faz *splice* do `bloco_else` quando a condição do `if` reduz para `False`.
+   - Faz *splice* do `bloco_if` diretamente no bloco pai quando a condição reduz para `True`.

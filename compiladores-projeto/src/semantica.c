@@ -478,6 +478,8 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
             }
         }
         
+        int idx_s = (atualizar_simbolo && s != NULL) ? (int)(s - tabela->array_simbolos) : -1;
+
         bool escopo_func_anterior = tabela->dentro_de_funcao;
         TipoDado tipo_ret_anterior = tabela->tipo_retorno_atual;
         tabela->dentro_de_funcao = true;
@@ -492,6 +494,9 @@ int analisar_semantica(NoAST *raiz, TabelaSimbolos *tabela) {
 
         erros += pre_registrar_funcoes(raiz->bloco_if, tabela);
         erros += analisar_semantica(raiz->bloco_if, tabela);
+        if (idx_s >= 0) {
+            s = &tabela->array_simbolos[idx_s];
+        }
         if (atualizar_simbolo && s != NULL && s->tipos_parametros != NULL) {
             for (int i = 0; i < raiz->num_argumentos; i++) {
                 Simbolo *param = tabela_buscar_escopo_atual(tabela, raiz->argumentos[i]->nome);

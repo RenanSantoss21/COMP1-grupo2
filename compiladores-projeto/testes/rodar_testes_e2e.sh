@@ -434,6 +434,65 @@ if gerar_e_validar_cs "$CS_ZERO" "cs_zero"; then
 fi
 
 echo ""
+echo "--- 5. Otimizacao integrada ao Codegen C# (--cs vs --opt --cs) ---"
+CS_OPT="testes/TestesOtimizacaoCSharp.py"
+rodar_e2e_programa "$CS_OPT" "cs_opt_base" "" "" "sim"
+
+opt_cs_stdout="$WORK/cs_opt_stdout.cs"
+opt_cs_file="$WORK/cs_opt_file.cs"
+opt_cs_err="$WORK/cs_opt.err"
+base_cs_file="$WORK/cs_opt_base_file.cs"
+
+tr -d '\r' < "$CS_OPT" | "$COMP" --opt --cs > "$opt_cs_stdout" 2>"$opt_cs_err"
+rc_opt_out=$?
+tr -d '\r' < "$CS_OPT" | "$COMP" --opt --cs "$opt_cs_file" >/dev/null 2>>"$opt_cs_err"
+rc_opt_file=$?
+
+if [ "$rc_opt_out" -eq 0 ] && [ "$rc_opt_file" -eq 0 ] &&
+   diff -q "$opt_cs_stdout" "$opt_cs_file" >/dev/null 2>&1 &&
+   ! diff -q "$base_cs_file" "$opt_cs_file" >/dev/null 2>&1 &&
+   ! grep -Fq "Aviso:" "$opt_cs_err"; then
+    registrar_ok "TestesOtimizacaoCSharp.py - --opt --cs difere de --cs e stdout == arquivo"
+else
+    registrar_falha "TestesOtimizacaoCSharp.py - falha em --opt --cs" "$(cat "$opt_cs_err")"
+fi
+
+opt_exe="$WORK/cs_opt.exe"
+opt_log="$WORK/cs_opt_comp.log"
+if compilar_csharp "$opt_cs_file" "$opt_exe" "$opt_log"; then
+    registrar_ok "TestesOtimizacaoCSharp.py (--opt --cs) - compilacao C# ($CSHARP_MODO) com 0 erros"
+
+    opt_out="$WORK/cs_opt_run.out"
+    opt_run_err="$WORK/cs_opt_run.err"
+    executar_csharp "$opt_exe" "$opt_out" "$opt_run_err" ""
+    rc_opt_run=$?
+    opt_norm="$WORK/cs_opt_norm.out"
+    normalizar_saida "$opt_out" "$opt_norm"
+
+    base_norm="$WORK/cs_opt_base_cs_norm.out"
+    diff_base_opt=$(diff -u "$base_norm" "$opt_norm" 2>&1)
+    rc_diff_base=$?
+
+    if [ "$rc_opt_run" -eq 0 ] && [ "$rc_diff_base" -eq 0 ]; then
+        registrar_ok "TestesOtimizacaoCSharp.py (--opt --cs) - saida identica ao --cs"
+    else
+        registrar_falha "TestesOtimizacaoCSharp.py (--opt --cs) - divergiu de --cs (rc=$rc_opt_run)" "$diff_base_opt"
+    fi
+
+    if [ "$TEM_PYTHON3" -eq 1 ]; then
+        py_opt_norm="$WORK/cs_opt_base_py_norm.out"
+        diff_py_opt=$(diff -u "$py_opt_norm" "$opt_norm" 2>&1)
+        if [ $? -eq 0 ]; then
+            registrar_ok "TestesOtimizacaoCSharp.py (--opt --cs) - execucao C# identica ao python3"
+        else
+            registrar_falha "TestesOtimizacaoCSharp.py (--opt --cs) - divergiu do python3" "$diff_py_opt"
+        fi
+    fi
+else
+    registrar_falha "TestesOtimizacaoCSharp.py (--opt --cs) - erro ao compilar C#" "$(cat "$opt_log")"
+fi
+
+echo ""
 echo "========================================="
 echo "   Resultado E2E: $PASSOU passaram, $FALHOU falharam"
 echo "========================================="

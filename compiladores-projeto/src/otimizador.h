@@ -15,4 +15,7 @@ bool otimizar_remocao_codigo_morto(TAC *tac);
 /* Pipeline principal de otimização: executa as passadas em loop de ponto fixo */
 int otimizar_tac(TAC *tac);
 
+/* Executa passadas de otimização em ponto fixo diretamente sobre a AST */
+int otimizar_ast(NoAST *raiz);
+
 #endif
