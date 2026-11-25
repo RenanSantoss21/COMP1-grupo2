@@ -6,6 +6,9 @@
 #include "src/ast.h"
 #include "src/tabela.h"
 #include "src/semantica.h"
+#include "src/codegen_intermediario.h"
+#include "src/otimizador.h"
+#include "src/codegen_csharp.h"
 
 /* Linha do token que o parser está examinando (mantida pelo lexer). */
 extern int linha_token;
@@ -43,6 +46,7 @@ NoAST* adicionar_lista(NoAST* lista, NoAST* novo) {
     O LAC garante que a lista de tokens esperados esteja correta. */
 %define parse.error verbose
 %define parse.lac full
+%locations
 
 %union {
     int ival;
@@ -137,8 +141,8 @@ bloco:
 
 comando_simples:
       expressao { $$ = $1; }
-    | RETURN { $$ = criar_no_return(NULL, linha_token); }
-    | RETURN expressao { $$ = criar_no_return($2, linha_token); }
+    | RETURN { $$ = criar_no_return(NULL, @1.first_line); }
+    | RETURN expressao { $$ = criar_no_return($2, @1.first_line); }
     | PRINT LPAREN argumentos_opt RPAREN {
         int n_args = 0;
           NoAST **args = NULL;
@@ -152,7 +156,7 @@ comando_simples:
                   args[0] = $3;
               }
           }
-          $$ = criar_no_print(args, n_args, linha_token);
+          $$ = criar_no_print(args, n_args, @1.first_line);
     }
     ;
 
@@ -164,12 +168,12 @@ comando_composto:
               n_elifs = $5->num_argumentos;
               elifs = $5->argumentos;
           }
-          $$ = criar_no_if($2, $4, elifs, n_elifs, $6, linha_token);
+          $$ = criar_no_if($2, $4, elifs, n_elifs, $6, @1.first_line);
           if ($5) free($5); /* Libera a casca do wrapper NO_BLOCO */
 
       }
-    | WHILE expressao COLON bloco { $$ = criar_no_while($2, $4, linha_token); }
-    | FOR ID IN RANGE LPAREN argumentos_opt RPAREN COLON bloco { $$ = criar_no_for($2, $6, $9, linha_token); }
+    | WHILE expressao COLON bloco { $$ = criar_no_while($2, $4, @1.first_line); }
+    | FOR ID IN RANGE LPAREN argumentos_opt RPAREN COLON bloco { $$ = criar_no_for($2, $6, $9, @1.first_line); }
     | DEF ID LPAREN parametros_opt RPAREN COLON bloco {
         int n_params = 0;
         NoAST **params = NULL;
@@ -177,14 +181,14 @@ comando_composto:
             n_params = $4->num_argumentos;
             params = $4->argumentos;
         }
-        $$ = criar_no_funcdef($2, params, n_params, $7, linha_token);
+        $$ = criar_no_funcdef($2, params, n_params, $7, @1.first_line);
         if ($4) free($4);
     }
     ;
 
 lista_elif:
       %empty { $$ = NULL; }
-    | lista_elif ELIF expressao COLON bloco { $$ = adicionar_lista($1, criar_no_elif($3, $5, linha_token)); }
+    | lista_elif ELIF expressao COLON bloco { $$ = adicionar_lista($1, criar_no_elif($3, $5, @2.first_line)); }
     ;
 
 senao_opt:
@@ -198,8 +202,8 @@ parametros_opt:
     ;
 
 parametros:
-      ID { $$ = criar_lista(criar_no_id($1, linha_token)); }
-    | parametros COMMA ID { $$ = adicionar_lista($1, criar_no_id($3, linha_token)); }
+      ID { $$ = criar_lista(criar_no_id($1, @1.first_line)); }
+    | parametros COMMA ID { $$ = adicionar_lista($1, criar_no_id($3, @3.first_line)); }
     ;
 
  /* Uma expressão já cobre listas separadas por vírgula (regra expressao COMMA
@@ -210,19 +214,25 @@ argumentos_opt:
     ;
 
 expressao:
-      expressao PLUS expressao   { $$ = criar_no_binop(OP_SOMA, $1, $3, linha_token); }
-    | expressao MINUS expressao  { $$ = criar_no_binop(OP_SUB, $1, $3, linha_token); }
+      expressao PLUS expressao   { $$ = criar_no_binop(OP_SOMA, $1, $3, @2.first_line); }
+    | expressao MINUS expressao  { $$ = criar_no_binop(OP_SUB, $1, $3, @2.first_line); }
     | expressao ASSIGN expressao {
-          /* Verifica se o lado esquerdo é um ID válido */
-          char *nome = ($1 && $1->tipo == NO_ID) ? $1->nome : "invalido";
-          $$ = criar_no_assign(nome, $3, linha_token);
+          if (!$1 || $1->tipo != NO_ID) {
+            yyerror("lado esquerdo da atribuição deve ser um identificador");
+            liberar_ast($1);
+            liberar_ast($3);
+            $$ = NULL;
+          } else {
+            $$ = criar_no_assign($1->nome, $3, @2.first_line);
+            liberar_ast($1);
+          }
       }
-    | expressao EQ expressao     { $$ = criar_no_binop(OP_EQ, $1, $3, linha_token); }
-    | expressao NEQ expressao    { $$ = criar_no_binop(OP_NEQ, $1, $3, linha_token); }
-    | expressao GTE expressao    { $$ = criar_no_binop(OP_GTE, $1, $3, linha_token); }
-    | expressao LTE expressao    { $$ = criar_no_binop(OP_LTE, $1, $3, linha_token); }
-    | expressao GT expressao     { $$ = criar_no_binop(OP_GT, $1, $3, linha_token); }
-    | expressao LT expressao     { $$ = criar_no_binop(OP_LT, $1, $3, linha_token); }
+    | expressao EQ expressao     { $$ = criar_no_binop(OP_EQ, $1, $3, @2.first_line); }
+    | expressao NEQ expressao    { $$ = criar_no_binop(OP_NEQ, $1, $3, @2.first_line); }
+    | expressao GTE expressao    { $$ = criar_no_binop(OP_GTE, $1, $3, @2.first_line); }
+    | expressao LTE expressao    { $$ = criar_no_binop(OP_LTE, $1, $3, @2.first_line); }
+    | expressao GT expressao     { $$ = criar_no_binop(OP_GT, $1, $3, @2.first_line); }
+    | expressao LT expressao     { $$ = criar_no_binop(OP_LT, $1, $3, @2.first_line); }
     | expressao COMMA expressao  {
           /* Converte expressões divididas por vírgulas em uma lista/tupla (NO_BLOCO) */
           if ($1 && $1->tipo == NO_BLOCO) {
@@ -231,19 +241,19 @@ expressao:
               $$ = adicionar_lista(criar_lista($1), $3);
           }
       }
-    | expressao TIMES expressao  { $$ = criar_no_binop(OP_MULT, $1, $3, linha_token); }
-    | expressao DIVIDE expressao { $$ = criar_no_binop(OP_DIV, $1, $3, linha_token); }
-    | expressao AND expressao    { $$ = criar_no_binop(OP_AND, $1, $3, linha_token); }
-    | expressao OR expressao     { $$ = criar_no_binop(OP_OR, $1, $3, linha_token); }
-    | NOT expressao              { $$ = criar_no_unaryop(OP_NOT, $2, linha_token); }
-    | expressao IN expressao     { $$ = criar_no_binop(OP_IN, $1, $3, linha_token); }
-    | MINUS expressao %prec NOT  { $$ = criar_no_unaryop(OP_NEG, $2, linha_token); }
+    | expressao TIMES expressao  { $$ = criar_no_binop(OP_MULT, $1, $3, @2.first_line); }
+    | expressao DIVIDE expressao { $$ = criar_no_binop(OP_DIV, $1, $3, @2.first_line); }
+    | expressao AND expressao    { $$ = criar_no_binop(OP_AND, $1, $3, @2.first_line); }
+    | expressao OR expressao     { $$ = criar_no_binop(OP_OR, $1, $3, @2.first_line); }
+    | NOT expressao              { $$ = criar_no_unaryop(OP_NOT, $2, @1.first_line); }
+    | expressao IN expressao     { $$ = criar_no_binop(OP_IN, $1, $3, @2.first_line); }
+    | MINUS expressao %prec NOT  { $$ = criar_no_unaryop(OP_NEG, $2, @1.first_line); }
     | LPAREN expressao RPAREN    { $$ = $2; }
     | LCOLCH RCOLCH              { $$ = criar_no_bloco(NULL, 0); }
     | LCOLCH expressao RCOLCH    { $$ = ($2 && $2->tipo == NO_BLOCO) ? $2 : criar_lista($2); }
     | INPUT LPAREN argumentos_opt RPAREN {
           /* Para `input()`, enviamos a expressão passada como prompt, se houver */
-          $$ = criar_no_input($3, linha_token);
+          $$ = criar_no_input($3, @1.first_line);
       }
     | ID LPAREN argumentos_opt RPAREN {
           int n_args = 0;
@@ -258,14 +268,14 @@ expressao:
                   args[0] = $3;
               }
           }
-          $$ = criar_no_funccall($1, args, n_args, linha_token);
+          $$ = criar_no_funccall($1, args, n_args, @1.first_line);
       }
-    | FALSE                      { $$ = criar_no_bool(0, linha_token); }
-    | TRUE                       { $$ = criar_no_bool(1, linha_token); }
-    | NUM_INT                    { $$ = criar_no_int($1, linha_token); }
-    | NUM_FLOAT                  { $$ = criar_no_float($1, linha_token); }
-    | STRING_LITERAL             { $$ = criar_no_string($1, linha_token); }
-    | ID                         { $$ = criar_no_id($1, linha_token); }
+    | FALSE                      { $$ = criar_no_bool(0, @1.first_line); }
+    | TRUE                       { $$ = criar_no_bool(1, @1.first_line); }
+    | NUM_INT                    { $$ = criar_no_int($1, @1.first_line); }
+    | NUM_FLOAT                  { $$ = criar_no_float($1, @1.first_line); }
+    | STRING_LITERAL             { $$ = criar_no_string($1, @1.first_line); }
+    | ID                         { $$ = criar_no_id($1, @1.first_line); }
     ;
 
 %%
@@ -281,7 +291,38 @@ void yyerror(const char *s) {
     fprintf(stderr, "Erro sintático na linha %d: %s\n", linha_token, s);
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
+    bool mostrar_ast = false;
+    bool mostrar_dot = false;
+    bool mostrar_tac = false;
+    bool otimizar = false;
+    bool gerar_csharp = false;
+    const char *arquivo_csharp = NULL;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--ast") == 0) {
+            mostrar_ast = true;
+        }
+        if (strcmp(argv[i], "--tabela") == 0) {
+            mostrar_tabela = true;
+        }
+        if (strcmp(argv[i], "--dot") == 0) {
+            mostrar_dot = true;
+        }
+        if (strcmp(argv[i], "--tac") == 0) {
+            mostrar_tac = true;
+        }
+        if (strcmp(argv[i], "--opt") == 0) {
+            otimizar = true;
+        }
+        if (strcmp(argv[i], "--cs") == 0) {
+            gerar_csharp = true;
+            /* Caminho opcional: --cs saida.cs (sem caminho, imprime no stdout). */
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                arquivo_csharp = argv[++i];
+            }
+        }
+    }
+
     int resultado = yyparse();
 
     if (erros_sintaticos > 0) {
@@ -290,17 +331,78 @@ int main(void) {
     }
 
     if (raiz_ast != NULL) {
-        // printf("\n--- Árvore Sintática Abstrata Gerada ---\n");
-        // imprimir_ast(raiz_ast, 0);
-        
         TabelaSimbolos *tabela = tabela_criar();
         int erros_semanticos = analisar_semantica(raiz_ast, tabela);
-        
+
+        if (mostrar_ast) {
+            printf("\n--- Árvore Sintática Abstrata Gerada ---\n");
+            imprimir_ast(raiz_ast, 0);
+        }
+
+        if (mostrar_dot) {
+            ast_para_dot(raiz_ast, stdout);
+            fflush(stdout);
+
+            FILE *arq_dot = fopen("ast.dot", "w");
+            if (arq_dot != NULL) {
+                ast_para_dot(raiz_ast, arq_dot);
+                fclose(arq_dot);
+                if (system("dot -Tpng ast.dot -o ast.png 2>/dev/null") == 0) {
+                    fprintf(stderr, "[AST] Imagem gerada em ast.png\n");
+                    if (getenv("CI") == NULL) {
+                        int ret = system("xdg-open ast.png >/dev/null 2>&1 &");
+                        (void)ret;
+                    }
+                }
+            }
+        }
+
+        if (mostrar_tabela) {
+            tabela_imprimir(tabela);
+        }
+
+        if (mostrar_tac || (otimizar && !gerar_csharp)) {
+            codegen_gerar_tac(raiz_ast);
+            if (otimizar) {
+                otimizar_tac(obter_tac());
+            }
+            imprimir_codigo_intermediario();
+            liberar_tac();
+        }
+
         if (erros_semanticos > 0) {
             fprintf(stderr, "%d erro(s) semântico(s) encontrado(s).\n", erros_semanticos);
+            tabela_liberar(tabela);
+            liberar_ast(raiz_ast);
             return 1;
         }
-        
+
+        if (gerar_csharp) {
+            if (otimizar) {
+                otimizar_ast(raiz_ast);
+            }
+
+            FILE *saida_cs = stdout;
+            if (arquivo_csharp != NULL) {
+                saida_cs = fopen(arquivo_csharp, "w");
+                if (saida_cs == NULL) {
+                    fprintf(stderr, "Erro: não foi possível criar o arquivo '%s'.\n", arquivo_csharp);
+                    tabela_liberar(tabela);
+                    liberar_ast(raiz_ast);
+                    return 1;
+                }
+            }
+
+            int nao_traduzidos = codegen_csharp_gerar(raiz_ast, saida_cs);
+            if (saida_cs != stdout) {
+                fclose(saida_cs);
+            }
+            if (nao_traduzidos > 0) {
+                fprintf(stderr, "Aviso: %d construção(ões) ainda não traduzida(s) para C# (marcadas com comentário no código gerado).\n",
+                        nao_traduzidos);
+            }
+        }
+
         tabela_liberar(tabela);
         liberar_ast(raiz_ast);
     }

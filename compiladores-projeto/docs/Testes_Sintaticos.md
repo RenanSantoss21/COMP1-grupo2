@@ -8,7 +8,7 @@ por `INDENT`/`DEDENT`, cadeias `if/elif/else`, laços, funções com parâmetros
 | Construção testada | Exemplo no arquivo |
 |---|---|
 | Atribuições simples em linhas separadas | `x = 1`, `y = 2`, `z = 3` |
-| Atribuição múltipla encadeada | `a = b = c = 0` |
+| Atribuição múltipla encadeada (apenas sintaxe; não suportada na semântica/codegen) | `a = b = c = 0` |
 | Literais de todos os tipos | `"Beatriz"`, `'bia'`, `3.14`, `1e10`, `True`, `False` |
 | Operadores aritméticos | `x + y`, `x - y`, `x * y`, `x / y` |
 | Menos unário | `-x` |
@@ -109,26 +109,22 @@ linhas `Erro sintático` da saída e compara com o número de erros do arquivo.
 ## Como Executar
 
 ```bash
+make test_integracao
+# ou
 make clean && make
 ./testes/rodar_testes.sh
 ```
 
+Para executar os testes unitários de construção da AST gerada pela gramática:
+```bash
+make test_ast
+```
+
 ## Resultado Obtido
 
-```
-=========================================
-   Rodando testes do compilador
-=========================================
+O script `./testes/rodar_testes.sh` executa toda a suíte de integração do compilador. Abaixo estão os trechos referentes aos **testes sintáticos** e de **recuperação de erros**:
 
---- Testes LEXICOS que devem PASSAR (codigo valido) ---
-[OK]    Testes1.py - aceito com sucesso
-[OK]    Testes2.py - aceito com sucesso
-[OK]    Testes3.py - aceito com sucesso
-[OK]    Testes4.py - aceito com sucesso
-
---- Testes LEXICOS que devem FALHAR (codigo invalido) ---
-[OK]    Testes5.py - erro detectado como esperado
-
+```text
 --- Testes SINTATICOS que devem PASSAR (codigo valido) ---
 [OK]    TestesParser1.py - aceito com sucesso
 [OK]    TestesParser2.py - aceito com sucesso
@@ -146,8 +142,4 @@ make clean && make
 --- RECUPERACAO de erros (todos os erros devem ser reportados) ---
 [OK]    TestesParserErro1.py - 5 erros sintaticos reportados
 [OK]    Testes5.py - 9 erros sintaticos reportados
-
-=========================================
-   Resultado: 17 passaram, 0 falharam
-=========================================
 ```

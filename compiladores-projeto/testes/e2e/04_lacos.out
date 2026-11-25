@@ -1,0 +1,7 @@
+fatorial 5: 120
+range(5): 10
+range(2, 7): 20
+range(0, 10, 2): 20
+range(6, 0, -2): 12
+range dinamico: 12
+diagonal: 3

@@ -109,22 +109,20 @@ Testa que o compilador rejeita corretamente entradas com erros léxicos e sintá
 
 ---
 
----
-
 ## Como Executar
 
 ```bash
+make test_integracao
+# ou
 make clean && make
 ./testes/rodar_testes.sh
 ```
 
 ## Resultado Obtido
 
-```
-=========================================
-   Rodando testes do compilador
-=========================================
+O script `./testes/rodar_testes.sh` executa toda a suíte de integração do compilador. Abaixo está o trecho referente aos **testes léxicos**:
 
+```text
 --- Testes LEXICOS que devem PASSAR (codigo valido) ---
 [OK]    Testes1.py - aceito com sucesso
 [OK]    Testes2.py - aceito com sucesso
@@ -133,26 +131,4 @@ make clean && make
 
 --- Testes LEXICOS que devem FALHAR (codigo invalido) ---
 [OK]    Testes5.py - erro detectado como esperado
-
---- Testes SINTATICOS que devem PASSAR (codigo valido) ---
-[OK]    TestesParser1.py - aceito com sucesso
-[OK]    TestesParser2.py - aceito com sucesso
-[OK]    TestesParser3.py - aceito com sucesso
-[OK]    TestesParser4.py - aceito com sucesso
-[OK]    TestesParser5.py - aceito com sucesso
-
---- Testes SINTATICOS que devem FALHAR (codigo invalido) ---
-[OK]    TestesParserErro1.py - erro detectado como esperado
-[OK]    TestesParserErro2.py - erro detectado como esperado
-[OK]    TestesParserErro3.py - erro detectado como esperado
-[OK]    TestesParserErro4.py - erro detectado como esperado
-[OK]    TestesParserErro5.py - erro detectado como esperado
-
---- RECUPERACAO de erros (todos os erros devem ser reportados) ---
-[OK]    TestesParserErro1.py - 5 erros sintaticos reportados
-[OK]    Testes5.py - 9 erros sintaticos reportados
-
-=========================================
-   Resultado: 17 passaram, 0 falharam
-=========================================
 ```

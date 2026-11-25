@@ -50,8 +50,8 @@ Valida que escopos internos enxergam variáveis do pai, mas variáveis internas 
 
 | Cenário | AST construída | Erros esperados |
 |---|---|---|
-| Variável `x` declarada fora, usada dentro de um `NO_BLOCO` | `[NO_ASSIGN(x), NO_BLOCO([NO_ID(x)])]` | 0 |
-| Variável `y` declarada dentro de `NO_BLOCO`, usada **fora** dele | `[NO_BLOCO([NO_ASSIGN(y)]), NO_ID(y)]` | 1 |
+| Variável `y` declarada dentro de `NO_BLOCO`, usada **fora** dele | `[NO_BLOCO([NO_ASSIGN(y)]), NO_ID(y)]` | 0 |
+| Variável local declarada em `NO_FUNCDEF`, usada **fora** da função | `[NO_FUNCDEF(foo, ...), NO_ID(var_local)]` | 1 |
 
 ---
 
@@ -67,6 +67,17 @@ Testa a inferência de tipos e a detecção de operações com tipos incompatív
 
 ---
 
+### test_divisao_resulta_float — Divisão real entre inteiros
+
+Verifica que a operação `/` entre dois inteiros resulta em `TIPO_FLOAT` (semântica do Python 3), enquanto `*` preserva `TIPO_INT`.
+
+| Cenário | AST construída | Erros esperados | Tipo resolvido |
+|---|---|---|---|
+| Divisão de inteiros: `5 / 2` | `NO_BINOP(OP_DIV, NO_NUM_INT(5), NO_NUM_INT(2))` | 0 | `TIPO_FLOAT` |
+| Multiplicação de inteiros: `5 * 2` | `NO_BINOP(OP_MULT, NO_NUM_INT(5), NO_NUM_INT(2))` | 0 | `TIPO_INT` |
+
+---
+
 ### test_funcoes_e_contexto — Funções, chamadas e return
 
 Testa a validação de funções: quantidade de argumentos nas chamadas e restrição de `return` fora de função.
@@ -76,6 +87,91 @@ Testa a validação de funções: quantidade de argumentos nas chamadas e restri
 | `def dobrar(valor)` chamada com `dobrar(10)` — argumentos corretos | `[NO_FUNCDEF(dobrar, [valor]), NO_ASSIGN(resultado, NO_FUNCCALL(dobrar, [10]))]` | 0 |
 | `def dobrar(valor)` chamada com `dobrar()` — falta 1 argumento | `[NO_FUNCDEF(dobrar, [valor]), NO_ASSIGN(resultado, NO_FUNCCALL(dobrar, []))]` | 1 |
 | `return 1` no nível global (fora de função) | `NO_RETURN(NO_NUM_INT(1))` | 1 |
+
+---
+
+### test_contagem_nao_declarada — Sem erro duplicado para variável não declarada (Issue #39)
+
+Verifica que uma variável não declarada em expressões de atribuição, `if`, `while`, `elif` e `return` gera exatamente 1 erro semântico (sem contagem dupla entre `inferir_tipo` e `analisar_semantica`).
+
+| Cenário | AST construída | Erros esperados |
+|---|---|---|
+| Variável não declarada em `y = z + 1` | `NO_ASSIGN(y, NO_BINOP(+, z, 1))` | 1 |
+| Variável não declarada em condição de `if`, `while` e `elif` | `NO_IF(w > 0)`, `NO_WHILE(w > 0)`, `NO_ELIF(w > 0)` | 1 (cada) |
+| Variável não declarada em `return k` | `NO_FUNCDEF(f, [NO_RETURN(k)])` | 1 |
+
+---
+
+### test_contagem_argumentos_de_chamada — Validação dos argumentos mesmo em chamadas inválidas
+
+Garante que os argumentos de `NO_FUNCCALL` são sempre analisados, mesmo quando a função não existe, não é função ou tem aridade incorreta.
+
+| Cenário | AST construída | Erros esperados |
+|---|---|---|
+| `y = g(z)` com `g` e `z` não declarados | `NO_ASSIGN(y, NO_FUNCCALL(g, [z]))` | 2 |
+| `x = 1; y = x(z)` com `x` variável e `z` não declarada | `[NO_ASSIGN(x, 1), NO_ASSIGN(y, NO_FUNCCALL(x, [z]))]` | 2 |
+| `def f(): ...; y = f(z)` com aridade errada e `z` não declarada | `[NO_FUNCDEF(f, []), NO_ASSIGN(y, NO_FUNCCALL(f, [z]))]` | 2 |
+| `def f(a): ...; y = f(z)` com chamada válida e `z` não declarada | `[NO_FUNCDEF(f, [a]), NO_ASSIGN(y, NO_FUNCCALL(f, [z]))]` | 1 |
+
+---
+
+### test_redefinicao_funcao_e_conflito — Redefinição de funções e colisão variável/função (Issue #50)
+
+Valida a detecção de redefinição de funções no mesmo escopo, conflito de nomes entre variáveis e funções em qualquer ordem de declaração e sombreamento permitido em escopos internos.
+
+| Cenário | AST construída | Erros esperados |
+|---|---|---|
+| Redefinição de `def f()` seguida de `def f(a)` no mesmo escopo | `[NO_FUNCDEF(f, []), NO_FUNCDEF(f, [a])]` | 1 |
+| Função `def g()` seguida de atribuição `g = 10` no mesmo escopo | `[NO_FUNCDEF(g, []), NO_ASSIGN(g, 10)]` | 1 |
+| Sombreamento válido do nome `h` em função interna `h_filho` | `NO_FUNCDEF(h, [NO_FUNCDEF(h_filho, [NO_ASSIGN(h, 2)])])` | 0 |
+| Variável `k = 5` seguida de `def k()` no mesmo escopo | `[NO_ASSIGN(k, 5), NO_FUNCDEF(k, [])]` | 1 |
+| Função redefinida `m` contendo erro semântico interno no segundo corpo | `[NO_FUNCDEF(m, []), NO_FUNCDEF(m, [NO_RETURN(var_inexistente)])]` | 2 |
+
+---
+
+### test_politica_reatribuicao_tipos — Política estática na reatribuição (Issue #51 / ADR-001)
+
+Valida que variáveis mantêm seu tipo após a primeira atribuição, aceitando reatribuição do mesmo tipo e promoção `int` → `float`, mas rejeitando tipos incompatíveis (`SEM-17`).
+
+| Cenário | AST construída | Erros esperados |
+|---|---|---|
+| Reatribuição `int` → `int` e promoção `float` ← `int` | `[x = 10, x = 20, f = 3.14, f = 2]` | 0 |
+| Reatribuição incompatível `int` → `string` | `[x = 10, x = "texto"]` | 1 |
+
+---
+
+### test_inferencia_parametros_e_void — Inferência de parâmetros, retorno `VOID` e propagação tardia (Issues #52 e #31)
+
+Valida a inferência de tipos de parâmetros pelo uso no corpo ou pela 1ª chamada, o retorno `TIPO_VOID` e a propagação recursiva de ponto fixo na AST da função.
+
+| Cenário | AST construída | Erros esperados | Tipo resolvido |
+|---|---|---|---|
+| Função sem `return` (`def procedimento():`) | `NO_FUNCDEF(procedimento, [])` | 0 | `TIPO_VOID` |
+| Parâmetro inferido pelo corpo (`def f(a): return a + 1`) chamado com `f("oi")` | `[NO_FUNCDEF(f, [a]), NO_FUNCCALL(f, ["oi"])]` | 1 | `TIPO_INT` |
+| Parâmetro inferido na 1ª chamada (`def id(x): return x; id(10); id("oi")`) | `[NO_FUNCDEF(id, [x]), id(10), id("oi")]` | 1 | `TIPO_INT` |
+| Propagação tardia do 2º parâmetro em `if`/`else`, `elif` e `NO_BINOP` | `escolhe2(10, "oi")`, `escolhe_via_elif(10, "oi")`, `concat_tardia(10, "oi")` | 0 | `TIPO_STRING` |
+| Função com retorno irresolvido não faz fallback indevido para o 1º parâmetro | `sem_tipo_ret(10, "oi")` | 0 | `TIPO_DESCONHECIDO` |
+
+---
+
+### test_linhas_erros_estruturas_compostas — Número de linha em estruturas compostas (Issue #46)
+
+Valida que as mensagens de erro semântico em `NO_IF`, `NO_ELIF`, `NO_WHILE`, `NO_FOR` e `NO_FUNCDEF` apontam exatamente para a linha do cabeçalho de cada construção (e não para o fim do bloco).
+
+| Cenário | AST construída | Erros esperados | Linha validada |
+|---|---|---|---|
+| Condição não-booleana em `if`, `elif` e `while`, e colisão/redefinição em `for` e `def` | `[NO_ASSIGN(x, 5), NO_IF(x), NO_WHILE(x), NO_FUNCDEF(f), NO_FOR(f), NO_FUNCDEF(f)]` | 5 | Linhas 2 (`if`), 5 (`elif`), 9 (`while`), 13/17 (`for`/`def`) e 13/21 (`def`) |
+
+---
+
+### test_chamada_antes_def_e_tipo_resolvido_funcdef — Chamada no nível global antes do `def` e `tipo_resolvido` em `NO_FUNCDEF`/`NO_RETURN` (Issue #57)
+
+Valida que chamar uma função no nível do módulo antes de sua definição gera erro semântico (`SEM-11`), enquanto *forward references* dentro de funções continuam válidas, e confirma o preenchimento de `tipo_resolvido` nos nós `NO_FUNCDEF` e `NO_RETURN`.
+
+| Cenário | AST construída | Erros esperados | Tipo resolvido |
+|---|---|---|---|
+| `x = g()` no nível global antes de `def g(): return 42` | `[NO_ASSIGN(x, g()), NO_FUNCDEF(g)]` | 1 | `TIPO_INT` |
+| `def f(): return h()` antes de `def h(): return` | `[NO_FUNCDEF(f), NO_FUNCDEF(h)]` | 0 | `TIPO_VOID` (`h`) |
 
 ---
 
@@ -120,7 +216,7 @@ mensagem = "ola" + " mundo"
 |---|---|
 | Promoção automática int→float | `inteiro(int) + fracao(float)` → resultado promovido para `TIPO_FLOAT` |
 | Concatenação de strings com `+` | `"ola"(string) + " mundo"(string)` → resultado é `TIPO_STRING` |
-| Atualização dinâmica de tipo na tabela | `soma` recebe `TIPO_FLOAT`, `mensagem` recebe `TIPO_STRING` |
+| Inferência e preservação de tipo na tabela | `soma` recebe `TIPO_FLOAT`, `mensagem` recebe `TIPO_STRING` |
 
 **Resultado esperado:** aceito sem erros.
 
@@ -144,6 +240,26 @@ resultado = identidade(10)
 | Contexto de `return` dentro de função | `return valor` dentro de `def` — contexto válido |
 
 **Resultado esperado:** aceito sem erros.
+
+---
+
+### TestesSemanticaValidos4.py a TestesSemanticaValidos7.py — Unários, Escopo de Bloco e Forward References
+
+| Arquivo | Cenário Testado | Resultado esperado |
+|---|---|---|
+| `TestesSemanticaValidos4.py` | Operadores unários (`-5`, `-2.5`, `not ativo`), `input()` retornando `string` e operador `in` retornando `bool` | Aceito sem erros |
+| `TestesSemanticaValidos5.py` | Variável atribuída dentro de bloco `if` permanece visível fora do bloco (regra de escopo do Python) | Aceito sem erros |
+| `TestesSemanticaValidos6.py` | *Forward reference*: função `f()` chamando `g()` declarada mais abaixo no arquivo (análise em 2 passadas) | Aceito sem erros |
+| `TestesSemanticaValidos7.py` | Recursão direta: função `f()` chamando a si mesma | Aceito sem erros |
+
+---
+
+### TestesSemantico1.py e TestesSemantico2.py — Cenários Semânticos Completos
+
+| Arquivo | Cenário Testado | Resultado esperado |
+|---|---|---|
+| `TestesSemantico1.py` | Aritmética e promoção numérica, comparações compatíveis, operadores lógicos, condições estritamente booleanas e reatribuição compatível | Aceito sem erros |
+| `TestesSemantico2.py` | Múltiplas funções, retorno condicional, visibilidade de variável global em laços `for` e `while` aninhados | Aceito sem erros |
 
 ---
 
@@ -201,9 +317,32 @@ return 1
 
 ---
 
+### TestesSemanticaErros4.py a TestesSemanticaErros12.py e Suítes de Múltiplos Erros
+
+Além de verificar a falha, o script `rodar_testes.sh` valida a **contagem exata de erros semânticos** emitidos por arquivo:
+
+| Arquivo | Cenário Testado | Erros semânticos esperados |
+|---|---|---|
+| `TestesSemanticaErros4.py` | `input("n") + 1` — soma de retorno `string` do `input` com `int` | 1 |
+| `TestesSemanticaErros5.py` | `x = -5; if x:` — unário `-` preserva `int`, que é inválido como condição booleana | 1 |
+| `TestesSemanticaErros6.py` | Operadores unários com operandos inválidos (`-"abc"`, `-True`, `not 3`) | 3 |
+| `TestesSemanticaErros7.py` | Reatribuição de `x` para `string` dentro de `while` seguida de `x + 1` fora do laço | 1 |
+| `TestesSemanticaErros8.py` | Redefinição de função `f` no mesmo escopo (`def f()` na linha 1 e `def f(a)` na linha 3) | 1 |
+| `TestesSemanticaErros9.py` | Chamada de função com argumento incompatível com o tipo inferido do parâmetro (`def f(a): return a + 1` chamada com `f("oi")`) | 1 |
+| `TestesSemanticaErros10.py` | Erros em `if` (linha 2), `elif` (linha 5), `while` (linha 9), `for` (linha 17) e `def` (linhas 13 e 21) validando o número exato da linha | 5 |
+| `TestesSemanticaErros11.py` | Reatribuição de variável com tipo incompatível (`int` para `string`) | 1 |
+| `TestesSemanticaErros12.py` | Expressão com tipos incompatíveis dentro de `print("a" + 1)` | 1 |
+| `teste_semantico.py` | Soma `string + int`, comparação `int == string`, `while ("texto")` e chamada a função inexistente | 4 |
+| `TestesSemanticoErro1.py` | `int and bool`, `bool == int`, número errado de argumentos, chamada de variável como função (`x()`) e `return` global | 5 |
+| `TestesSemanticoErro2.py` | Uso de variável nunca declarada e tentativa de acessar variável local de função fora do escopo | 2 |
+
+---
+
 ## Como Executar
 
 ```bash
+make test_integracao
+# ou
 make clean && make
 ./testes/rodar_testes.sh
 ```
@@ -215,49 +354,54 @@ make test_semantica
 
 ## Resultado Obtido
 
-```
-=========================================
-   Rodando testes do compilador
-=========================================
+O script `./testes/rodar_testes.sh` executa toda a suíte de integração do compilador. Abaixo estão os trechos referentes aos **testes semânticos**:
 
---- Testes LEXICOS que devem PASSAR (codigo valido) ---
-[OK]    Testes1.py - aceito com sucesso
-[OK]    Testes2.py - aceito com sucesso
-[OK]    Testes3.py - aceito com sucesso
-[OK]    Testes4.py - aceito com sucesso
-
---- Testes LEXICOS que devem FALHAR (codigo invalido) ---
-[OK]    Testes5.py - erro detectado como esperado
-
---- Testes SINTATICOS que devem PASSAR (codigo valido) ---
-[OK]    TestesParser1.py - aceito com sucesso
-[OK]    TestesParser2.py - aceito com sucesso
-[OK]    TestesParser3.py - aceito com sucesso
-[OK]    TestesParser4.py - aceito com sucesso
-[OK]    TestesParser5.py - aceito com sucesso
-
---- Testes SINTATICOS que devem FALHAR (codigo invalido) ---
-[OK]    TestesParserErro1.py - erro detectado como esperado
-[OK]    TestesParserErro2.py - erro detectado como esperado
-[OK]    TestesParserErro3.py - erro detectado como esperado
-[OK]    TestesParserErro4.py - erro detectado como esperado
-[OK]    TestesParserErro5.py - erro detectado como esperado
-
+```text
 --- Testes SEMANTICOS que devem PASSAR (codigo valido) ---
 [OK]    TestesSemanticaValidos1.py - aceito com sucesso
 [OK]    TestesSemanticaValidos2.py - aceito com sucesso
 [OK]    TestesSemanticaValidos3.py - aceito com sucesso
+[OK]    TestesSemanticaValidos4.py - aceito com sucesso
+[OK]    TestesSemanticaValidos5.py - aceito com sucesso
+[OK]    TestesSemanticaValidos6.py - aceito com sucesso
+[OK]    TestesSemanticaValidos7.py - aceito com sucesso
 
 --- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---
 [OK]    TestesSemanticaErros1.py - erro detectado como esperado
 [OK]    TestesSemanticaErros2.py - erro detectado como esperado
 [OK]    TestesSemanticaErros3.py - erro detectado como esperado
+[OK]    TestesSemanticaErros7.py - erro detectado como esperado
+[OK]    TestesSemanticaErros8.py - erro detectado como esperado
 
---- RECUPERACAO de erros (todos os erros devem ser reportados) ---
-[OK]    TestesParserErro1.py - 5 erros sintaticos reportados
-[OK]    Testes5.py - 9 erros sintaticos reportados
+--- Testes SEMANTICOS que devem PASSAR (codigo valido) ---
+[OK]    TestesSemantico1.py - aceito com sucesso
+[OK]    TestesSemantico2.py - aceito com sucesso
 
-=========================================
-   Resultado: 23 passaram, 0 falharam
-=========================================
+--- Testes SEMANTICOS que devem FALHAR (codigo invalido) ---
+[OK]    teste_semantico.py - erro detectado como esperado
+[OK]    TestesSemanticoErro1.py - erro detectado como esperado
+
+--- Contagem de erros SEMANTICOS (todos os erros devem ser reportados) ---
+[OK]    teste_semantico.py - 4 erros semanticos reportados
+[OK]    TestesSemanticoErro1.py - 5 erros semanticos reportados
+[OK]    TestesSemanticoErro2.py - 2 erros semanticos reportados
+[OK]    TestesSemanticaErros4.py - 1 erros semanticos reportados
+[OK]    TestesSemanticaErros5.py - 1 erros semanticos reportados
+[OK]    TestesSemanticaErros6.py - 3 erros semanticos reportados
+[OK]    TestesSemanticaErros7.py - 1 erros semanticos reportados
+[OK]    TestesSemanticaErros8.py - 1 erros semanticos reportados
+[OK]    TestesSemanticaErros9.py - 1 erros semanticos reportados
+[OK]    TestesSemanticaErros10.py - 5 erros semanticos reportados
+[OK]    TestesSemanticaErros11.py - 1 erros semanticos reportados
+[OK]    TestesSemanticaErros12.py - 1 erros semanticos reportados
+
+--- Numero de linha nos erros de estruturas compostas (Issue #46) ---
+[OK]    TestesSemanticaErros5.py (linha do if) - 'Erro semântico na linha 3: A condição deve ser estritamente booleana.'
+[OK]    TestesSemanticaErros8.py (linhas do def) - 'Erro semântico na linha 3: Função 'f' já declarada na linha 1.'
+[OK]    teste_semantico.py (linha do while) - 'Erro semântico na linha 19: A condição deve ser estritamente booleana.'
+[OK]    TestesSemanticaErros10.py (if na linha 2) - 'Erro semântico na linha 2: A condição deve ser estritamente booleana.'
+[OK]    TestesSemanticaErros10.py (elif na linha 5) - 'Erro semântico na linha 5: A condição deve ser estritamente booleana.'
+[OK]    TestesSemanticaErros10.py (while na linha 9) - 'Erro semântico na linha 9: A condição deve ser estritamente booleana.'
+[OK]    TestesSemanticaErros10.py (for na linha 17 e def na linha 13) - 'Erro semântico na linha 17: Identificador 'f' já declarado como função na linha 13.'
+[OK]    TestesSemanticaErros10.py (def redeclarado na linha 21) - 'Erro semântico na linha 21: Função 'f' já declarada na linha 13.'
 ```

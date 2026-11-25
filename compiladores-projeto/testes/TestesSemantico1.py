@@ -34,6 +34,6 @@ while x > 0 and ligado:
 if ligado:
     print(nome)
 
-# Reatribuicao muda o tipo da variavel
-x = "agora sou string"
-print(x)
+# Declaracao de nova variavel com string
+novo_x = "agora sou string"
+print(novo_x)

@@ -12,11 +12,12 @@ O arquivo é dividido em três seções principais:
 
 ### 1. Declarações (Seção `%{ ... %}` e tokens)
 
-Define a interface com o Flex e declara todos os tokens esperados:
+Define a interface com o Flex, importa os cabeçalhos da AST, Tabela de Símbolos, Semântica, Código Intermediário, Otimizador e C# (`src/ast.h`, `src/tabela.h`, `src/semantica.h`, `src/codegen_intermediario.h`, `src/otimizador.h`, `src/codegen_csharp.h`) e declara os tokens e tipos semânticos:
 
-- **Tipos de valor** (`%union`): `int ival`, `double dval`, `char *sval`
-- **Tokens com valor**: `NUM_INT`, `NUM_FLOAT`, `STRING_LITERAL`
-- **Tokens simples**: `ID`, operadores, delimitadores, palavras-chave, `INDENT`, `DEDENT`, `NEWLINE`
+- **Tipos de valor** (`%union`): `int ival`, `double dval`, `char *sval`, `struct noAST *ast`
+- **Tokens com valor**: `NUM_INT` (`ival`), `NUM_FLOAT` (`dval`), `STRING_LITERAL` (`sval`), `ID` (`sval`)
+- **Tokens simples**: operadores, delimitadores, palavras-chave, `INDENT`, `DEDENT`, `NEWLINE`
+- **Não-terminais tipados** (`%type <ast>`): `programa`, `comandos`, `comando`, `comando_simples`, `comando_composto`, `bloco`, `lista_elif`, `senao_opt`, `parametros_opt`, `parametros`, `argumentos_opt`, `expressao`, `erro_linha`, `erro_identacao`
 
 ### 2. Precedência de Operadores
 
@@ -97,11 +98,10 @@ A lista de argumentos é apenas uma `expressao` opcional porque a própria regra
 Expressões suportam:
 
 - **Operações aritméticas**: `+`, `-`, `*`, `/` e menos unário (`-x`)
-- **Atribuição**: `=` (associativa à direita, permitindo `a = b = 0`)
+- **Atribuição**: `=` (atribuição simples; encadeamento como `a = b = 0` é aceito sintaticamente pela associatividade à direita, mas não é suportado pela análise semântica nem pelos geradores de código)
 - **Comparações**: `==`, `!=`, `>`, `<`, `>=`, `<=`
 - **Operadores lógicos**: `and`, `or`, `not`, `in`
 - **Agrupamento**: `( )`
-- **Listas**: `[ ]` (vazia) e `[ expressao ]`
 - **Chamada de função**: `ID LPAREN argumentos_opt RPAREN`
 - **Entrada nativa**: `INPUT LPAREN argumentos_opt RPAREN`
 - **Literais**: `NUM_INT`, `NUM_FLOAT`, `STRING_LITERAL`, `TRUE`, `FALSE`
@@ -181,12 +181,16 @@ Erros de indentação são detectados ainda na fase léxica:
 Erro léxico: indentação inconsistente na linha <N>
 ```
 
-## Limitações Atuais
+## Construção da AST e Integração com a Análise Semântica
 
-- **Sem AST**: O parser apenas valida a sintaxe; ainda não constrói uma Árvore Sintática Abstrata (AST).
-- **`for` restrito a `range`**: A regra do `for` exige `in range(...)`; iteração direta sobre listas ainda não é suportada.
-- **Sem análise semântica**: Não há verificação de tipos, escopo ou de variáveis/funções não declaradas.
+Durante as reduções sintáticas, cada regra gramatical executa uma ação semântica que constrói os nós da **Árvore Sintática Abstrata (AST)** de baixo para cima (*bottom-up*), utilizando os construtores definidos em [`src/ast.h`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/ast.h):
 
----
+- **Listas dinâmicas (`criar_lista` e `adicionar_lista`)**: Acumulam sequências de comandos, cláusulas `elif`, parâmetros e argumentos usando vetores realocados dinamicamente (`realloc`).
+- **Raiz do programa (`raiz_ast`)**: Ao reduzir a regra inicial `programa`, a árvore completa fica armazenada na variável global `raiz_ast` (`NO_PROGRAMA`).
+- **Pipeline na `main()`**: Se não houver erros sintáticos (`erros_sintaticos == 0`) e `raiz_ast != NULL`, a função `main()` inicializa a Tabela de Símbolos (`tabela_criar()`), invoca `analisar_semantica(raiz_ast, tabela)` e, conforme as flags passadas, executa a inspeção (AST/DOT/Tabela), a geração/otimização do TAC e, na ausência de erros semânticos, a geração de código C#.
+- **Flags de linha de comando**: O executável aceita `--ast` (imprime a AST indentada com os tipos resolvidos), `--dot` (exporta a árvore para Graphviz DOT e gera `ast.png`), `--tabela` (exibe a Tabela de Símbolos em cada mudança de escopo), `--tac` (gera e imprime o Código Intermediário de Três Endereços), `--opt` (gera e imprime o TAC otimizado) e `--cs [arquivo]` (gera o código-alvo em C# no arquivo indicado ou em `stdout`).
 
-*A gramática será expandida nas próximas sprints para incluir a construção da AST e a análise semântica.*
+## Escopo Sintático do Subconjunto
+
+- **Laço `for` com `range`**: A gramática suporta `for <id> in range(<args>):` com 1, 2 ou 3 argumentos (`range(fim)`, `range(inicio, fim)` ou `range(inicio, fim, passo)`).
+- **Atribuição em expressões**: O operador `=` valida se o operando à esquerda é um identificador (`NO_ID`) e constrói um nó `NO_ASSIGN`.

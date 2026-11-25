@@ -534,6 +534,50 @@ static int test_imprimir_ast_programa(void) {
     return 1;
 }
 
+static int test_ast_para_dot(void) {
+    printf("Running test_ast_para_dot...\n");
+
+    NoAST **cmds = malloc(2 * sizeof(NoAST *));
+    cmds[0] = criar_no_assign("x",
+        criar_no_binop(OP_SOMA,
+            criar_no_int(10, 1),
+            criar_no_int(5, 1), 1), 1);
+    NoAST **print_args = malloc(sizeof(NoAST *));
+    print_args[0] = criar_no_id("x", 2);
+    cmds[1] = criar_no_print(print_args, 1, 2);
+    NoAST *prog = criar_no_programa(cmds, 2);
+
+    const char *tmppath = "testes/tdd/_ast_test_dot.tmp";
+    FILE *out = fopen(tmppath, "w");
+    ASSERT(out != NULL, "cannot open temp file for writing");
+
+    ast_para_dot(prog, out);
+    fclose(out);
+
+    char buffer[2048];
+    FILE *in = fopen(tmppath, "r");
+    ASSERT(in != NULL, "cannot open temp file for reading");
+    size_t n = fread(buffer, 1, sizeof(buffer) - 1, in);
+    buffer[n] = '\0';
+    fclose(in);
+    remove(tmppath);
+
+    ASSERT(strstr(buffer, "digraph AST {") != NULL,
+           "DOT output should start with 'digraph AST {'");
+    ASSERT(strstr(buffer, "Assign: x") != NULL,
+           "DOT output should contain 'Assign: x'");
+    ASSERT(strstr(buffer, "BinOp: +") != NULL,
+           "DOT output should contain 'BinOp: +'");
+    ASSERT(strstr(buffer, "NumInt: 10") != NULL,
+           "DOT output should contain 'NumInt: 10'");
+    ASSERT(strstr(buffer, "->") != NULL,
+           "DOT output should contain edges '->'");
+
+    liberar_ast(prog);
+    printf("  PASSED\n");
+    return 1;
+}
+
 /* ═════════════════════════════════════════════════════════════════════
  * Slice 9 – liberar_ast on a complex tree doesn't crash
  * ═════════════════════════════════════════════════════════════════════ */
@@ -652,8 +696,9 @@ int main(void) {
     if (test_criar_no_bloco())         passed++; else failed++;
     if (test_criar_no_programa())      passed++; else failed++;
 
-    /* Slice 8 – imprimir_ast */
+    /* Slice 8 – imprimir_ast / ast_para_dot */
     if (test_imprimir_ast_programa())  passed++; else failed++;
+    if (test_ast_para_dot())           passed++; else failed++;
 
     /* Slice 9 – liberar_ast */
     if (test_liberar_ast_complexa())   passed++; else failed++;

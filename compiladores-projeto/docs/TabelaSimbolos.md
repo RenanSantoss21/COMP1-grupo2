@@ -30,8 +30,10 @@ typedef struct {
     int escopo;
     int linha_declaracao;
     bool e_funcao;
+    bool pre_registrada;
     int num_parametros;
     TipoDado* tipos_parametros;
+    struct noAST* no_declaracao;
 } Simbolo;
 ```
 
@@ -40,8 +42,10 @@ typedef struct {
 * **`escopo`:** Nível de aninhamento em que o identificador foi declarado (0 = global).
 * **`linha_declaracao`:** Linha do arquivo-fonte onde o identificador foi registrado (para mensagens de erro).
 * **`e_funcao`:** Booleano que indica se o símbolo representa uma função (`true`) ou variável (`false`).
+* **`pre_registrada`:** Booleano que indica se a função foi inserida na 1ª passada (`pre_registrar_funcoes`) e seu `def` ainda não foi visitado na 2ª passada.
 * **`num_parametros`:** Quantidade de parâmetros formais esperados pela função.
 * **`tipos_parametros`:** Vetor dinâmico com os tipos esperados para cada parâmetro formal.
+* **`no_declaracao`:** Ponteiro para o nó `NO_FUNCDEF` correspondente na AST, permitindo que a análise semântica propague tipos de parâmetros e de retorno inferidos tardiamente na 1ª chamada para os nós do corpo da função.
 
 ### 3. Tabela de Símbolos (`src/tabela.h`)
 
@@ -60,7 +64,7 @@ typedef struct {
 
 * **`array_simbolos`:** Array dinâmico contíguo contendo todos os símbolos ativos.
 * **`tamanho` / `capacidade`:** Controle de capacidade com redimensionamento automático (`realloc`).
-* **`escopo_atual`:** Profundidade do bloco atual (incrementado em blocos e funções, decrementado ao sair).
+* **`escopo_atual`:** Profundidade do escopo atual (0 no nível global; incrementado ao entrar no corpo de uma função `def` e decrementado ao sair).
 * **`dentro_de_funcao`:** Flag que rastreia se a análise está dentro do corpo de uma função (usada para proibir `return` fora de funções).
 * **`tipo_retorno_atual`:** Tipo de retorno inferido da função em análise, assegurando consistência entre múltiplos `return`.
 
@@ -101,11 +105,20 @@ Ao sair de um bloco (`tabela_sair_escopo`), todos os símbolos pertencentes ao e
 |---|---|
 | `tabela_criar()` | Aloca e inicializa uma nova tabela com capacidade inicial de 10 símbolos e `escopo_atual = 0`. |
 | `tabela_inserir(tab, nome, tipo, linha)` | Insere um novo identificador no escopo corrente, duplicando o nome com `strdup` e redimensionando a capacidade se necessário. |
-| `tabela_buscar(tab, nome)` | Busca linear reversa pelo identificador. Retorna o ponteiro `Simbolo*` mais recente ou `NULL`. |
+| `tabela_buscar(tab, nome)` | Busca linear reversa pelo identificador em todos os escopos ativos. Retorna o ponteiro `Simbolo*` mais recente ou `NULL`. |
+| `tabela_buscar_escopo_atual(tab, nome)` | Busca linear reversa restrita ao `escopo_atual`. Retorna o `Simbolo*` se já existir no escopo corrente ou `NULL`. |
 | `tabela_entrar_escopo(tab)` | Incrementa `escopo_atual` em 1. |
 | `tabela_sair_escopo(tab)` | Remove todos os símbolos do escopo corrente, desaloca suas memórias e decrementa `escopo_atual`. |
-| `tabela_imprimir(tab)` | Imprime o conteúdo da tabela e o escopo corrente (útil para depuração). |
+| `tabela_imprimir(tab)` | Imprime o conteúdo da tabela e o escopo corrente com tipos legíveis via `tipo_para_string` (ativado pela flag `--tabela`). |
 | `tabela_liberar(tab)` | Libera recursivamente todos os símbolos alocados e a própria tabela. |
+
+### Inspeção via Linha de Comando (`--tabela`)
+
+Para visualizar o estado da Tabela de Símbolos a cada entrada e saída de escopo durante a compilação, execute o compilador com a flag `--tabela`:
+
+```bash
+./compilador --tabela < testes/TestesSemanticaValidos1.py
+```
 
 ---
 
@@ -123,12 +136,12 @@ flowchart LR
 
 1. **No `main()` (`parser/parser.y`):**
    Após a conclusão bem-sucedida de `yyparse()`, a tabela é criada via `tabela_criar()` e repassada para `analisar_semantica(raiz_ast, tabela)`.
-2. **Declaração e Reatribuição Dinâmica:**
-   Ao visitar `NO_ASSIGN`, se a variável já existe no escopo atual, seu tipo é atualizado dinamicamente; caso contrário, uma nova entrada é criada com `tabela_inserir`.
+2. **Declaração e Reatribuição Estática:**
+   Ao visitar `NO_ASSIGN`, se a variável já existe no escopo atual, o compilador valida a compatibilidade de tipos conforme a política de tipagem estática ([ADR-001](ADR/001-reatribuicao-de-tipo.md)). Se a reatribuição for incompatível (ex: de `int` para `string`), um erro semântico (`SEM-17`) é disparado; caso contrário, a atribuição é aceita preservando o tipo da variável. Se a variável ainda não existir, uma nova entrada é criada com `tabela_inserir`.
 3. **Validação de Variáveis e Funções:**
    Ao encontrar `NO_ID` ou `NO_FUNCCALL`, a função `tabela_buscar` verifica a existência do identificador e valida número e compatibilidade de tipos dos argumentos.
 4. **Controle de Escopos em Blocos e Funções:**
-   Ao visitar `NO_BLOCO` e `NO_FUNCDEF`, a análise chama `tabela_entrar_escopo()` no início e `tabela_sair_escopo()` ao término.
+   Em conformidade com a semântica de Python, blocos de controle de fluxo (`if`, `while`, `for`) não criam novos escopos. O escopo é criado e destruído exclusivamente na definição de funções (`NO_FUNCDEF`): a análise invoca `tabela_entrar_escopo()` ao entrar no corpo da função e `tabela_sair_escopo()` ao sair, garantindo que parâmetros e variáveis locais fiquem devidamente isolados.
 
 ---
 
@@ -149,8 +162,8 @@ total = calcular(x)
 Durante a análise semântica:
 
 1. **Escopo 0 (Global):**
-   - Registrado `x` (`TIPO_INT`, escopo 0).
-   - Registrado `calcular` (`e_funcao = true`, 1 parâmetro `val`, escopo 0).
+   - Na 1ª passada (`pre_registrar_funcoes`), registrado `calcular` (`e_funcao = true`, `pre_registrada = true`, 1 parâmetro `val`, escopo 0).
+   - Na 2ª passada, registrado `x` (`TIPO_INT`, escopo 0) e confirmado o `def` de `calcular` (`pre_registrada = false`).
 2. **Escopo 1 (Corpo da função `calcular`):**
    - Entra no escopo 1 (`tabela_entrar_escopo`).
    - Parâmetro `val` inserido no escopo 1.
@@ -164,7 +177,7 @@ Durante a análise semântica:
 
 ## Testes Unitários (TDD)
 
-A integridade da Tabela de Símbolos é validada por testes unitários dedicados em [`testes/tdd/teste_tabela.c`](../testes/tdd/teste_tabela.c), cobrindo:
+A integridade da Tabela de Símbolos é validada por testes unitários dedicados em [`testes/tdd/teste_tabela.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/testes/tdd/teste_tabela.c), cobrindo:
 * Inicialização da tabela e escopos iniciais.
 * Inserção e busca simples.
 * Resolução de *shadowing* entre escopos aninhados.
@@ -176,13 +189,18 @@ Para executar os testes:
 make test_tabela
 ```
 
+Para verificar ausência de vazamentos de memória com Valgrind:
+```bash
+valgrind --leak-check=full ./testes/tdd/teste_tabela
+```
+
 ---
 
 ## Referências
 
-- Cabeçalho: [`src/tabela.h`](../src/tabela.h)
-- Implementação: [`src/tabela.c`](../src/tabela.c)
-- Definição de Tipos: [`src/tipos.h`](../src/tipos.h)
-- Suíte de Testes: [`testes/tdd/teste_tabela.c`](../testes/tdd/teste_tabela.c)
-- Integração Semântica: [`src/semantica.c`](../src/semantica.c)
+- Cabeçalho: [`src/tabela.h`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/tabela.h)
+- Implementação: [`src/tabela.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/tabela.c)
+- Definição de Tipos: [`src/tipos.h`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/tipos.h)
+- Suíte de Testes: [`testes/tdd/teste_tabela.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/testes/tdd/teste_tabela.c)
+- Integração Semântica: [`src/semantica.c`](https://github.com/RenanSantoss21/COMP1-grupo2/blob/main/compiladores-projeto/src/semantica.c)
 - Issues relacionadas: #19 (Documentação AST e Tabela de Símbolos)

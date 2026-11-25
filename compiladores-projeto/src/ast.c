@@ -155,6 +155,7 @@ NoAST *criar_no_programa(NoAST **cmds, int n_cmds) {
 }
 
 /* ── Nomes legíveis para tipos de nó (debug) ─────────────────────── */
+//Função de debug: descomentar quando necessário para depuração da AST.
 static const char *nome_tipo_no(TipoNo tipo) {
     switch (tipo) {
         case NO_NUM_INT:   return "NumInt";
@@ -179,6 +180,7 @@ static const char *nome_tipo_no(TipoNo tipo) {
         default:           return "???";
     }
 }
+
 
 static const char *nome_operador(int op) {
     switch (op) {
@@ -207,6 +209,13 @@ static void indentar(int nivel) {
         printf("  ");
 }
 
+/* ── Impressão auxiliar de tipo resolvido ────────────────────────── */
+static void imprimir_tipo_resolvido(TipoDado tipo) {
+    if (tipo != TIPO_DESCONHECIDO) {
+        printf(" [%s]", tipo_para_string(tipo));
+    }
+}
+
 /* ── imprimir_ast ────────────────────────────────────────────────── */
 void imprimir_ast(NoAST *raiz, int nivel) {
     if (raiz == NULL) return;
@@ -215,45 +224,59 @@ void imprimir_ast(NoAST *raiz, int nivel) {
 
     switch (raiz->tipo) {
         case NO_NUM_INT:
-            printf("NumInt: %d\n", raiz->valor_int);
+            printf("%s: %d", nome_tipo_no(raiz->tipo), raiz->valor_int);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             break;
         case NO_NUM_FLOAT:
-            printf("NumFloat: %.6g\n", raiz->valor_float);
+            printf("%s: %.6g", nome_tipo_no(raiz->tipo), raiz->valor_float);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             break;
         case NO_STRING:
-            printf("String: %s\n", raiz->valor_string);
+            printf("%s: %s", nome_tipo_no(raiz->tipo), raiz->valor_string);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             break;
         case NO_BOOL:
-            printf("Bool: %s\n", raiz->valor_int ? "True" : "False");
+            printf("%s: %s", nome_tipo_no(raiz->tipo), raiz->valor_int ? "True" : "False");
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             break;
         case NO_ID:
-            printf("Id: %s\n", raiz->nome);
+            printf("%s: %s", nome_tipo_no(raiz->tipo), raiz->nome);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             break;
         case NO_BINOP:
-            printf("BinOp: %s\n", nome_operador(raiz->operador));
+            printf("%s: %s", nome_tipo_no(raiz->tipo), nome_operador(raiz->operador));
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             imprimir_ast(raiz->esquerda, nivel + 1);
             imprimir_ast(raiz->direita, nivel + 1);
             break;
         case NO_UNARYOP:
-            printf("UnaryOp: %s\n", nome_operador(raiz->operador));
+            printf("%s: %s", nome_tipo_no(raiz->tipo), nome_operador(raiz->operador));
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             imprimir_ast(raiz->esquerda, nivel + 1);
             break;
         case NO_ASSIGN:
-            printf("Assign: %s\n", raiz->nome);
+            printf("%s: %s\n", nome_tipo_no(raiz->tipo), raiz->nome);
             imprimir_ast(raiz->esquerda, nivel + 1);
             break;
         case NO_PRINT:
-            printf("Print\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             for (int i = 0; i < raiz->num_argumentos; i++)
                 imprimir_ast(raiz->argumentos[i], nivel + 1);
             break;
         case NO_INPUT:
-            printf("Input\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             if (raiz->esquerda)
                 imprimir_ast(raiz->esquerda, nivel + 1);
             break;
         case NO_IF:
-            printf("If\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             indentar(nivel + 1); printf("Cond:\n");
             imprimir_ast(raiz->condicao, nivel + 2);
             indentar(nivel + 1); printf("Entao:\n");
@@ -266,28 +289,30 @@ void imprimir_ast(NoAST *raiz, int nivel) {
             }
             break;
         case NO_ELIF:
-            printf("Elif\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             indentar(nivel + 1); printf("Cond:\n");
             imprimir_ast(raiz->condicao, nivel + 2);
             indentar(nivel + 1); printf("Entao:\n");
             imprimir_ast(raiz->bloco_if, nivel + 2);
             break;
         case NO_WHILE:
-            printf("While\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             indentar(nivel + 1); printf("Cond:\n");
             imprimir_ast(raiz->condicao, nivel + 2);
             indentar(nivel + 1); printf("Corpo:\n");
             imprimir_ast(raiz->bloco_if, nivel + 2);
             break;
         case NO_FOR:
-            printf("For: %s\n", raiz->nome);
+            printf("%s: %s\n", nome_tipo_no(raiz->tipo), raiz->nome);
             indentar(nivel + 1); printf("Range:\n");
             imprimir_ast(raiz->esquerda, nivel + 2);
             indentar(nivel + 1); printf("Corpo:\n");
             imprimir_ast(raiz->bloco_if, nivel + 2);
             break;
         case NO_FUNCDEF:
-            printf("FuncDef: %s\n", raiz->nome);
+            printf("%s: %s", nome_tipo_no(raiz->tipo), raiz->nome);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             if (raiz->num_argumentos > 0) {
                 indentar(nivel + 1); printf("Params:\n");
                 for (int i = 0; i < raiz->num_argumentos; i++)
@@ -297,26 +322,196 @@ void imprimir_ast(NoAST *raiz, int nivel) {
             imprimir_ast(raiz->bloco_if, nivel + 2);
             break;
         case NO_RETURN:
-            printf("Return\n");
+            printf("%s", nome_tipo_no(raiz->tipo));
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             if (raiz->esquerda)
                 imprimir_ast(raiz->esquerda, nivel + 1);
             break;
         case NO_FUNCCALL:
-            printf("FuncCall: %s\n", raiz->nome);
+            printf("%s: %s", nome_tipo_no(raiz->tipo), raiz->nome);
+            imprimir_tipo_resolvido(raiz->tipo_resolvido);
+            printf("\n");
             for (int i = 0; i < raiz->num_argumentos; i++)
                 imprimir_ast(raiz->argumentos[i], nivel + 1);
             break;
         case NO_BLOCO:
-            printf("Bloco\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             for (int i = 0; i < raiz->num_argumentos; i++)
                 imprimir_ast(raiz->argumentos[i], nivel + 1);
             break;
         case NO_PROGRAMA:
-            printf("Programa\n");
+            printf("%s\n", nome_tipo_no(raiz->tipo));
             for (int i = 0; i < raiz->num_argumentos; i++)
                 imprimir_ast(raiz->argumentos[i], nivel + 1);
             break;
     }
+}
+
+/* ── Exportação para Graphviz DOT ────────────────────────────────── */
+static void escapar_string_dot(const char *str, FILE *saida) {
+    if (!str) return;
+    for (const char *p = str; *p != '\0'; p++) {
+        if (*p == '"' || *p == '\\') {
+            fputc('\\', saida);
+        }
+        fputc(*p, saida);
+    }
+}
+
+static void imprimir_tipo_dot(TipoDado tipo, FILE *saida) {
+    if (tipo != TIPO_DESCONHECIDO) {
+        fprintf(saida, " [%s]", tipo_para_string(tipo));
+    }
+}
+
+static int ast_para_dot_rec(NoAST *raiz, FILE *saida, int *contador) {
+    if (raiz == NULL) return -1;
+
+    int meu_id = (*contador)++;
+    fprintf(saida, "    n%d [label=\"", meu_id);
+
+    switch (raiz->tipo) {
+        case NO_NUM_INT:
+            fprintf(saida, "%s: %d", nome_tipo_no(raiz->tipo), raiz->valor_int);
+            imprimir_tipo_dot(raiz->tipo_resolvido, saida);
+            break;
+        case NO_NUM_FLOAT:
+            fprintf(saida, "%s: %.6g", nome_tipo_no(raiz->tipo), raiz->valor_float);
+            imprimir_tipo_dot(raiz->tipo_resolvido, saida);
+            break;
+        case NO_STRING:
+            fprintf(saida, "%s: ", nome_tipo_no(raiz->tipo));
+            escapar_string_dot(raiz->valor_string, saida);
+            imprimir_tipo_dot(raiz->tipo_resolvido, saida);
+            break;
+        case NO_BOOL:
+            fprintf(saida, "%s: %s", nome_tipo_no(raiz->tipo),
+                    raiz->valor_int ? "True" : "False");
+            imprimir_tipo_dot(raiz->tipo_resolvido, saida);
+            break;
+        case NO_ID:
+            fprintf(saida, "%s: ", nome_tipo_no(raiz->tipo));
+            escapar_string_dot(raiz->nome, saida);
+            imprimir_tipo_dot(raiz->tipo_resolvido, saida);
+            break;
+        case NO_BINOP:
+        case NO_UNARYOP:
+            fprintf(saida, "%s: %s", nome_tipo_no(raiz->tipo),
+                    nome_operador(raiz->operador));
+            imprimir_tipo_dot(raiz->tipo_resolvido, saida);
+            break;
+        case NO_ASSIGN:
+        case NO_FOR:
+            fprintf(saida, "%s: ", nome_tipo_no(raiz->tipo));
+            escapar_string_dot(raiz->nome, saida);
+            break;
+        case NO_FUNCDEF:
+        case NO_FUNCCALL:
+            fprintf(saida, "%s: ", nome_tipo_no(raiz->tipo));
+            escapar_string_dot(raiz->nome, saida);
+            imprimir_tipo_dot(raiz->tipo_resolvido, saida);
+            break;
+        case NO_RETURN:
+            fprintf(saida, "%s", nome_tipo_no(raiz->tipo));
+            imprimir_tipo_dot(raiz->tipo_resolvido, saida);
+            break;
+        default:
+            fprintf(saida, "%s", nome_tipo_no(raiz->tipo));
+            break;
+    }
+
+    fprintf(saida, "\"];\n");
+
+    switch (raiz->tipo) {
+        case NO_BINOP: {
+            int esq = ast_para_dot_rec(raiz->esquerda, saida, contador);
+            int dir = ast_para_dot_rec(raiz->direita, saida, contador);
+            if (esq >= 0) fprintf(saida, "    n%d -> n%d;\n", meu_id, esq);
+            if (dir >= 0) fprintf(saida, "    n%d -> n%d;\n", meu_id, dir);
+            break;
+        }
+        case NO_UNARYOP:
+        case NO_ASSIGN:
+        case NO_INPUT:
+        case NO_RETURN: {
+            int esq = ast_para_dot_rec(raiz->esquerda, saida, contador);
+            if (esq >= 0) fprintf(saida, "    n%d -> n%d;\n", meu_id, esq);
+            break;
+        }
+        case NO_IF: {
+            int cond = ast_para_dot_rec(raiz->condicao, saida, contador);
+            if (cond >= 0) fprintf(saida, "    n%d -> n%d [label=\"cond\"];\n", meu_id, cond);
+            int entao = ast_para_dot_rec(raiz->bloco_if, saida, contador);
+            if (entao >= 0) fprintf(saida, "    n%d -> n%d [label=\"entao\"];\n", meu_id, entao);
+            for (int i = 0; i < raiz->num_argumentos; i++) {
+                int elif_id = ast_para_dot_rec(raiz->argumentos[i], saida, contador);
+                if (elif_id >= 0) fprintf(saida, "    n%d -> n%d [label=\"elif\"];\n", meu_id, elif_id);
+            }
+            if (raiz->bloco_else) {
+                int senao = ast_para_dot_rec(raiz->bloco_else, saida, contador);
+                if (senao >= 0) fprintf(saida, "    n%d -> n%d [label=\"senao\"];\n", meu_id, senao);
+            }
+            break;
+        }
+        case NO_ELIF: {
+            int cond = ast_para_dot_rec(raiz->condicao, saida, contador);
+            if (cond >= 0) fprintf(saida, "    n%d -> n%d [label=\"cond\"];\n", meu_id, cond);
+            int entao = ast_para_dot_rec(raiz->bloco_if, saida, contador);
+            if (entao >= 0) fprintf(saida, "    n%d -> n%d [label=\"entao\"];\n", meu_id, entao);
+            break;
+        }
+        case NO_WHILE: {
+            int cond = ast_para_dot_rec(raiz->condicao, saida, contador);
+            if (cond >= 0) fprintf(saida, "    n%d -> n%d [label=\"cond\"];\n", meu_id, cond);
+            int corpo = ast_para_dot_rec(raiz->bloco_if, saida, contador);
+            if (corpo >= 0) fprintf(saida, "    n%d -> n%d [label=\"corpo\"];\n", meu_id, corpo);
+            break;
+        }
+        case NO_FOR: {
+            int range = ast_para_dot_rec(raiz->esquerda, saida, contador);
+            if (range >= 0) fprintf(saida, "    n%d -> n%d [label=\"range\"];\n", meu_id, range);
+            int corpo = ast_para_dot_rec(raiz->bloco_if, saida, contador);
+            if (corpo >= 0) fprintf(saida, "    n%d -> n%d [label=\"corpo\"];\n", meu_id, corpo);
+            break;
+        }
+        case NO_FUNCDEF: {
+            for (int i = 0; i < raiz->num_argumentos; i++) {
+                int param = ast_para_dot_rec(raiz->argumentos[i], saida, contador);
+                if (param >= 0) fprintf(saida, "    n%d -> n%d [label=\"param\"];\n", meu_id, param);
+            }
+            int corpo = ast_para_dot_rec(raiz->bloco_if, saida, contador);
+            if (corpo >= 0) fprintf(saida, "    n%d -> n%d [label=\"corpo\"];\n", meu_id, corpo);
+            break;
+        }
+        case NO_PRINT:
+        case NO_FUNCCALL:
+        case NO_BLOCO:
+        case NO_PROGRAMA: {
+            for (int i = 0; i < raiz->num_argumentos; i++) {
+                int arg = ast_para_dot_rec(raiz->argumentos[i], saida, contador);
+                if (arg >= 0) fprintf(saida, "    n%d -> n%d;\n", meu_id, arg);
+            }
+            break;
+        }
+        default:
+            break;
+    }
+
+    return meu_id;
+}
+
+void ast_para_dot(NoAST *raiz, FILE *saida) {
+    if (saida == NULL) return;
+
+    fprintf(saida, "digraph AST {\n");
+    fprintf(saida, "    node [shape=box, style=\"rounded,filled\", fillcolor=\"#f8f9fa\", fontname=\"monospace\"];\n");
+    fprintf(saida, "    edge [fontname=\"monospace\", fontsize=10];\n");
+
+    int contador = 0;
+    ast_para_dot_rec(raiz, saida, &contador);
+
+    fprintf(saida, "}\n");
 }
 
 /* ── liberar_ast ─────────────────────────────────────────────────── */

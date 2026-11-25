@@ -30,19 +30,27 @@ theme:
 nav:
   - Início: index.md
   - Guias:
+    - Manual de Uso: Manual_Uso.md
     - Guia do Makefile: Makefile.md
   - Planejamento:
     - Sprints e Andamento: Sprints.md
   - Decisões de Design (ADRs):
     - Especificação da Linguagem: Especificacao_Linguagem.md
+    - "ADR-001: Tipagem Estática na Reatribuição": ADR/001-reatribuicao-de-tipo.md
   - Implementação:
+    - Vida de um Programa: VidaDeUmPrograma.md
     - Lexer: Lexer.md
     - Parser: Parser.md
     - AST: AST.md
     - Tabela de Símbolos: TabelaSimbolos.md
     - Análise Semântica: Semantica.md
+    - Catálogo de Erros Semânticos: ErrosSemanticos.md
+    - Código Intermediário (TAC): CodigoIntermediario.md
+    - Otimizador TAC: Otimizador.md
+    - Geração de Código C#: CodegenCSharp.md
   - Testes:
     - Testes Léxicos: Testes_Lexicos.md
     - Testes Sintáticos: Testes_Sintaticos.md
     - Testes Semânticos: Testes_Semanticos.md
+    - Testes End-to-End (E2E): Testes_E2E.md
 

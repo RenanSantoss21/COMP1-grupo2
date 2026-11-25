@@ -71,40 +71,40 @@ static int test_declaracao_vs_uso(void) {
 static int test_escopos_aninhados(void) {
     printf("Running test_escopos_aninhados...\n");
     
-    // Cenário 1: Acesso a variável do escopo pai
+    // Cenário 1: Variável declarada dentro de bloco vaza para fora
     TabelaSimbolos *tab1 = tabela_criar();
-    NoAST *decl_x = criar_no_assign("x", criar_no_int(10, 1), 1);
-    
-    NoAST **cmds_bloco = malloc(1 * sizeof(NoAST*));
-    cmds_bloco[0] = criar_no_id("x", 2);
-    NoAST *bloco = criar_no_bloco(cmds_bloco, 1);
-    
-    NoAST **cmds_prog = malloc(2 * sizeof(NoAST*));
-    cmds_prog[0] = decl_x;
-    cmds_prog[1] = bloco;
-    NoAST *prog1 = criar_no_programa(cmds_prog, 2);
-    
+    NoAST **cmds_bloco1 = malloc(1 * sizeof(NoAST*));
+    cmds_bloco1[0] = criar_no_assign("y", criar_no_int(20, 1), 1);
+    NoAST *bloco1 = criar_no_bloco(cmds_bloco1, 1);
+
+    NoAST *uso_y1 = criar_no_id("y", 2);
+
+    NoAST **cmds_prog1 = malloc(2 * sizeof(NoAST*));
+    cmds_prog1[0] = bloco1;
+    cmds_prog1[1] = uso_y1;
+    NoAST *prog1 = criar_no_programa(cmds_prog1, 2);
+
     int erros1 = analisar_semantica(prog1, tab1);
-    ASSERT(erros1 == 0, "Should access variable 'x' from outer scope");
+    ASSERT(erros1 == 0, "Variables inside blocks should remain accessible outside (Python scope rule)");
     liberar_ast(prog1);
     tabela_liberar(tab1);
     
-    // Cenário 2: Variável de escopo interno não vaza para fora
+    // Cenário 2: Variável declarada em função não vaza para fora
     TabelaSimbolos *tab2 = tabela_criar();
     
     NoAST **cmds_bloco2 = malloc(1 * sizeof(NoAST*));
-    cmds_bloco2[0] = criar_no_assign("y", criar_no_int(20, 1), 1);
-    NoAST *bloco2 = criar_no_bloco(cmds_bloco2, 1);
+    cmds_bloco2[0] = criar_no_assign("y", criar_no_int(99, 2), 2);
+    NoAST *bloco2 = criar_no_funcdef("funcao", NULL, 0, criar_no_bloco(cmds_bloco2, 1), 1);
     
-    NoAST *uso_y = criar_no_id("y", 2);
+    NoAST *uso_y2 = criar_no_id("y", 3);
     
     NoAST **cmds_prog2 = malloc(2 * sizeof(NoAST*));
     cmds_prog2[0] = bloco2;
-    cmds_prog2[1] = uso_y;
+    cmds_prog2[1] = uso_y2;
     NoAST *prog2 = criar_no_programa(cmds_prog2, 2);
     
     int erros2 = analisar_semantica(prog2, tab2);
-    ASSERT(erros2 == 1, "Should report 1 error for accessing inner variable 'y' from outer scope");
+    ASSERT(erros2 == 1, "Should report 1 error for accessing function local variable from outer scope");
     liberar_ast(prog2);
     tabela_liberar(tab2);
 
@@ -130,6 +130,32 @@ static int test_inferencia_e_operacoes(void) {
     ASSERT(erros == 1, "Should reject only string plus integer");
     ASSERT(soma_float->tipo_resolvido == TIPO_FLOAT, "Should promote int plus float to float");
     ASSERT(soma_string->tipo_resolvido == TIPO_STRING, "Should accept string concatenation");
+
+    liberar_ast(programa);
+    tabela_liberar(tab);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_divisao_resulta_float(void) {
+    printf("Running test_divisao_resulta_float...\n");
+
+    TabelaSimbolos *tab = tabela_criar();
+    NoAST *divisao = criar_no_binop(OP_DIV, criar_no_int(5, 1), criar_no_int(2, 1), 1);
+    NoAST *multiplicacao = criar_no_binop(OP_MULT, criar_no_int(5, 2), criar_no_int(2, 2), 2);
+    NoAST **comandos = malloc(2 * sizeof(NoAST *));
+    comandos[0] = criar_no_assign("a", divisao, 1);
+    comandos[1] = criar_no_assign("b", multiplicacao, 2);
+    NoAST *programa = criar_no_programa(comandos, 2);
+
+    int erros = analisar_semantica(programa, tab);
+    Simbolo *a = tabela_buscar(tab, "a");
+
+    ASSERT(erros == 0, "Should accept integer division");
+    ASSERT(divisao->tipo_resolvido == TIPO_FLOAT, "Should infer int / int as float");
+    ASSERT(a != NULL && a->tipo == TIPO_FLOAT, "Should register 'a' as float");
+    ASSERT(multiplicacao->tipo_resolvido == TIPO_INT, "Should keep int * int as int");
 
     liberar_ast(programa);
     tabela_liberar(tab);
@@ -189,6 +215,566 @@ static int test_funcoes_e_contexto(void) {
     return 1;
 }
 
+static int contar_erros(NoAST *no) {
+    TabelaSimbolos *tab = tabela_criar();
+    int erros = analisar_semantica(no, tab);
+    liberar_ast(no);
+    tabela_liberar(tab);
+    return erros;
+}
+
+static NoAST *bloco_vazio(void) {
+    return criar_no_bloco(NULL, 0);
+}
+
+static NoAST *comparacao_nao_declarada(char *nome, int linha) {
+    return criar_no_binop(OP_GT, criar_no_id(nome, linha), criar_no_int(0, linha), linha);
+}
+
+static int test_contagem_nao_declarada(void) {
+    printf("Running test_contagem_nao_declarada...\n");
+
+    // y = z + 1
+    NoAST *soma = criar_no_binop(OP_SOMA, criar_no_id("z", 1), criar_no_int(1, 1), 1);
+    ASSERT(contar_erros(criar_no_assign("y", soma, 1)) == 1, "Should report undeclared variable once in assignment");
+
+    // if w > 0:
+    NoAST *se = criar_no_if(comparacao_nao_declarada("w", 1), bloco_vazio(), NULL, 0, NULL, 1);
+    ASSERT(contar_erros(se) == 1, "Should report undeclared variable once in if condition");
+
+    // while w > 0:
+    NoAST *enquanto = criar_no_while(comparacao_nao_declarada("w", 1), bloco_vazio(), 1);
+    ASSERT(contar_erros(enquanto) == 1, "Should report undeclared variable once in while condition");
+
+    // if True: ... elif w > 0:
+    NoAST **elifs = malloc(sizeof(NoAST *));
+    elifs[0] = criar_no_elif(comparacao_nao_declarada("w", 2), bloco_vazio(), 2);
+    NoAST *se_elif = criar_no_if(criar_no_bool(1, 1), bloco_vazio(), elifs, 1, NULL, 1);
+    ASSERT(contar_erros(se_elif) == 1, "Should report undeclared variable once in elif condition");
+
+    // def f(): return k
+    NoAST **corpo = malloc(sizeof(NoAST *));
+    corpo[0] = criar_no_return(criar_no_id("k", 2), 2);
+    NoAST *funcao = criar_no_funcdef("f", NULL, 0, criar_no_bloco(corpo, 1), 1);
+    ASSERT(contar_erros(funcao) == 1, "Should report undeclared variable once in return");
+
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_contagem_argumentos_de_chamada(void) {
+    printf("Running test_contagem_argumentos_de_chamada...\n");
+
+    // y = g(z), com g não declarada: erro na chamada e no argumento
+    NoAST **args = malloc(sizeof(NoAST *));
+    args[0] = criar_no_id("z", 1);
+    NoAST *chamada = criar_no_funccall("g", args, 1, 1);
+    ASSERT(contar_erros(criar_no_assign("y", chamada, 1)) == 2, "Should report undeclared function and its undeclared argument");
+
+    // x = 1; y = x(z): erro na chamada e no argumento
+    NoAST **args2 = malloc(sizeof(NoAST *));
+    args2[0] = criar_no_id("z", 2);
+    NoAST **cmds2 = malloc(2 * sizeof(NoAST *));
+    cmds2[0] = criar_no_assign("x", criar_no_int(1, 1), 1);
+    cmds2[1] = criar_no_assign("y", criar_no_funccall("x", args2, 1, 2), 2);
+    ASSERT(contar_erros(criar_no_programa(cmds2, 2)) == 2, "Should report non-function call and its undeclared argument");
+
+    // def f(): ...; y = f(z): erro de aridade e no argumento
+    NoAST **args3 = malloc(sizeof(NoAST *));
+    args3[0] = criar_no_id("z", 2);
+    NoAST **cmds3 = malloc(2 * sizeof(NoAST *));
+    cmds3[0] = criar_no_funcdef("f", NULL, 0, bloco_vazio(), 1);
+    cmds3[1] = criar_no_assign("y", criar_no_funccall("f", args3, 1, 2), 2);
+    ASSERT(contar_erros(criar_no_programa(cmds3, 2)) == 2, "Should report wrong arity and its undeclared argument");
+
+    // def f(a): ...; y = f(z): somente o argumento
+    NoAST **params4 = malloc(sizeof(NoAST *));
+    params4[0] = criar_no_id("a", 1);
+    NoAST **args4 = malloc(sizeof(NoAST *));
+    args4[0] = criar_no_id("z", 2);
+    NoAST **cmds4 = malloc(2 * sizeof(NoAST *));
+    cmds4[0] = criar_no_funcdef("f", params4, 1, bloco_vazio(), 1);
+    cmds4[1] = criar_no_assign("y", criar_no_funccall("f", args4, 1, 2), 2);
+    ASSERT(contar_erros(criar_no_programa(cmds4, 2)) == 1, "Should report undeclared argument once in a valid call");
+
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_redefinicao_funcao_e_conflito(void) {
+    printf("Running test_redefinicao_funcao_e_conflito...\n");
+
+    // Caso 1: Redefinição de função no mesmo escopo (def f(): return 1; def f(a): return 2)
+    NoAST **corpo1 = malloc(sizeof(NoAST *));
+    corpo1[0] = criar_no_return(criar_no_int(1, 2), 2);
+    NoAST *f1 = criar_no_funcdef("f", NULL, 0, criar_no_bloco(corpo1, 1), 1);
+
+    NoAST **params2 = malloc(sizeof(NoAST *));
+    params2[0] = criar_no_id("a", 3);
+    NoAST **corpo2 = malloc(sizeof(NoAST *));
+    corpo2[0] = criar_no_return(criar_no_int(2, 4), 4);
+    NoAST *f2 = criar_no_funcdef("f", params2, 1, criar_no_bloco(corpo2, 1), 3);
+
+    NoAST **prog1_cmds = malloc(2 * sizeof(NoAST *));
+    prog1_cmds[0] = f1;
+    prog1_cmds[1] = f2;
+    NoAST *prog1 = criar_no_programa(prog1_cmds, 2);
+    ASSERT(contar_erros(prog1) == 1, "Should report 1 error for function redefinition in same scope");
+
+    // Caso 2: Atribuição a nome de função já declarada (def g(): return 1; g = 10)
+    NoAST **corpo_g = malloc(sizeof(NoAST *));
+    corpo_g[0] = criar_no_return(criar_no_int(1, 2), 2);
+    NoAST *def_g = criar_no_funcdef("g", NULL, 0, criar_no_bloco(corpo_g, 1), 1);
+    NoAST *assign_g = criar_no_assign("g", criar_no_int(10, 3), 3);
+
+    NoAST **prog2_cmds = malloc(2 * sizeof(NoAST *));
+    prog2_cmds[0] = def_g;
+    prog2_cmds[1] = assign_g;
+    NoAST *prog2 = criar_no_programa(prog2_cmds, 2);
+    ASSERT(contar_erros(prog2) == 1, "Should report 1 error for assigning to an existing function name");
+
+    // Caso 3: Sombreamento válido em escopo filho (def h(): x = 1; def h_filho(): h = 2)
+    NoAST **corpo_h_filho = malloc(sizeof(NoAST *));
+    corpo_h_filho[0] = criar_no_assign("h", criar_no_int(2, 3), 3);
+    NoAST *def_h_filho = criar_no_funcdef("h_filho", NULL, 0, criar_no_bloco(corpo_h_filho, 1), 2);
+
+    NoAST **corpo_h = malloc(sizeof(NoAST *));
+    corpo_h[0] = def_h_filho;
+    NoAST *def_h = criar_no_funcdef("h", NULL, 0, criar_no_bloco(corpo_h, 1), 1);
+
+    NoAST **prog3_cmds = malloc(sizeof(NoAST *));
+    prog3_cmds[0] = def_h;
+    NoAST *prog3 = criar_no_programa(prog3_cmds, 1);
+    ASSERT(contar_erros(prog3) == 0, "Should allow shadowing function name in inner scope");
+
+    // Caso 4: Variável declarada antes de função com o mesmo nome (k = 5; def k(): return 1)
+    NoAST *assign_k = criar_no_assign("k", criar_no_int(5, 1), 1);
+    NoAST **corpo_k = malloc(sizeof(NoAST *));
+    corpo_k[0] = criar_no_return(criar_no_int(1, 3), 3);
+    NoAST *def_k = criar_no_funcdef("k", NULL, 0, criar_no_bloco(corpo_k, 1), 2);
+
+    NoAST **prog4_cmds = malloc(2 * sizeof(NoAST *));
+    prog4_cmds[0] = assign_k;
+    prog4_cmds[1] = def_k;
+    NoAST *prog4 = criar_no_programa(prog4_cmds, 2);
+    ASSERT(contar_erros(prog4) == 1, "Should report 1 error when function reuses an existing variable name");
+
+    // Caso 5: Função redefinida com erro semântico dentro do segundo corpo (deve reportar ambos: 2 erros)
+    NoAST **corpo_m1 = malloc(sizeof(NoAST *));
+    corpo_m1[0] = criar_no_return(criar_no_int(1, 2), 2);
+    NoAST *m1 = criar_no_funcdef("m", NULL, 0, criar_no_bloco(corpo_m1, 1), 1);
+
+    NoAST **corpo_m2 = malloc(sizeof(NoAST *));
+    corpo_m2[0] = criar_no_return(criar_no_id("var_inexistente", 4), 4);
+    NoAST *m2 = criar_no_funcdef("m", NULL, 0, criar_no_bloco(corpo_m2, 1), 3);
+
+    NoAST **prog5_cmds = malloc(2 * sizeof(NoAST *));
+    prog5_cmds[0] = m1;
+    prog5_cmds[1] = m2;
+    NoAST *prog5 = criar_no_programa(prog5_cmds, 2);
+    ASSERT(contar_erros(prog5) == 2, "Should report redefinition error AND analyze body of redefined function");
+
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_inferencia_parametros_e_void(void) {
+    printf("Running test_inferencia_parametros_e_void...\n");
+
+    // Caso 1: Função sem return deve ter tipo TIPO_VOID
+    TabelaSimbolos *tab1 = tabela_criar();
+    NoAST *func_void = criar_no_funcdef("procedimento", NULL, 0, bloco_vazio(), 1);
+    NoAST **cmds1 = malloc(sizeof(NoAST *));
+    cmds1[0] = func_void;
+    NoAST *prog1 = criar_no_programa(cmds1, 1);
+
+    int erros1 = analisar_semantica(prog1, tab1);
+    Simbolo *s_void = tabela_buscar(tab1, "procedimento");
+    ASSERT(erros1 == 0, "Should report 0 errors for function without return");
+    ASSERT(s_void != NULL && s_void->tipo == TIPO_VOID, "Function without return should have TIPO_VOID");
+    liberar_ast(prog1);
+    tabela_liberar(tab1);
+
+    // Caso 2: Inferência pelo uso no corpo (def f(a): return a + 1; f("oi") -> 1 erro)
+    TabelaSimbolos *tab2 = tabela_criar();
+    NoAST **params_f = malloc(sizeof(NoAST *));
+    params_f[0] = criar_no_id("a", 1);
+    NoAST **corpo_f = malloc(sizeof(NoAST *));
+    corpo_f[0] = criar_no_return(
+        criar_no_binop(OP_SOMA, criar_no_id("a", 2), criar_no_int(1, 2), 2), 2);
+    NoAST *def_f = criar_no_funcdef("f", params_f, 1, criar_no_bloco(corpo_f, 1), 1);
+
+    NoAST **args_oi = malloc(sizeof(NoAST *));
+    args_oi[0] = criar_no_string("oi", 3);
+    NoAST *call_f_invalida = criar_no_funccall("f", args_oi, 1, 3);
+
+    NoAST **cmds2 = malloc(2 * sizeof(NoAST *));
+    cmds2[0] = def_f;
+    cmds2[1] = call_f_invalida;
+    NoAST *prog2 = criar_no_programa(cmds2, 2);
+
+    int erros2 = analisar_semantica(prog2, tab2);
+    Simbolo *s_f = tabela_buscar(tab2, "f");
+    ASSERT(erros2 == 1, "Should report 1 error when calling f(int) with string");
+    ASSERT(s_f != NULL && s_f->tipo == TIPO_INT, "Should infer return type of f as TIPO_INT");
+    ASSERT(s_f->tipos_parametros != NULL && s_f->tipos_parametros[0] == TIPO_INT,
+           "Should infer parameter 'a' of f as TIPO_INT");
+    liberar_ast(prog2);
+    tabela_liberar(tab2);
+
+    // Caso 3: Inferência pela 1ª chamada quando o corpo não restringe (def id(x): return x; id(10); id("oi") -> 1 erro)
+    TabelaSimbolos *tab3 = tabela_criar();
+    NoAST **params_id = malloc(sizeof(NoAST *));
+    params_id[0] = criar_no_id("x", 1);
+    NoAST **corpo_id = malloc(sizeof(NoAST *));
+    corpo_id[0] = criar_no_return(criar_no_id("x", 2), 2);
+    NoAST *def_id = criar_no_funcdef("id", params_id, 1, criar_no_bloco(corpo_id, 1), 1);
+
+    NoAST **args_10 = malloc(sizeof(NoAST *));
+    args_10[0] = criar_no_int(10, 3);
+    NoAST *call_id_1 = criar_no_funccall("id", args_10, 1, 3);
+
+    NoAST **args_str = malloc(sizeof(NoAST *));
+    args_str[0] = criar_no_string("oi", 4);
+    NoAST *call_id_2 = criar_no_funccall("id", args_str, 1, 4);
+
+    NoAST **cmds3 = malloc(3 * sizeof(NoAST *));
+    cmds3[0] = def_id;
+    cmds3[1] = call_id_1;
+    cmds3[2] = call_id_2;
+    NoAST *prog3 = criar_no_programa(cmds3, 3);
+
+    int erros3 = analisar_semantica(prog3, tab3);
+    ASSERT(erros3 == 1, "Should report 1 error when 2nd call contradicts parameter type fixed on 1st call");
+    liberar_ast(prog3);
+    tabela_liberar(tab3);
+
+    // Caso 4: Função com 2 parâmetros que retorna o 2º via variável local em else (def escolhe2(a, b): if False: res = b else: res = b; return res; escolhe2(10, "oi"))
+    TabelaSimbolos *tab4 = tabela_criar();
+    NoAST **params_e2 = malloc(2 * sizeof(NoAST *));
+    params_e2[0] = criar_no_id("a", 1);
+    params_e2[1] = criar_no_id("b", 1);
+
+    NoAST **bloco_then_e2 = malloc(sizeof(NoAST *));
+    NoAST *assign_then = criar_no_assign("res", criar_no_id("b", 3), 3);
+    bloco_then_e2[0] = assign_then;
+
+    NoAST **bloco_else_e2 = malloc(sizeof(NoAST *));
+    NoAST *assign_else = criar_no_assign("res", criar_no_id("b", 5), 5);
+    bloco_else_e2[0] = assign_else;
+
+    NoAST *if_e2 = criar_no_if(criar_no_bool(0, 2),
+                               criar_no_bloco(bloco_then_e2, 1),
+                               NULL, 0,
+                               criar_no_bloco(bloco_else_e2, 1), 2);
+    NoAST *ret_e2 = criar_no_return(criar_no_id("res", 6), 6);
+
+    NoAST **corpo_e2 = malloc(2 * sizeof(NoAST *));
+    corpo_e2[0] = if_e2;
+    corpo_e2[1] = ret_e2;
+    NoAST *def_e2 = criar_no_funcdef("escolhe2", params_e2, 2, criar_no_bloco(corpo_e2, 2), 1);
+
+    NoAST **args_e2 = malloc(2 * sizeof(NoAST *));
+    args_e2[0] = criar_no_int(10, 7);
+    args_e2[1] = criar_no_string("oi", 7);
+    NoAST *call_e2 = criar_no_funccall("escolhe2", args_e2, 2, 7);
+
+    NoAST **cmds4 = malloc(2 * sizeof(NoAST *));
+    cmds4[0] = def_e2;
+    cmds4[1] = call_e2;
+    NoAST *prog4 = criar_no_programa(cmds4, 2);
+
+    int erros4 = analisar_semantica(prog4, tab4);
+    Simbolo *s_e2 = tabela_buscar(tab4, "escolhe2");
+    ASSERT(erros4 == 0, "Should report 0 errors for escolhe2(10, \"oi\")");
+    ASSERT(s_e2 != NULL && s_e2->tipo == TIPO_STRING,
+           "Return type of escolhe2 should be TIPO_STRING (from 2nd param 'b'), not TIPO_INT (from 1st param 'a')");
+    ASSERT(def_e2->tipo_resolvido == TIPO_STRING, "NO_FUNCDEF tipo_resolvido should be TIPO_STRING");
+    ASSERT(ret_e2->tipo_resolvido == TIPO_STRING, "NO_RETURN tipo_resolvido should be TIPO_STRING");
+    ASSERT(assign_else->esquerda->tipo_resolvido == TIPO_STRING,
+           "Assignment inside else block should have tipo_resolvido propagated as TIPO_STRING");
+    liberar_ast(prog4);
+    tabela_liberar(tab4);
+
+    // Caso 5: Convergência de ponto fixo entre elif e return anterior (def aux(): return aux(); def escolhe_via_elif(a, b): res = aux(); if False: return res elif True: res = b; escolhe_via_elif(10, "oi"))
+    TabelaSimbolos *tab5 = tabela_criar();
+    NoAST **corpo_aux5 = malloc(sizeof(NoAST *));
+    corpo_aux5[0] = criar_no_return(criar_no_funccall("aux", NULL, 0, 2), 2);
+    NoAST *def_aux5 = criar_no_funcdef("aux", NULL, 0, criar_no_bloco(corpo_aux5, 1), 1);
+
+    NoAST **params5 = malloc(2 * sizeof(NoAST *));
+    params5[0] = criar_no_id("a", 3);
+    params5[1] = criar_no_id("b", 3);
+
+    NoAST *assign_init5 = criar_no_assign("res", criar_no_funccall("aux", NULL, 0, 4), 4);
+    NoAST *ret5 = criar_no_return(criar_no_id("res", 6), 6);
+    NoAST **bloco_then5 = malloc(sizeof(NoAST *));
+    bloco_then5[0] = ret5;
+
+    NoAST **bloco_elif5 = malloc(sizeof(NoAST *));
+    bloco_elif5[0] = criar_no_assign("res", criar_no_id("b", 8), 8);
+    NoAST **elifs5 = malloc(sizeof(NoAST *));
+    elifs5[0] = criar_no_elif(criar_no_bool(1, 7), criar_no_bloco(bloco_elif5, 1), 7);
+
+    NoAST *if5 = criar_no_if(criar_no_bool(0, 5),
+                             criar_no_bloco(bloco_then5, 1),
+                             elifs5, 1, NULL, 5);
+    NoAST **corpo5 = malloc(2 * sizeof(NoAST *));
+    corpo5[0] = assign_init5;
+    corpo5[1] = if5;
+    NoAST *def5 = criar_no_funcdef("escolhe_via_elif", params5, 2, criar_no_bloco(corpo5, 2), 3);
+
+    NoAST **args5 = malloc(2 * sizeof(NoAST *));
+    args5[0] = criar_no_int(10, 9);
+    args5[1] = criar_no_string("oi", 9);
+    NoAST *call5 = criar_no_funccall("escolhe_via_elif", args5, 2, 9);
+
+    NoAST **cmds5 = malloc(3 * sizeof(NoAST *));
+    cmds5[0] = def_aux5;
+    cmds5[1] = def5;
+    cmds5[2] = call5;
+    NoAST *prog5 = criar_no_programa(cmds5, 3);
+
+    int erros5 = analisar_semantica(prog5, tab5);
+    Simbolo *s5 = tabela_buscar(tab5, "escolhe_via_elif");
+    ASSERT(erros5 == 0, "Should report 0 errors for escolhe_via_elif(10, \"oi\")");
+    ASSERT(s5 != NULL && s5->tipo == TIPO_STRING,
+           "Fixed-point propagation should infer TIPO_STRING return from elif assignment");
+    ASSERT(def5->tipo_resolvido == TIPO_STRING, "def5 tipo_resolvido should be TIPO_STRING");
+    ASSERT(ret5->tipo_resolvido == TIPO_STRING, "ret5 tipo_resolvido should be TIPO_STRING");
+    ASSERT(ret5->esquerda != NULL && ret5->esquerda->tipo_resolvido == TIPO_STRING,
+           "Returned identifier 'res' should have tipo_resolvido propagated as TIPO_STRING");
+    liberar_ast(prog5);
+    tabela_liberar(tab5);
+
+    // Caso 6: Expressão composta (NO_BINOP) e variável local com parâmetro inferido tardiamente (def concat_tardia(a, b): tmp = b + b; return tmp; concat_tardia(10, "oi"))
+    TabelaSimbolos *tab6 = tabela_criar();
+    NoAST **params6 = malloc(2 * sizeof(NoAST *));
+    params6[0] = criar_no_id("a", 1);
+    params6[1] = criar_no_id("b", 1);
+    NoAST *binop6 = criar_no_binop(OP_SOMA, criar_no_id("b", 2), criar_no_id("b", 2), 2);
+    NoAST *assign6 = criar_no_assign("tmp", binop6, 2);
+    NoAST *ret6 = criar_no_return(criar_no_id("tmp", 3), 3);
+    NoAST **corpo6 = malloc(2 * sizeof(NoAST *));
+    corpo6[0] = assign6;
+    corpo6[1] = ret6;
+    NoAST *def6 = criar_no_funcdef("concat_tardia", params6, 2, criar_no_bloco(corpo6, 2), 1);
+
+    NoAST **args6 = malloc(2 * sizeof(NoAST *));
+    args6[0] = criar_no_int(10, 4);
+    args6[1] = criar_no_string("oi", 4);
+    NoAST *call6 = criar_no_funccall("concat_tardia", args6, 2, 4);
+
+    NoAST **cmds6 = malloc(2 * sizeof(NoAST *));
+    cmds6[0] = def6;
+    cmds6[1] = call6;
+    NoAST *prog6 = criar_no_programa(cmds6, 2);
+
+    int erros6 = analisar_semantica(prog6, tab6);
+    Simbolo *s6 = tabela_buscar(tab6, "concat_tardia");
+    ASSERT(erros6 == 0, "Should report 0 errors for concat_tardia(10, \"oi\")");
+    ASSERT(s6 != NULL && s6->tipo == TIPO_STRING, "concat_tardia should infer TIPO_STRING return");
+    ASSERT(def6->tipo_resolvido == TIPO_STRING, "def6 tipo_resolvido should be TIPO_STRING");
+    ASSERT(binop6->tipo_resolvido == TIPO_STRING, "binop6 tipo_resolvido should be TIPO_STRING");
+    ASSERT(ret6->tipo_resolvido == TIPO_STRING, "ret6 tipo_resolvido should be TIPO_STRING");
+    liberar_ast(prog6);
+    tabela_liberar(tab6);
+
+    // Caso 7: Função multiparâmetro cujo retorno permanece desconhecido não deve herdar o tipo do 1º parâmetro
+    TabelaSimbolos *tab7 = tabela_criar();
+    NoAST **corpo_aux7 = malloc(sizeof(NoAST *));
+    corpo_aux7[0] = criar_no_return(criar_no_funccall("aux2", NULL, 0, 2), 2);
+    NoAST *def_aux7 = criar_no_funcdef("aux2", NULL, 0, criar_no_bloco(corpo_aux7, 1), 1);
+
+    NoAST **params7 = malloc(2 * sizeof(NoAST *));
+    params7[0] = criar_no_id("a", 3);
+    params7[1] = criar_no_id("b", 3);
+    NoAST **corpo7 = malloc(sizeof(NoAST *));
+    corpo7[0] = criar_no_return(criar_no_funccall("aux2", NULL, 0, 4), 4);
+    NoAST *def7 = criar_no_funcdef("sem_tipo_ret", params7, 2, criar_no_bloco(corpo7, 1), 3);
+
+    NoAST **args7 = malloc(2 * sizeof(NoAST *));
+    args7[0] = criar_no_int(10, 5);
+    args7[1] = criar_no_string("oi", 5);
+    NoAST *call7 = criar_no_funccall("sem_tipo_ret", args7, 2, 5);
+
+    NoAST **cmds7 = malloc(3 * sizeof(NoAST *));
+    cmds7[0] = def_aux7;
+    cmds7[1] = def7;
+    cmds7[2] = call7;
+    NoAST *prog7 = criar_no_programa(cmds7, 3);
+
+    int erros7 = analisar_semantica(prog7, tab7);
+    Simbolo *s7 = tabela_buscar(tab7, "sem_tipo_ret");
+    ASSERT(erros7 == 0, "Should report 0 errors for sem_tipo_ret(10, \"oi\")");
+    ASSERT(s7 != NULL && s7->tipo == TIPO_DESCONHECIDO,
+           "Function with unresolved return must not fall back to 1st parameter type");
+    ASSERT(def7->tipo_resolvido == TIPO_DESCONHECIDO,
+           "def7 tipo_resolvido must remain TIPO_DESCONHECIDO");
+    liberar_ast(prog7);
+    tabela_liberar(tab7);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_linhas_erros_estruturas_compostas(void) {
+    printf("Running test_linhas_erros_estruturas_compostas...\n");
+
+    TabelaSimbolos *tab = tabela_criar();
+
+    NoAST *assign_x = criar_no_assign("x", criar_no_int(5, 1), 1);
+
+    NoAST **elifs = malloc(sizeof(NoAST *));
+    elifs[0] = criar_no_elif(criar_no_id("x", 5), bloco_vazio(), 5);
+    NoAST *no_if = criar_no_if(criar_no_id("x", 2), bloco_vazio(), elifs, 1, NULL, 2);
+
+    NoAST *no_while = criar_no_while(criar_no_id("x", 9), bloco_vazio(), 9);
+
+    NoAST *def_f1 = criar_no_funcdef("f", NULL, 0, bloco_vazio(), 13);
+    NoAST *no_for = criar_no_for("f", criar_no_int(3, 17), bloco_vazio(), 17);
+
+    NoAST **params_f2 = malloc(sizeof(NoAST *));
+    params_f2[0] = criar_no_id("p", 21);
+    NoAST *def_f2 = criar_no_funcdef("f", params_f2, 1, bloco_vazio(), 21);
+
+    NoAST **cmds = malloc(6 * sizeof(NoAST *));
+    cmds[0] = assign_x;
+    cmds[1] = no_if;
+    cmds[2] = no_while;
+    cmds[3] = def_f1;
+    cmds[4] = no_for;
+    cmds[5] = def_f2;
+    NoAST *prog = criar_no_programa(cmds, 6);
+
+    const char *tmppath = "testes/tdd/_semantica_linhas.tmp";
+    fflush(stderr);
+    if (freopen(tmppath, "w", stderr) == NULL) {
+        liberar_ast(prog);
+        tabela_liberar(tab);
+        return 1;
+    }
+
+    int erros = analisar_semantica(prog, tab);
+    fflush(stderr);
+
+#ifdef _WIN32
+    freopen("CON", "w", stderr);
+#else
+    freopen("/dev/tty", "w", stderr);
+#endif
+
+    char buffer[2048];
+    FILE *f = fopen(tmppath, "r");
+    ASSERT(f != NULL, "cannot read captured stderr file");
+    size_t n = fread(buffer, 1, sizeof(buffer) - 1, f);
+    buffer[n] = '\0';
+    fclose(f);
+    remove(tmppath);
+
+    ASSERT(erros == 5, "Should report 5 errors across if, elif, while, for, def");
+    ASSERT(strstr(buffer, "Erro semântico na linha 2: A condição deve ser estritamente booleana.") != NULL,
+           "if error should point to line 2");
+    ASSERT(strstr(buffer, "Erro semântico na linha 5: A condição deve ser estritamente booleana.") != NULL,
+           "elif error should point to line 5");
+    ASSERT(strstr(buffer, "Erro semântico na linha 9: A condição deve ser estritamente booleana.") != NULL,
+           "while error should point to line 9");
+    ASSERT(strstr(buffer, "Erro semântico na linha 17: Identificador 'f' já declarado como função na linha 13.") != NULL,
+           "for error should point to line 17 and reference def at line 13");
+    ASSERT(strstr(buffer, "Erro semântico na linha 21: Função 'f' já declarada na linha 13.") != NULL,
+           "def redeclaration error should point to line 21 and reference def at line 13");
+
+    liberar_ast(prog);
+    tabela_liberar(tab);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_politica_reatribuicao_tipos(void) {
+    printf("Running test_politica_reatribuicao_tipos...\n");
+
+    TabelaSimbolos *tab = tabela_criar();
+    NoAST **comandos = malloc(4 * sizeof(NoAST *));
+    comandos[0] = criar_no_assign("mesmo_tipo", criar_no_int(10, 1), 1);
+    comandos[1] = criar_no_assign("mesmo_tipo", criar_no_int(20, 2), 2);
+    comandos[2] = criar_no_assign("float_com_int", criar_no_float(3.14, 3), 3);
+    comandos[3] = criar_no_assign("float_com_int", criar_no_int(2, 4), 4);
+    NoAST *programa_valido = criar_no_programa(comandos, 4);
+    int erros_validos = analisar_semantica(programa_valido, tab);
+    Simbolo *float_simbolo = tabela_buscar(tab, "float_com_int");
+
+    ASSERT(erros_validos == 0, "Same-type assignment and float promotion should be accepted");
+    ASSERT(float_simbolo != NULL && float_simbolo->tipo == TIPO_FLOAT,
+           "Float variable should preserve its type after receiving an int");
+    liberar_ast(programa_valido);
+    tabela_liberar(tab);
+
+    TabelaSimbolos *tab_invalido = tabela_criar();
+    NoAST **incompativeis = malloc(2 * sizeof(NoAST *));
+    incompativeis[0] = criar_no_assign("x", criar_no_int(10, 1), 1);
+    incompativeis[1] = criar_no_assign("x", criar_no_string("texto", 2), 2);
+    NoAST *programa_invalido = criar_no_programa(incompativeis, 2);
+    int erros_invalidos = analisar_semantica(programa_invalido, tab_invalido);
+
+    ASSERT(erros_invalidos == 1, "Incompatible reassignments should report one semantic error");
+    liberar_ast(programa_invalido);
+    tabela_liberar(tab_invalido);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_chamada_antes_def_e_tipo_resolvido_funcdef(void) {
+    printf("Running test_chamada_antes_def_e_tipo_resolvido_funcdef...\n");
+
+    // 1. Chamada no nível do módulo antes do def (C4) -> deve reportar 1 erro
+    TabelaSimbolos *tab1 = tabela_criar();
+    NoAST *call_g_antes = criar_no_assign("x", criar_no_funccall("g", NULL, 0, 1), 1);
+    NoAST **corpo_g = malloc(sizeof(NoAST *));
+    NoAST *ret_g = criar_no_return(criar_no_int(42, 3), 3);
+    corpo_g[0] = ret_g;
+    NoAST *def_g = criar_no_funcdef("g", NULL, 0, criar_no_bloco(corpo_g, 1), 2);
+
+    NoAST **cmds1 = malloc(2 * sizeof(NoAST *));
+    cmds1[0] = call_g_antes;
+    cmds1[1] = def_g;
+    NoAST *prog1 = criar_no_programa(cmds1, 2);
+
+    int erros1 = analisar_semantica(prog1, tab1);
+    ASSERT(erros1 == 1, "Calling a function at module level before its def must report 1 error");
+    ASSERT(def_g->tipo_resolvido == TIPO_INT, "NO_FUNCDEF tipo_resolvido should be TIPO_INT (C9)");
+    ASSERT(ret_g->tipo_resolvido == TIPO_INT, "NO_RETURN tipo_resolvido should be TIPO_INT (C9)");
+    liberar_ast(prog1);
+    tabela_liberar(tab1);
+
+    // 2. Chamada dentro de função antes do def (forward reference válida) + função void (C9)
+    TabelaSimbolos *tab2 = tabela_criar();
+    NoAST **corpo_f = malloc(sizeof(NoAST *));
+    corpo_f[0] = criar_no_return(criar_no_funccall("h", NULL, 0, 2), 2);
+    NoAST *def_f = criar_no_funcdef("f", NULL, 0, criar_no_bloco(corpo_f, 1), 1);
+
+    NoAST **corpo_h = malloc(sizeof(NoAST *));
+    NoAST *ret_h = criar_no_return(NULL, 4);
+    corpo_h[0] = ret_h;
+    NoAST *def_h = criar_no_funcdef("h", NULL, 0, criar_no_bloco(corpo_h, 1), 3);
+
+    NoAST **cmds2 = malloc(2 * sizeof(NoAST *));
+    cmds2[0] = def_f;
+    cmds2[1] = def_h;
+    NoAST *prog2 = criar_no_programa(cmds2, 2);
+
+    int erros2 = analisar_semantica(prog2, tab2);
+    ASSERT(erros2 == 0, "Forward reference inside function body must remain valid");
+    ASSERT(def_h->tipo_resolvido == TIPO_VOID, "Void NO_FUNCDEF tipo_resolvido should be TIPO_VOID");
+    ASSERT(ret_h->tipo_resolvido == TIPO_VOID, "Empty NO_RETURN tipo_resolvido should be TIPO_VOID");
+    liberar_ast(prog2);
+    tabela_liberar(tab2);
+
+    printf("  PASSED\n");
+    return 1;
+}
+
 int main(void) {
     printf("=======================================\n");
     printf(" TESTES DA ANÁLISE SEMÂNTICA\n");
@@ -199,7 +785,15 @@ int main(void) {
         test_declaracao_vs_uso(),
         test_escopos_aninhados(),
         test_inferencia_e_operacoes(),
-        test_funcoes_e_contexto()
+        test_divisao_resulta_float(),
+        test_funcoes_e_contexto(),
+        test_contagem_nao_declarada(),
+        test_contagem_argumentos_de_chamada(),
+        test_redefinicao_funcao_e_conflito(),
+        test_politica_reatribuicao_tipos(),
+        test_inferencia_parametros_e_void(),
+        test_linhas_erros_estruturas_compostas(),
+        test_chamada_antes_def_e_tipo_resolvido_funcdef()
     };
 
     int n_tests = sizeof(test_results) / sizeof(test_results[0]);
